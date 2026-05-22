@@ -18,3 +18,26 @@ body {
     radial-gradient(circle at top, rgba(255, 255, 255, 0.9), transparent 50%),
     linear-gradient(180deg, #f7f3eb 0%, #efe7da 100%);
 }
+
+a.wikilink {
+  color: #7c3aed;
+  text-decoration: none;
+  border-bottom: 1px dashed #c4b5fd;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+a.wikilink:hover {
+  color: #6d28d9;
+  border-bottom-color: #6d28d9;
+}
+
+a.wikilink.broken {
+  color: #ea580c;
+  border-bottom: 1px dashed #fdb874;
+}
+
+a.wikilink.broken:hover {
+  color: #c2410c;
+  border-bottom-color: #c2410c;
+}

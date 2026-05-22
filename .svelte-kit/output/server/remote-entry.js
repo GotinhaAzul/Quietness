@@ -3,7 +3,7 @@ import { parse } from "devalue";
 import { error, json } from "@sveltejs/kit";
 import { b as create_remote_key, D as unfriendly_hydratable, r as noop, B as stringify, M as MUTATIVE_METHODS, a as create_field_proxy, t as normalize_issue, y as set_nested_value, g as flatten_issues, d as deep_set, C as stringify_remote_arg, l as handle_error_and_jsonify, v as parse_remote_arg } from "./chunks/shared.js";
 import { ValidationError, HttpError, SvelteKitError } from "@sveltejs/kit/internal";
-import { B as BROWSER } from "./chunks/false.js";
+import { B as BROWSER } from "./chunks/render-context.js";
 import { c as base, a as app_dir, p as prerendering } from "./chunks/environment.js";
 function create_validator(validate_or_fn, maybe_fn) {
   if (!maybe_fn) {

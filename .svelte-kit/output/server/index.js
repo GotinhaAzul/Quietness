@@ -1,13 +1,14 @@
 import { E as ENDPOINT_METHODS, P as PAGE_METHODS, q as negotiate, p as method_not_allowed, l as handle_error_and_jsonify, k as get_status, o as is_form_content_type, s as normalize_error, i as get_global_name, x as serialize_uses, c as clarify_devalue_error, j as get_node_type, r as noop, f as escape_html, S as SVELTE_KIT_ASSETS, b as create_remote_key, A as static_error_page, w as redirect_response, v as parse_remote_arg, B as stringify, e as deserialize_binary_form, z as split_remote_key, u as once, n as has_prerendered_path, T as TRAILING_SLASH_PARAM, I as INVALIDATED_PARAM, m as handle_fatal_error, h as format_server_error } from "./chunks/shared.js";
-import { B as BROWSER } from "./chunks/false.js";
+import { B as BROWSER } from "./chunks/render-context.js";
 import { json, text, isRedirect, error } from "@sveltejs/kit";
 import { Redirect, SvelteKitError, ActionFailure, HttpError } from "@sveltejs/kit/internal";
 import { with_request_store, merge_tracing, try_get_request_store } from "@sveltejs/kit/internal/server";
 import { b as assets, c as base, a as app_dir, r as relative, o as override, d as reset } from "./chunks/environment.js";
 import * as devalue from "devalue";
-import { m as make_trackable, b as disable_search, d as decode_params, S as SCHEME, w as writable, r as readable, e as validate_layout_server_exports, v as validate_layout_exports, g as validate_page_server_exports, f as validate_page_exports, n as normalize_path, c as resolve, a as decode_pathname, h as validate_server_exports } from "./chunks/exports.js";
+import { m as make_trackable, b as disable_search, d as decode_params, S as SCHEME, c as validate_layout_server_exports, v as validate_layout_exports, f as validate_page_server_exports, e as validate_page_exports, n as normalize_path, r as resolve, a as decode_pathname, g as validate_server_exports } from "./chunks/exports.js";
 import { a as base64_encode, t as text_encoder, g as get_relative_path } from "./chunks/utils.js";
 import "clsx";
+import { r as readable, w as writable } from "./chunks/index.js";
 import { p as public_env, r as read_implementation, o as options, a as set_private_env, b as set_public_env, g as get_hooks, c as set_read_implementation } from "./chunks/internal.js";
 import { parse, serialize } from "cookie";
 import * as set_cookie_parser from "set-cookie-parser";
