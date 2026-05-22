@@ -8,6 +8,7 @@
   import { loadFolders } from '$lib/stores/folders';
   import { viewMode, type ViewMode } from '$lib/stores/editor';
   import { settings } from '$lib/stores/settings';
+  import { userThemes } from '$lib/stores/userThemes';
   import { FONT_STACKS } from '$lib/utils/fonts';
 
   const modes: { value: ViewMode; label: string }[] = [
@@ -20,13 +21,20 @@
   let isDeleting = $state(false);
   let showSettings = $state(false);
   let appReady = $state(false);
+  let unsavedChanges = $state(false);
 
   onMount(() => {
     loadNotes();
     loadFolders();
-    settings.load().then(() => { appReady = true; });
+    settings.load().then(async () => {
+      await userThemes.load();
+      appReady = true;
+    });
 
-    const handleBeforeUnload = () => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (unsavedChanges) {
+        event.preventDefault();
+      }
       if (saveTimeout) {
         clearTimeout(saveTimeout);
       }
@@ -49,8 +57,26 @@
     if (!appReady) return;
     const s = $settings;
     const root = document.documentElement;
+    const isUser = s.theme.startsWith('user-');
 
     root.className = `theme-${s.theme}`;
+
+    const existing = document.querySelector('style[data-user-theme]');
+    if (isUser) {
+      const css = userThemes.getCss(s.theme);
+      if (css) {
+        if (existing) {
+          existing.textContent = css;
+        } else {
+          const el = document.createElement('style');
+          el.setAttribute('data-user-theme', '');
+          el.textContent = css;
+          document.head.appendChild(el);
+        }
+      }
+    } else if (existing) {
+      existing.remove();
+    }
 
     root.style.setProperty('--q-font-ui', FONT_STACKS[s.fonts.ui] ?? FONT_STACKS['Inter']);
     root.style.setProperty('--q-font-editor', FONT_STACKS[s.fonts.editor] ?? FONT_STACKS['JetBrains Mono']);
@@ -64,12 +90,14 @@
   function handleContentChange(value: string) {
     if (!$currentNote) return;
     $currentNote = { ...$currentNote, content: value };
+    unsavedChanges = true;
 
     if (saveTimeout) {
       clearTimeout(saveTimeout);
     }
     saveTimeout = setTimeout(async () => {
       await saveCurrentNote();
+      unsavedChanges = false;
     }, 800);
   }
 
@@ -78,6 +106,7 @@
       clearTimeout(saveTimeout);
     }
     await saveCurrentNote();
+    unsavedChanges = false;
   }
 
   async function handleDelete() {

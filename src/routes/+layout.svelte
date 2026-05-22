@@ -1,5 +1,6 @@
 <script lang="ts">
   import '../app.css';
+  import '$lib/themes/quiet-light.css';
   import '$lib/themes/quiet-dark.css';
   import '$lib/themes/catppuccin-latte.css';
   import '$lib/themes/catppuccin-mocha.css';

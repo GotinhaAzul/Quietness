@@ -60,7 +60,7 @@
           placeholder="Note name..."
           bind:value={newNoteName}
           onkeydown={handleKeydown}
-          class="w-full rounded-md border border-quiet-border bg-white/80 px-2.5 py-1.5 text-xs text-quiet-text placeholder-quiet-faded outline-none transition-colors focus:border-quiet-accent/50"
+          class="w-full rounded-md border border-quiet-border bg-quiet-surface px-2.5 py-1.5 text-xs text-quiet-text placeholder-quiet-faded outline-none transition-colors focus:border-quiet-accent/50"
         />
       </div>
     {/if}

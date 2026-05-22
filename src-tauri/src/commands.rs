@@ -1,5 +1,5 @@
 use tauri::AppHandle;
-use crate::fs::{self, FolderEntry, NoteEntry, Settings};
+use crate::fs::{self, FolderEntry, NoteEntry, Settings, UserThemeEntry};
 
 #[tauri::command]
 pub fn list_notes(app_handle: AppHandle) -> Vec<NoteEntry> {
@@ -51,4 +51,14 @@ pub fn load_settings(app_handle: AppHandle) -> Settings {
 #[tauri::command]
 pub fn save_settings(app_handle: AppHandle, settings: Settings) -> Result<(), String> {
     fs::save_settings(&app_handle, &settings)
+}
+
+#[tauri::command]
+pub fn list_user_themes(app_handle: AppHandle) -> Vec<UserThemeEntry> {
+    fs::list_user_themes(&app_handle)
+}
+
+#[tauri::command]
+pub fn read_user_theme_css(app_handle: AppHandle, id: String) -> Result<String, String> {
+    fs::read_user_theme_css(&app_handle, &id)
 }

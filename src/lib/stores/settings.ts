@@ -1,6 +1,7 @@
 import { writable, type Writable } from 'svelte/store';
 import { invoke } from '@tauri-apps/api/core';
 import type { Settings } from '$lib/types/settings';
+import { showError } from '$lib/stores/notes';
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: 'quiet',
@@ -32,7 +33,7 @@ function createSettingsStore() {
     if (saveTimeout) clearTimeout(saveTimeout);
     saveTimeout = setTimeout(() => {
       invoke('save_settings', { settings }).catch((e) => {
-        console.error('Failed to save settings:', e);
+        showError(`Failed to save settings: ${e}`);
       });
     }, 300);
   }
@@ -57,7 +58,7 @@ function createSettingsStore() {
           set({ ...DEFAULT_SETTINGS, ...saved });
         }
       } catch (e) {
-        console.error('Failed to load settings:', e);
+        showError(`Failed to load settings: ${e}`);
       } finally {
         ready = true;
       }

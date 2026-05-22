@@ -13,21 +13,17 @@ quietness/
 │   │   │   ├── FolderTree.svelte       # Árvore de pastas na sidebar
 │   │   │   ├── NoteEditor.svelte       # Editor CodeMirror 6
 │   │   │   ├── NotePreview.svelte      # Preview Markdown renderizado
-│   │   │   ├── NoteTitle.svelte        # Título/editável da nota
 │   │   │   └── SearchBar.svelte        # Busca na sidebar
 │   │   ├── stores/               # Stores Svelte (estado global)
 │   │   │   ├── notes.ts          # Estado das notas
 │   │   │   ├── folders.ts        # Estado das pastas
-│   │   │   ├── editor.ts         # Estado do editor (nota ativa, cursor, etc.)
-│   │   │   └── ui.ts             # Estado da interface (sidebar collapsada, etc.)
+│   │   │   ├── settings.ts       # Estado das configurações
+│   │   │   ├── ui.ts             # Estado da interface (sidebar collapsada, etc.)
+│   │   │   └── userThemes.ts     # Temas customizados do usuário
 │   │   ├── utils/                # Funções utilitárias
 │   │   │   ├── markdown.ts       # Configuração do markdown-it
-│   │   │   ├── wikilinks.ts      # Parse/resolve de links [[]]
-│   │   │   ├── filesystem.ts     # Chamadas Tauri para ler/escrever arquivos
-│   │   │   └── parser.ts         # Parse de frontmatter / metadados
+│   │   │   └── wikilinks.ts      # Parse/resolve de links [[]]
 │   │   └── types/                # Tipos TypeScript
-│   │       ├── note.ts           # Interface Note, Folder
-│   │       └── settings.ts       # Interface de configurações
 │   ├── routes/                   # Rotas SvelteKit
 │   │   └── +page.svelte          # Página principal
 │   ├── app.html                  # HTML template
@@ -58,8 +54,8 @@ quietness/
 |-----------|---------|
 | `src/lib/components/` | Componentes Svelte reutilizáveis da interface |
 | `src/lib/stores/` | Stores Svelte reativas para estado global |
-| `src/lib/utils/` | Utilitários (Markdown, wikilinks, filesystem) |
-| `src/lib/types/` | Interfaces TypeScript compartilhadas |
+| `src/lib/utils/` | Utilitários (Markdown, wikilinks) |
+| `src/lib/types/` | Tipos TypeScript (inline nos stores) |
 | `src/routes/` | Rotas e páginas da aplicação SvelteKit |
 | `src-tauri/src/` | Código Rust do backend Tauri |
 | `static/icons/` | Ícones e assets do aplicativo |

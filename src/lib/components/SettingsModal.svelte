@@ -1,10 +1,17 @@
 <script lang="ts">
   import { settings } from '$lib/stores/settings';
+  import { userThemes } from '$lib/stores/userThemes';
   import { UI_FONTS, EDITOR_FONTS, PREVIEW_FONTS, AVAILABLE_THEMES, FONT_STACKS } from '$lib/utils/fonts';
 
   let { open = false, onclose }: { open?: boolean; onclose?: () => void } = $props();
 
   let activeTab = $state<'theme' | 'fonts' | 'editor'>('theme');
+
+  $effect(() => {
+    if (open) {
+      userThemes.load();
+    }
+  });
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape') onclose?.();
@@ -62,29 +69,59 @@
       <!-- Tab content -->
       <div class="flex-1 overflow-y-auto p-6">
         {#if activeTab === 'theme'}
-          <div class="grid grid-cols-3 gap-3">
-            {#each AVAILABLE_THEMES as theme}
-              {@const active = $settings.theme === theme.id}
-              {@const c = theme.colors}
-              <button
-                class="rounded-lg border-2 p-4 text-left transition-all {active
-                  ? 'border-quiet-accent ring-1 ring-quiet-accent/30'
-                  : 'border-quiet-border/60 hover:border-quiet-border hover:bg-quiet-hover'}"
-                onclick={() => settings.update(s => ({ ...s, theme: theme.id }))}
-              >
-                <!-- Color swatches -->
-                <div class="mb-3 flex gap-1">
-                  <span class="h-5 w-5 rounded-full border border-quiet-border/50" style="background: {c.bg}" title="Background"></span>
-                  <span class="h-5 w-5 rounded-full border border-quiet-border/50" style="background: {c.surface}" title="Surface"></span>
-                  <span class="h-5 w-5 rounded-full border border-quiet-border/50" style="background: {c.text}" title="Text"></span>
-                  <span class="h-5 w-5 rounded-full border border-quiet-border/50" style="background: {c.accent}" title="Accent"></span>
-                  <span class="h-5 w-5 rounded-full border border-quiet-border/50" style="background: {c.muted}" title="Muted"></span>
-                </div>
-                <div class="text-xs font-medium text-quiet-text">{theme.name}</div>
-                <div class="mt-0.5 text-[11px] text-quiet-faded">{theme.description}</div>
-              </button>
-            {/each}
+          <div class="mb-6">
+            <h3 class="mb-3 text-[11px] font-medium uppercase tracking-wider text-quiet-faded">Built-in Themes</h3>
+            <div class="grid grid-cols-3 gap-3">
+              {#each AVAILABLE_THEMES as theme}
+                {@const active = $settings.theme === theme.id}
+                {@const c = theme.colors}
+                <button
+                  class="rounded-lg border-2 p-4 text-left transition-all {active
+                    ? 'border-quiet-accent ring-1 ring-quiet-accent/30'
+                    : 'border-quiet-border/60 hover:border-quiet-border hover:bg-quiet-hover'}"
+                  onclick={() => settings.update(s => ({ ...s, theme: theme.id }))}
+                >
+                  <div class="mb-3 flex gap-1">
+                    <span class="h-5 w-5 rounded-full border border-quiet-border/50" style="background: {c.bg}" title="Background"></span>
+                    <span class="h-5 w-5 rounded-full border border-quiet-border/50" style="background: {c.surface}" title="Surface"></span>
+                    <span class="h-5 w-5 rounded-full border border-quiet-border/50" style="background: {c.text}" title="Text"></span>
+                    <span class="h-5 w-5 rounded-full border border-quiet-border/50" style="background: {c.accent}" title="Accent"></span>
+                    <span class="h-5 w-5 rounded-full border border-quiet-border/50" style="background: {c.muted}" title="Muted"></span>
+                  </div>
+                  <div class="text-xs font-medium text-quiet-text">{theme.name}</div>
+                  <div class="mt-0.5 text-[11px] text-quiet-faded">{theme.description}</div>
+                </button>
+              {/each}
+            </div>
           </div>
+          {#if $userThemes.list.length > 0}
+            <div>
+              <h3 class="mb-3 text-[11px] font-medium uppercase tracking-wider text-quiet-faded">User Themes</h3>
+              <div class="grid grid-cols-3 gap-3">
+                {#each $userThemes.list as theme}
+                  {@const active = $settings.theme === theme.id}
+                  <button
+                    class="rounded-lg border-2 p-4 text-left transition-all {active
+                      ? 'border-quiet-accent ring-1 ring-quiet-accent/30'
+                      : 'border-quiet-border/60 hover:border-quiet-border hover:bg-quiet-hover'}"
+                    onclick={() => settings.update(s => ({ ...s, theme: theme.id }))}
+                  >
+                    <div class="mb-2 flex h-10 items-center justify-center rounded bg-quiet-surface/50">
+                      <svg class="h-5 w-5 text-quiet-muted" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" />
+                      </svg>
+                    </div>
+                    <div class="text-xs font-medium text-quiet-text">{theme.name}</div>
+                    <div class="mt-0.5 text-[11px] text-quiet-faded">Custom theme</div>
+                  </button>
+                {/each}
+              </div>
+            </div>
+          {:else}
+            <div class="rounded-lg border border-dashed border-quiet-border/60 p-6 text-center">
+              <p class="text-xs text-quiet-faded">Place <code class="rounded bg-quiet-surface px-1 py-0.5 text-[11px]">.css</code> files in the <code class="rounded bg-quiet-surface px-1 py-0.5 text-[11px]">_themes/</code> folder inside your notes directory to see them here.</p>
+            </div>
+          {/if}
 
         {:else if activeTab === 'fonts'}
           <div class="space-y-6">
@@ -94,15 +131,15 @@
               <div class="flex items-center gap-4">
                 <select
                   aria-labelledby="font-ui-label"
-                  class="flex-1 rounded-md border border-quiet-border/70 bg-white/70 px-3 py-1.5 text-xs text-quiet-text outline-none transition-colors focus:border-quiet-accent/40 focus:bg-white focus:ring-1 focus:ring-quiet-accent/20"
-                  value={$settings.fonts.ui}
-                  onchange={(e) => {
-                    const val = (e.target as HTMLSelectElement).value;
-                    settings.update(s => ({ ...s, fonts: { ...s.fonts, ui: val } }));
-                  }}
-                >
-                  {#each UI_FONTS as font}
-                    <option value={font}>{font}</option>
+                   class="flex-1 rounded-md border border-quiet-border/70 bg-quiet-surface/60 px-3 py-1.5 text-xs text-quiet-text outline-none transition-colors focus:border-quiet-accent/40 focus:bg-quiet-surface focus:ring-1 focus:ring-quiet-accent/20"
+                   value={$settings.fonts.ui}
+                   onchange={(e) => {
+                     const val = (e.target as HTMLSelectElement).value;
+                     settings.update(s => ({ ...s, fonts: { ...s.fonts, ui: val } }));
+                   }}
+                 >
+                   {#each UI_FONTS as font}
+                     <option value={font}>{font}</option>
                   {/each}
                 </select>
                 <div class="flex w-24 items-center gap-2">
@@ -129,8 +166,8 @@
               <div class="flex items-center gap-4">
                  <select
                    aria-labelledby="font-editor-label"
-                   class="flex-1 rounded-md border border-quiet-border/70 bg-white/70 px-3 py-1.5 text-xs text-quiet-text outline-none transition-colors focus:border-quiet-accent/40 focus:bg-white focus:ring-1 focus:ring-quiet-accent/20"
-                   value={$settings.fonts.editor}
+                    class="flex-1 rounded-md border border-quiet-border/70 bg-quiet-surface/60 px-3 py-1.5 text-xs text-quiet-text outline-none transition-colors focus:border-quiet-accent/40 focus:bg-quiet-surface focus:ring-1 focus:ring-quiet-accent/20"
+                    value={$settings.fonts.editor}
                   onchange={(e) => {
                     const val = (e.target as HTMLSelectElement).value;
                     settings.update(s => ({ ...s, fonts: { ...s.fonts, editor: val } }));
@@ -165,8 +202,8 @@
               <div class="flex items-center gap-4">
                  <select
                    aria-labelledby="font-preview-label"
-                   class="flex-1 rounded-md border border-quiet-border/70 bg-white/70 px-3 py-1.5 text-xs text-quiet-text outline-none transition-colors focus:border-quiet-accent/40 focus:bg-white focus:ring-1 focus:ring-quiet-accent/20"
-                   value={$settings.fonts.preview}
+                    class="flex-1 rounded-md border border-quiet-border/70 bg-quiet-surface/60 px-3 py-1.5 text-xs text-quiet-text outline-none transition-colors focus:border-quiet-accent/40 focus:bg-quiet-surface focus:ring-1 focus:ring-quiet-accent/20"
+                    value={$settings.fonts.preview}
                   onchange={(e) => {
                     const val = (e.target as HTMLSelectElement).value;
                     settings.update(s => ({ ...s, fonts: { ...s.fonts, preview: val } }));

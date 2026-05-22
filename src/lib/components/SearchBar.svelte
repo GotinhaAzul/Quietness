@@ -29,6 +29,6 @@
     bind:value={query}
     oninput={handleInput}
     onkeydown={handleKeydown}
-    class="w-full rounded-md border border-quiet-border/70 bg-white/70 py-1.5 pl-9 pr-3 text-xs text-quiet-text placeholder-quiet-faded outline-none transition-colors focus:border-quiet-accent/40 focus:bg-white focus:ring-1 focus:ring-quiet-accent/20"
+    class="w-full rounded-md border border-quiet-border/70 bg-quiet-surface/60 py-1.5 pl-9 pr-3 text-xs text-quiet-text placeholder-quiet-faded outline-none transition-colors focus:border-quiet-accent/40 focus:bg-quiet-surface focus:ring-1 focus:ring-quiet-accent/20"
   />
 </div>

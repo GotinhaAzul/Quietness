@@ -1,5 +1,6 @@
 import { writable, type Writable } from 'svelte/store';
 import { invoke } from '@tauri-apps/api/core';
+import { showError } from '$lib/stores/notes';
 
 export interface FolderEntry {
   name: string;
@@ -14,6 +15,6 @@ export async function loadFolders(): Promise<void> {
     const entries = await invoke<FolderEntry[]>('list_folders');
     folders.set(entries);
   } catch (e) {
-    console.error('Failed to load folders:', e);
+    showError(`Failed to load folders: ${e}`);
   }
 }

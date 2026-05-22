@@ -70,8 +70,11 @@ pub fn is_safe_path(app_handle: &AppHandle, path: &str) -> bool {
         base.join(target)
     };
 
+    let canon_base = std::fs::canonicalize(&base).unwrap_or(base.clone());
+    let canon_target = std::fs::canonicalize(&abs_target).unwrap_or(abs_target.clone());
+
     let mut normalized = std::path::PathBuf::new();
-    for component in abs_target.components() {
+    for component in canon_target.components() {
         match component {
             std::path::Component::ParentDir => {
                 normalized.pop();
@@ -86,7 +89,7 @@ pub fn is_safe_path(app_handle: &AppHandle, path: &str) -> bool {
         }
     }
 
-    normalized.starts_with(&base)
+    normalized.starts_with(&canon_base)
 }
 
 pub fn delete_note(app_handle: &AppHandle, path: &str) -> Result<(), String> {
@@ -216,6 +219,65 @@ pub fn list_notes_in_folder(app_handle: &AppHandle, folder_path: &str) -> Vec<No
     }
     notes.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
     notes
+}
+
+// ── User themes ──
+
+#[derive(Debug, Serialize)]
+pub struct UserThemeEntry {
+    pub id: String,
+    pub name: String,
+}
+
+fn user_themes_dir(app_handle: &AppHandle) -> PathBuf {
+    let dir = notes_dir(app_handle).join("_themes");
+    if !dir.exists() {
+        let _ = fs::create_dir_all(&dir);
+    }
+    dir
+}
+
+pub fn list_user_themes(app_handle: &AppHandle) -> Vec<UserThemeEntry> {
+    let dir = user_themes_dir(app_handle);
+    let mut themes = Vec::new();
+    if let Ok(entries) = fs::read_dir(&dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_file() && path.extension().map_or(false, |ext| ext == "css") {
+                let stem = path.file_stem().unwrap_or_default().to_string_lossy().to_string();
+                themes.push(UserThemeEntry {
+                    id: format!("user-{}", stem),
+                    name: stem.replace('-', " ").replace('_', " "),
+                });
+            }
+        }
+    }
+    themes.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    themes
+}
+
+pub fn read_user_theme_css(app_handle: &AppHandle, id: &str) -> Result<String, String> {
+    let dir = user_themes_dir(app_handle);
+    let name = id.strip_prefix("user-").unwrap_or(id);
+    let path = dir.join(format!("{}.css", name));
+    let normalized = path
+        .components()
+        .fold(PathBuf::new(), |acc, c| match c {
+            std::path::Component::ParentDir => {
+                let mut a = acc;
+                a.pop();
+                a
+            }
+            std::path::Component::Normal(c) => acc.join(c),
+            std::path::Component::RootDir | std::path::Component::Prefix(_) => {
+                PathBuf::from(c.as_os_str())
+            }
+            std::path::Component::CurDir => acc,
+        });
+    if !normalized.starts_with(&dir) {
+        return Err("Access denied".to_string());
+    }
+    fs::read_to_string(path).map_err(|e| e.to_string())
 }
 
 // ── Settings ──

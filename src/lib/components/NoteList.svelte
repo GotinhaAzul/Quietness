@@ -3,10 +3,11 @@
   import { invoke } from '@tauri-apps/api/core';
   import { selectedFolder } from '$lib/stores/folders';
   import { searchQuery } from '$lib/stores/ui';
-  import { currentNote, loadNote, deleteNote, noteListChanged, type NoteEntry } from '$lib/stores/notes';
+  import { currentNote, loadNote, deleteNote, noteListChanged, showError, type NoteEntry } from '$lib/stores/notes';
 
   let noteEntries = $state<NoteEntry[]>([]);
   let loading = $state(false);
+  let requestId = 0;
 
   onMount(() => {
     loadNoteList();
@@ -20,19 +21,22 @@
   });
 
   async function loadNoteList() {
+    const currentRequest = ++requestId;
     loading = true;
     try {
       const query = $searchQuery;
       if (query) {
         const entries = await invoke<NoteEntry[]>('search_notes', { query });
+        if (currentRequest !== requestId) return;
         noteEntries = entries;
       } else {
         const folderPath = $selectedFolder ?? '';
         const entries = await invoke<NoteEntry[]>('list_notes_in_folder', { folderPath });
+        if (currentRequest !== requestId) return;
         noteEntries = entries;
       }
     } catch (e) {
-      console.error('Failed to load notes:', e);
+      showError(`Failed to load notes: ${e}`);
       noteEntries = [];
     } finally {
       loading = false;

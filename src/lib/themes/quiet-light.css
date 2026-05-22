@@ -1,0 +1,16 @@
+:root.theme-quiet-light,
+:root.theme-quiet {
+  --q-bg: #f8f5f0;
+  --q-surface: #f2eee8;
+  --q-border: #e5dfd6;
+  --q-border-light: #eee9e1;
+  --q-text: #2a2724;
+  --q-muted: #7d7570;
+  --q-faded: #a69e96;
+  --q-accent: #6b615a;
+  --q-hover: #eae5dd;
+  --q-active: #e0dad1;
+  --q-danger: #bf4a4a;
+  --q-danger-bg: #fcf1f1;
+  color-scheme: light;
+}

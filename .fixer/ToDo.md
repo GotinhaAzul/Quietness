@@ -1,62 +1,36 @@
-# ToDo - Quietness
+# ToDo — Quietness V2
 
-> Project task management. Update as progress is made.
+> Fase de refinamento: estabilidade, performance e qualidade de vida.
+> Tasks organizadas por grupo. Marque `[x]` ao concluir.
 
----
+## Group 1 — Estabilidade
 
-## ✅ Concluído — Foundation to Polish
+- [x] `T01` **Fix content sync loop** — Add guard variable in NoteEditor `$effect` (88-94) to prevent document replacement when change originated from editor itself. Completion: content sync loop eliminated; typing does not reset cursor position.
+- [x] `T02` **Hardened `is_safe_path`** — Resolve symlinks and UNC paths via `std::fs::canonicalize` before sandbox comparison in `fs.rs:63-90`. Completion: path traversal via symlinks and `\\?\` is blocked.
+- [x] `T03` **Stale-request cancellation** — Add abort controller or incrementing counter in NoteList `$effect` (15-20) to discard outdated backend responses. Completion: rapid folder/search switches always show correct final result.
+- [x] `T04` **User-facing error handling** — Replace `console.error` with `showError` in `folders.ts`, `settings.ts`, `userThemes.ts`, `NoteList.svelte`. Completion: all silent failures surface as visible error toasts.
+- [x] `T05` **Fix startup race condition** — Await `userThemes.load()` before setting `appReady` in `+page.svelte:28-29`. Completion: user theme CSS injection is reliable on first load.
+- [x] `T06` **beforeunload await + unsaved warning** — Await `saveCurrentNote()` in beforeunload handler; add `event.preventDefault()` to warn user if unsaved changes exist. Completion: data loss on window close is prevented.
+- [x] `T07` **Empty catch blocks** — Add logging to empty `catch {}` in `userThemes.ts:36,40-42`. Completion: errors from user theme loading are visible in console/logs.
 
-### Group 1 - Foundation
+## Group 2 — Performance
 
-- [x] `T01` **Project scaffold** - Initialize Tauri + SvelteKit project, configure Tailwind CSS and TypeScript. *Criteria: `npm run dev` opens a window with Tailwind styles applied.*
-- [x] `T02` **CodeMirror 6 integration** - Add CodeMirror editor to `NoteEditor.svelte` with Markdown syntax highlighting and basic keybindings. *Criteria: editor renders and accepts typed Markdown text.*
-- [x] `T03` **markdown-it renderer** - Configure markdown-it in `utils/markdown.ts` with heading, bold, italic support. *Criteria: sample Markdown renders to HTML correctly.*
+- [ ] `T08` **Search optimization** — Move `search_notes` content reads to background thread (`tokio::spawn_blocking`); add in-memory filename index. Completion: search does not block UI thread; repeated searches are sub-second with index.
+- [ ] `T09` **Settings effect compartment split** — Only reconfigure CodeMirror compartments when editor-specific settings change (gutters, wordWrap, tabSize) in `NoteEditor.svelte:76-86`. Completion: theme slider drag does not re-trigger editor configuration.
+- [ ] `T10` **Markdown rendering memoization** — Cache `renderMarkdown()` output by content hash in `markdown.ts`. Completion: re-renders with unchanged content skip markdown-it parse.
 
-### Group 2 - Filesystem & Data Layer
+## Group 3 — Qualidade de Vida
 
-- [x] `T04` **Tauri filesystem commands** - Implement Rust commands in `commands.rs` to list, read, and write `.md` files in a notes directory. *Criteria: frontend can call Tauri commands and see file contents.*
-- [x] `T05` **Notes store** - Create Svelte store (`stores/notes.ts`) that loads notes from filesystem and maintains in-memory state. *Criteria: store reacts to file changes and updates UI.*
-
-### Group 3 - Navigation (Sidebar)
-
-- [x] `T06` **Folder tree component** - Create `FolderTree.svelte` that reads folder structure and displays collapsible tree. *Criteria: folders shown in sidebar with expand/collapse.*
-- [x] `T07` **Note list component** - Create `NoteList.svelte` showing notes in selected folder. *Criteria: clicking a folder shows its notes, clicking a note opens it in editor.*
-- [x] `T08` **Sidebar layout** - Create `Sidebar.svelte` assembling folder tree + note list + search bar. *Criteria: sidebar renders with all sub-components.*
-
-### Group 4 - Editor & Preview
-
-- [x] `T09` **Note editor with live preview** - Wire CodeMirror editor to markdown-it preview toggle/split view. *Criteria: typing Markdown shows rendered preview alongside or below.*
-- [x] `T10` **Wikilinks `[[]]` support** - Parse `[[wikilink]]` syntax in markdown-it plugin and link to existing notes. *Criteria: clicking a wikilink navigates to the target note.*
-- [x] `T11` **Note creation and deletion** - Add "New note", "Delete note" actions in sidebar/editor. *Criteria: creating a note adds `.md` file, deleting removes it.*
-
-### Group 5 - Polish & Quietness
-
-- [x] `T12` **Minimalist theme** - Design a quiet, minimal Tailwind theme: muted colors, ample whitespace, no visual noise. *Criteria: theme applied and visually consistent across editor and sidebar.*
-- [x] `T13` **Search/filter notes** - Add search bar that filters notes by title and content. *Criteria: typing in search bar filters note list in real time.*
-- [x] `T14` **App icon and window config** - Configure Tauri window (title, size, decorations) and add app icon. *Criteria: window opens with correct title and icon.*
-
----
-
-## 📋 Próximas tarefas — Temas & Customização
-
-### Group 6 - Architecture & Theming System
-
-- [x] `T15` **CSS Variables architecture** - Refactor `app.css` to use CSS custom properties throughout. Map `@theme` tokens to variables so themes can override by class (`.theme-everforest`, etc.). *Criteria: switching a class on `<html>` changes all colors in the app; Tailwind utility classes respond to the change.*
-
-- [x] `T16` **Settings store + persistência** - Create `stores/settings.ts` with writable store for all user preferences (theme, fonts, sizes). Add Rust commands `save_settings` / `load_settings` that read/write `settings.json` in the notes directory. Wire auto-save on preference change. *Criteria: changing a setting persists across app restarts.*
-
-### Group 7 - Settings UI
-
-- [x] `T17` **Settings modal** - Add a settings button in the toolbar that opens a modal with tabs: Theme (cards with live preview), Fonts (family + size pickers), Editor (line numbers, word wrap, tab size). All changes apply in real time. *Criteria: user can open settings, switch theme, change font, close settings — and the UI reflects the new choices instantly.*
-
-### Group 8 - Built-in Themes
-
-- [x] `T18` **5+ built-in themes** - Create CSS files in `src/lib/themes/` for: Quiet Light (default), Quiet Dark, Catppuccin (Latte + Mocha), Everforest (Day + Night), GitHub (Light + Dark), Nord. Each defines `:root.theme-<name> { --color-*: ... }` overrides. *Criteria: all themes appear in the settings selector; switching between them changes colors across the entire app.*
-
-### Group 9 - Font Customization
-
-- [x] `T19` **Font customization** - Add font selectors in settings for UI (Inter, System, Atkinson), Editor (JetBrains Mono, Fira Code, Cascadia, monospace), Preview (Inter, Lora, Source Serif, Georgia). Size sliders (12–24px) for each. Apply via `--font-*` CSS variables. *Criteria: changing font/size in settings immediately updates the corresponding text in the app.*
-
-### Group 10 - User Themes
-
-- [ ] `T20` **User themes folder** - Watch a `_themes/` directory inside the notes folder. Any `.css` file placed there appears in the theme selector. Selected user theme is injected into the page. *Criteria: dropping a valid `.css` theme file into `_themes/` makes it selectable; selecting it applies the custom colors.*
+- [ ] `T11` **Global keyboard shortcuts** — Register shortcuts in `+page.svelte` or dedicated utility: `Ctrl+S` save, `Ctrl+N` new note, `Ctrl+,` settings, `Ctrl+Shift+F` focus search, `Ctrl+Shift+E/S/P` toggle edit/split/preview. Completion: all listed shortcuts work app-wide.
+- [ ] `T12` **Note rename** — Add rename action in NoteList (context/hover) + new Tauri `rename_note` command in `fs.rs`. Completion: user can rename notes from the UI; filesystem is updated accordingly.
+- [ ] `T13` **Sidebar collapse toggle** — Add collapse/expand button in Sidebar; toggle via `ui.ts` store. Completion: sidebar can be hidden to give more writing space.
+- [ ] `T14` **Save status indicator** — Show "Saving…" / "Saved" / "Unsaved" state in the top bar of `+page.svelte`. Completion: user always knows persist state of current note.
+- [ ] `T15` **Search feedback** — Show result count ("X notes found") in SearchBar; consider dropdown for results. Completion: user sees whether search matched anything and how many results.
+- [ ] `T16` **Auto-focus new note input** — Use `bind:this` + `.focus()` when `showNewNoteInput` becomes true in Sidebar. Completion: clicking "+ New" immediately focuses the input.
+- [ ] `T17` **Focus trap in SettingsModal** — Trap Tab focus within the modal when open. Completion: Tab cycling does not escape to elements behind the overlay.
+- [ ] `T18` **Error toast dismiss + stacking** — Add dismiss button to error toasts; stack multiple errors instead of replacing. Completion: multiple errors are visible simultaneously; users can dismiss individually.
+- [ ] `T19` **Undo history across note switches** — Save CM6 history per note path; restore when switching back. Completion: switching away from a note and back preserves undo stack.
+- [ ] `T20` **Inline title editing** — Editable title field at top of NoteEditor that renames the note file on change. Completion: user can click the note title in the editor area, edit it, and the file is renamed accordingly.
+- [ ] `T21` **Settings always accessible** — Gear button visible on welcome/empty state, not only when a note is open. Completion: settings can be opened regardless of whether a note is active.
+- [ ] `T22` **Code format rendering** — Add CSS styling for inline code (`code`) and fenced code blocks (```) in NotePreview; ensure markdown-it renders them correctly. Completion: code formatting displays with proper monospace font, background, and syntax styling in preview.
+- [ ] - [ ] `T23` **Search by keyword with scope filter** — Add keyword search input with scope filter (current note / current folder / all notes). Current note scope searches within the open note's content; current folder scopes to notes in the active folder; all notes searches the entire vault. Show matches inline or in results dropdown. Completion: user can search by keyword and choose where to search.
