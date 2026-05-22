@@ -138,17 +138,21 @@ fn list_folders_recursive(base: &PathBuf, current: &PathBuf, folders: &mut Vec<F
         for entry in entries.flatten() {
             let path = entry.path();
             if path.is_dir() {
+                let name = path
+                    .file_name()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .to_string();
+                if name.starts_with('_') {
+                    continue;
+                }
                 let relative = path
                     .strip_prefix(base)
                     .unwrap_or(&path)
                     .to_string_lossy()
                     .to_string();
                 folders.push(FolderEntry {
-                    name: path
-                        .file_name()
-                        .unwrap_or_default()
-                        .to_string_lossy()
-                        .to_string(),
+                    name,
                     path: relative,
                 });
                 list_folders_recursive(base, &path, folders);
