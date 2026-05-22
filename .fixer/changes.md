@@ -112,3 +112,11 @@
 - **Alternatives considered:** Auto-saving continuously without debouncing (rejected due to excessive Tauri calls).
 - **Expected impact:** Safe filesystem access, complete prevention of note overwriting/traversal, zero data loss on editor switches, and accessible case-insensitive wikilinks.
 - **Authorization:** User.
+
+## T12 Minimalist Theme
+- **Date:** 2026-05-22
+- **Description:** Designed a cohesive, minimalist "quiet" color palette using Tailwind v4 `@theme` in `app.css`. Replaced all `stone-*` utility classes across the app with custom `quiet-*` theme tokens. Muted warm colors (`#f8f5f0` bg, `#2a2724` text, `#7d7570` muted), softer borders, ample whitespace in sidebar padding, and simplified background (removed gradient/noise). Added `.preview-content` CSS for rendered Markdown preview since `@tailwindcss/typography` was not installed.
+- **Reason:** Complete T12 — provide a quiet, minimal visual theme that is consistent across all components.
+- **Alternatives considered:** Keeping stone palette (rejected — custom theme creates a unique, cohesive identity).
+- **Expected impact:** `npm run build` succeeds. The app renders with muted warm colors, ample whitespace, and no visual noise, consistently across sidebar, editor, and preview.
+- **Authorization:** User.

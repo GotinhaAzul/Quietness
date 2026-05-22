@@ -63,18 +63,13 @@ fn list_notes_recursive(dir: &PathBuf, notes: &mut Vec<NoteEntry>) {
 pub fn is_safe_path(app_handle: &AppHandle, path: &str) -> bool {
     let base = notes_dir(app_handle);
     let target = std::path::Path::new(path);
-    
-    let base_canonical = match base.canonicalize() {
-        Ok(p) => p,
-        Err(_) => return false,
-    };
-    
+
     let abs_target = if target.is_absolute() {
         target.to_path_buf()
     } else {
         base.join(target)
     };
-    
+
     let mut normalized = std::path::PathBuf::new();
     for component in abs_target.components() {
         match component {
@@ -90,13 +85,8 @@ pub fn is_safe_path(app_handle: &AppHandle, path: &str) -> bool {
             std::path::Component::CurDir => {}
         }
     }
-    
-    let target_canonical = match normalized.canonicalize() {
-        Ok(p) => p,
-        Err(_) => normalized,
-    };
-    
-    target_canonical.starts_with(base_canonical)
+
+    normalized.starts_with(&base)
 }
 
 pub fn delete_note(app_handle: &AppHandle, path: &str) -> Result<(), String> {

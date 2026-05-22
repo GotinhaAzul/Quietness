@@ -28,6 +28,6 @@
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-<div class="prose prose-stone max-w-none" role="region" onclick={handleClick} onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), handleClick(e))}>
+<div class="preview-content" role="region" onclick={handleClick} onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), handleClick(e))}>
   {@html renderMarkdown(content, existingNoteNames)}
 </div>

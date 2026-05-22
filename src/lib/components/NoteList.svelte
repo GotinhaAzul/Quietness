@@ -43,16 +43,16 @@
   function noteBtnClass(isActive: boolean): string {
     const base = 'flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-xs transition-colors';
     if (isActive) {
-      return `${base} bg-stone-200/70 text-stone-800 font-medium`;
+      return `${base} bg-quiet-active text-quiet-text font-medium`;
     }
-    return `${base} text-stone-500 hover:bg-stone-100 hover:text-stone-700`;
+    return `${base} text-quiet-muted hover:bg-quiet-hover hover:text-quiet-text`;
   }
 </script>
 
 {#if loading}
-  <div class="px-3 py-2 text-xs text-stone-400">Loading...</div>
+  <div class="px-3 py-2 text-xs text-quiet-faded">Loading...</div>
 {:else if noteEntries.length === 0}
-  <div class="px-3 py-2 text-xs text-stone-400">No notes</div>
+  <div class="px-3 py-2 text-xs text-quiet-faded">No notes</div>
 {:else}
   <div class="space-y-px">
     {#each noteEntries as entry}
@@ -67,7 +67,7 @@
           <span class="truncate pr-5">{entry.name}</span>
         </button>
         <button
-          class="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-stone-400 opacity-0 transition-all hover:bg-stone-200/80 hover:text-red-600 group-hover:opacity-100"
+          class="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-quiet-faded opacity-0 transition-all hover:bg-quiet-hover hover:text-quiet-danger group-hover:opacity-100"
           onclick={(e) => {
             e.stopPropagation();
             handleDeleteSidebar(entry);

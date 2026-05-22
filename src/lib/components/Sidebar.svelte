@@ -27,10 +27,10 @@
   }
 </script>
 
-<aside class="flex w-64 shrink-0 flex-col border-r border-stone-200/80 bg-white/50">
-  <div class="border-b border-stone-200/60 px-4 py-3">
-    <h1 class="text-sm font-semibold tracking-tight text-stone-800">Quietness</h1>
-    <p class="text-xs text-stone-400">A quiet place to write.</p>
+<aside class="flex w-64 shrink-0 flex-col border-r border-quiet-border/70 bg-quiet-surface/40">
+  <div class="border-b border-quiet-border/60 px-4 py-4">
+    <h1 class="text-sm font-semibold tracking-tight text-quiet-text">Quietness</h1>
+    <p class="text-xs text-quiet-faded">A quiet place to write.</p>
   </div>
 
   <div class="px-3 pt-3 pb-1">
@@ -39,14 +39,14 @@
 
   <div class="overflow-y-auto">
     <div class="px-2 pt-3 pb-1">
-      <span class="px-1 text-[10px] font-medium uppercase tracking-wider text-stone-400">Folders</span>
+      <span class="px-1 text-[10px] font-medium uppercase tracking-wider text-quiet-faded">Folders</span>
     </div>
     <FolderTree />
 
-    <div class="mt-4 px-2 pt-3 pb-1 flex items-center justify-between border-t border-stone-200/60">
-      <span class="px-1 text-[10px] font-medium uppercase tracking-wider text-stone-400">Notes</span>
+    <div class="mt-4 px-2 pt-3 pb-1 flex items-center justify-between border-t border-quiet-border/60">
+      <span class="px-1 text-[10px] font-medium uppercase tracking-wider text-quiet-faded">Notes</span>
       <button
-        class="rounded px-1.5 py-0.5 text-xs text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-600"
+        class="rounded px-1.5 py-0.5 text-xs text-quiet-faded transition-colors hover:bg-quiet-hover hover:text-quiet-text"
         onclick={() => { showNewNoteInput = true; newNoteName = ''; }}
       >
         + New
@@ -60,7 +60,7 @@
           placeholder="Note name..."
           bind:value={newNoteName}
           onkeydown={handleKeydown}
-          class="w-full rounded-md border border-stone-200 bg-white px-2.5 py-1.5 text-xs text-stone-700 placeholder-stone-400 outline-none transition-colors focus:border-stone-400"
+          class="w-full rounded-md border border-quiet-border bg-white/80 px-2.5 py-1.5 text-xs text-quiet-text placeholder-quiet-faded outline-none transition-colors focus:border-quiet-accent/50"
         />
       </div>
     {/if}

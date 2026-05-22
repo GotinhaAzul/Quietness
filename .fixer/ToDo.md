@@ -27,6 +27,6 @@
 
 ## Group 5 - Polish & Quietness
 
-- [ ] `T12` **Minimalist theme** - Design a quiet, minimal Tailwind theme: muted colors, ample whitespace, no visual noise. *Criteria: theme applied and visually consistent across editor and sidebar.*
+- [x] `T12` **Minimalist theme** - Design a quiet, minimal Tailwind theme: muted colors, ample whitespace, no visual noise. *Criteria: theme applied and visually consistent across editor and sidebar.*
 - [ ] `T13` **Search/filter notes** - Add search bar that filters notes by title and content. *Criteria: typing in search bar filters note list in real time.*
 - [ ] `T14` **App icon and window config** - Configure Tauri window (title, size, decorations) and add app icon. *Criteria: window opens with correct title and icon.*

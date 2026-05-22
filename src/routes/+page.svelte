@@ -87,15 +87,15 @@
 
   <main class="flex flex-1 flex-col">
     {#if $currentNote}
-      <div class="flex items-center justify-between border-b border-stone-200/60 px-6 py-3">
-        <h2 class="text-sm font-medium text-stone-700">{$currentNote.name}</h2>
+      <div class="flex items-center justify-between border-b border-quiet-border/60 px-6 py-3">
+        <h2 class="text-sm font-medium text-quiet-muted">{$currentNote.name}</h2>
         <div class="flex items-center gap-2">
-          <div class="flex overflow-hidden rounded-md border border-stone-200/60">
+          <div class="flex overflow-hidden rounded-md border border-quiet-border/60">
             {#each modes as mode}
               <button
                 class="px-3 py-1 text-xs transition-colors {$viewMode === mode.value
-                  ? 'bg-stone-800 text-stone-100'
-                  : 'text-stone-500 hover:bg-stone-100 hover:text-stone-700'}"
+                  ? 'bg-quiet-accent text-white'
+                  : 'text-quiet-faded hover:bg-quiet-hover hover:text-quiet-text'}"
                 onclick={() => viewMode.set(mode.value)}
               >
                 {mode.label}
@@ -103,14 +103,14 @@
             {/each}
           </div>
           <button
-            class="rounded-md px-3 py-1 text-xs text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-700"
+            class="rounded-md px-3 py-1 text-xs text-quiet-faded transition-colors hover:bg-quiet-hover hover:text-quiet-text"
             onclick={handleSave}
           >
             Save
           </button>
           <button
             disabled={isDeleting}
-            class="rounded-md px-3 py-1 text-xs text-red-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+            class="rounded-md px-3 py-1 text-xs text-quiet-danger/70 transition-colors hover:bg-quiet-danger-bg hover:text-quiet-danger disabled:opacity-50"
             onclick={handleDelete}
           >
             Delete
@@ -120,9 +120,9 @@
 
       <div class="flex flex-1">
         {#if $viewMode === 'edit' || $viewMode === 'split'}
-          <div class="{$viewMode === 'split' ? 'flex-1 border-r border-stone-200/60' : 'flex-1'} overflow-hidden">
+          <div class="{$viewMode === 'split' ? 'flex-1 border-r border-quiet-border/60' : 'flex-1'} overflow-hidden">
             <div class="flex h-full flex-col">
-              <div class="border-b border-stone-200/60 px-4 py-1.5 text-[10px] font-medium uppercase tracking-wider text-stone-400">
+              <div class="border-b border-quiet-border/60 px-4 py-1.5 text-[10px] font-medium uppercase tracking-wider text-quiet-faded">
                 Editor
               </div>
               <div class="flex-1">
@@ -134,7 +134,7 @@
         {#if $viewMode === 'preview' || $viewMode === 'split'}
           <div class="flex-1 overflow-hidden">
             <div class="flex h-full flex-col">
-              <div class="border-b border-stone-200/60 px-4 py-1.5 text-[10px] font-medium uppercase tracking-wider text-stone-400">
+              <div class="border-b border-quiet-border/60 px-4 py-1.5 text-[10px] font-medium uppercase tracking-wider text-quiet-faded">
                 Preview
               </div>
               <div class="flex-1 overflow-y-auto p-6">
@@ -147,19 +147,20 @@
     {:else}
       <div class="flex flex-1 items-center justify-center">
         <div class="text-center">
-          <h2 class="text-xl font-semibold tracking-tight text-stone-700">Welcome to Quietness</h2>
-          <p class="mt-2 text-sm text-stone-400">Select a note from the sidebar to start writing.</p>
+          <h2 class="text-xl font-semibold tracking-tight text-quiet-muted">Welcome to Quietness</h2>
+          <p class="mt-2 text-sm text-quiet-faded">Select a note from the sidebar to start writing.</p>
         </div>
       </div>
     {/if}
   </main>
+
+  {#if $errorMessage}
+    <div class="fixed bottom-4 right-4 z-50 flex max-w-sm items-center gap-3 rounded-lg border border-quiet-danger/20 bg-quiet-danger-bg/95 px-4 py-3 shadow-sm backdrop-blur-sm transition-all duration-300 ease-in-out">
+      <svg class="h-4 w-4 shrink-0 text-quiet-danger" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+      </svg>
+      <div class="text-xs font-medium text-quiet-danger">{$errorMessage}</div>
+    </div>
+  {/if}
 </div>
 
-{#if $errorMessage}
-  <div class="fixed bottom-4 right-4 z-50 flex max-w-sm items-center gap-3 rounded-lg border border-red-200 bg-red-50/95 px-4 py-3 shadow-md backdrop-blur-sm transition-all duration-300 ease-in-out">
-    <svg class="h-4 w-4 shrink-0 text-red-500" viewBox="0 0 20 20" fill="currentColor">
-      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-    </svg>
-    <div class="text-xs font-medium text-red-700">{$errorMessage}</div>
-  </div>
-{/if}

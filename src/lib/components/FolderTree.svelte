@@ -70,9 +70,9 @@
   function folderBtnClass(path: string | null, isActive: boolean): string {
     const base = 'flex w-full items-center gap-1.5 rounded-md px-3 py-1.5 text-left text-xs transition-colors';
     if (isActive) {
-      return `${base} bg-stone-200/70 text-stone-800 font-medium`;
+      return `${base} bg-quiet-active text-quiet-text font-medium`;
     }
-    return `${base} text-stone-500 hover:bg-stone-100 hover:text-stone-700`;
+    return `${base} text-quiet-muted hover:bg-quiet-hover hover:text-quiet-text`;
   }
 </script>
 
@@ -112,7 +112,7 @@
 {/snippet}
 
 {#if tree.length === 0}
-  <div class="px-3 py-2 text-xs text-stone-400">No folders</div>
+  <div class="px-3 py-2 text-xs text-quiet-faded">No folders</div>
 {:else}
   <div class="space-y-px">
     <button

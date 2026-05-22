@@ -38,24 +38,24 @@
  * The above values will be the same _even if_ different values for `ENVIRONMENT` or `PUBLIC_BASE_URL` are set at runtime, as they are statically replaced in your code with their build time values.
  */
 declare module '$env/static/private' {
+	export const ADL_4KWORKAROUND_CANCEL: string;
+	export const AGENT: string;
 	export const ALLUSERSPROFILE: string;
-	export const ANTIGRAVITY_AGENT: string;
-	export const ANTIGRAVITY_CSRF_TOKEN: string;
-	export const ANTIGRAVITY_LS_ADDRESS: string;
-	export const ANTIGRAVITY_SOURCE_METADATA: string;
-	export const ANTIGRAVITY_TRAJECTORY_ID: string;
 	export const APPDATA: string;
 	export const COLOR: string;
+	export const COLORTERM: string;
 	export const CommonProgramFiles: string;
 	export const CommonProgramW6432: string;
 	export const COMPUTERNAME: string;
 	export const ComSpec: string;
 	export const DriverData: string;
 	export const EDITOR: string;
+	export const EFC_7872_1592913036: string;
 	export const HOME: string;
 	export const HOMEDRIVE: string;
 	export const HOMEPATH: string;
 	export const INIT_CWD: string;
+	export const LANG: string;
 	export const LOCALAPPDATA: string;
 	export const LOGONSERVER: string;
 	export const NODE: string;
@@ -81,6 +81,10 @@ declare module '$env/static/private' {
 	export const npm_package_version: string;
 	export const NUMBER_OF_PROCESSORS: string;
 	export const OneDrive: string;
+	export const OPENCODE: string;
+	export const OPENCODE_PID: string;
+	export const OPENCODE_PROCESS_ROLE: string;
+	export const OPENCODE_RUN_ID: string;
 	export const OS: string;
 	export const PATH: string;
 	export const PATHEXT: string;
@@ -99,15 +103,17 @@ declare module '$env/static/private' {
 	export const SystemRoot: string;
 	export const TAVILY_API_KEY: string;
 	export const TEMP: string;
+	export const TERM: string;
+	export const TERM_PROGRAM: string;
+	export const TERM_PROGRAM_VERSION: string;
 	export const TMP: string;
 	export const USERDOMAIN: string;
 	export const USERDOMAIN_ROAMINGPROFILE: string;
 	export const USERNAME: string;
 	export const USERPROFILE: string;
 	export const windir: string;
-	export const WSLENV: string;
-	export const WT_PROFILE_ID: string;
-	export const WT_SESSION: string;
+	export const ZED_ENVIRONMENT: string;
+	export const ZED_TERM: string;
 }
 
 /**
@@ -194,24 +200,24 @@ declare module '$env/static/public' {
  */
 declare module '$env/dynamic/private' {
 	export const env: {
+		ADL_4KWORKAROUND_CANCEL: string;
+		AGENT: string;
 		ALLUSERSPROFILE: string;
-		ANTIGRAVITY_AGENT: string;
-		ANTIGRAVITY_CSRF_TOKEN: string;
-		ANTIGRAVITY_LS_ADDRESS: string;
-		ANTIGRAVITY_SOURCE_METADATA: string;
-		ANTIGRAVITY_TRAJECTORY_ID: string;
 		APPDATA: string;
 		COLOR: string;
+		COLORTERM: string;
 		CommonProgramFiles: string;
 		CommonProgramW6432: string;
 		COMPUTERNAME: string;
 		ComSpec: string;
 		DriverData: string;
 		EDITOR: string;
+		EFC_7872_1592913036: string;
 		HOME: string;
 		HOMEDRIVE: string;
 		HOMEPATH: string;
 		INIT_CWD: string;
+		LANG: string;
 		LOCALAPPDATA: string;
 		LOGONSERVER: string;
 		NODE: string;
@@ -237,6 +243,10 @@ declare module '$env/dynamic/private' {
 		npm_package_version: string;
 		NUMBER_OF_PROCESSORS: string;
 		OneDrive: string;
+		OPENCODE: string;
+		OPENCODE_PID: string;
+		OPENCODE_PROCESS_ROLE: string;
+		OPENCODE_RUN_ID: string;
 		OS: string;
 		PATH: string;
 		PATHEXT: string;
@@ -255,15 +265,17 @@ declare module '$env/dynamic/private' {
 		SystemRoot: string;
 		TAVILY_API_KEY: string;
 		TEMP: string;
+		TERM: string;
+		TERM_PROGRAM: string;
+		TERM_PROGRAM_VERSION: string;
 		TMP: string;
 		USERDOMAIN: string;
 		USERDOMAIN_ROAMINGPROFILE: string;
 		USERNAME: string;
 		USERPROFILE: string;
 		windir: string;
-		WSLENV: string;
-		WT_PROFILE_ID: string;
-		WT_SESSION: string;
+		ZED_ENVIRONMENT: string;
+		ZED_TERM: string;
 		[key: `PUBLIC_${string}`]: undefined;
 		[key: `${string}`]: string | undefined;
 	}
