@@ -1,10 +1,12 @@
+use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
+use std::sync::{Mutex, OnceLock};
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 use tauri::Manager;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct NoteEntry {
     pub name: String,
     pub path: String,
@@ -96,7 +98,9 @@ pub fn delete_note(app_handle: &AppHandle, path: &str) -> Result<(), String> {
     if !is_safe_path(app_handle, path) {
         return Err("Access denied: path traversal detected".to_string());
     }
-    fs::remove_file(path).map_err(|e| e.to_string())
+    fs::remove_file(path).map_err(|e| e.to_string())?;
+    invalidate_cache();
+    Ok(())
 }
 
 pub fn read_note(app_handle: &AppHandle, path: &str) -> Result<String, String> {
@@ -116,7 +120,9 @@ pub fn write_note(app_handle: &AppHandle, path: &str, content: &str) -> Result<(
             fs::create_dir_all(parent).map_err(|e| e.to_string())?;
         }
     }
-    fs::write(path, content).map_err(|e| e.to_string())
+    fs::write(path, content).map_err(|e| e.to_string())?;
+    invalidate_cache();
+    Ok(())
 }
 
 pub fn list_folders(app_handle: &AppHandle) -> Vec<FolderEntry> {
@@ -151,45 +157,159 @@ fn list_folders_recursive(base: &PathBuf, current: &PathBuf, folders: &mut Vec<F
     }
 }
 
-pub fn search_notes(app_handle: &AppHandle, query: &str) -> Vec<NoteEntry> {
-    let dir = notes_dir(app_handle);
-    let query_lower = query.to_lowercase();
-    let mut results = Vec::new();
-    search_notes_recursive(&dir, &query_lower, &mut results);
-    results.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
-    results
+static ENTRY_CACHE: OnceLock<Mutex<HashMap<String, NoteEntry>>> = OnceLock::new();
+
+fn entry_cache() -> &'static Mutex<HashMap<String, NoteEntry>> {
+    ENTRY_CACHE.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
-fn search_notes_recursive(dir: &PathBuf, query: &str, results: &mut Vec<NoteEntry>) {
-    if let Ok(entries) = fs::read_dir(dir) {
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.is_dir() {
-                search_notes_recursive(&path, query, results);
-            } else if path.extension().map_or(false, |ext| ext == "md") {
-                let name = path
-                    .file_stem()
-                    .unwrap_or_default()
-                    .to_string_lossy()
-                    .to_string();
+fn ensure_cache(app_handle: &AppHandle) {
+    let mut cache = entry_cache().lock().unwrap();
+    if cache.is_empty() {
+        let notes = list_notes(app_handle);
+        for note in notes {
+            cache.insert(note.path.clone(), note);
+        }
+    }
+}
 
-                if name.to_lowercase().contains(query) {
-                    results.push(NoteEntry {
-                        name,
-                        path: path.to_string_lossy().to_string(),
-                    });
-                    continue;
-                }
+pub fn invalidate_cache() {
+    if let Some(cache) = ENTRY_CACHE.get() {
+        if let Ok(mut c) = cache.lock() {
+            c.clear();
+        }
+    }
+}
 
-                if let Ok(content) = fs::read_to_string(&path) {
-                    if content.to_lowercase().contains(query) {
-                        results.push(NoteEntry {
-                            name,
-                            path: path.to_string_lossy().to_string(),
-                        });
+pub async fn search_notes(
+    app_handle: &AppHandle,
+    query: &str,
+    scope: &str,
+    scope_path: Option<&str>,
+) -> Vec<NoteEntry> {
+    let query_lower = query.to_lowercase();
+
+    match scope {
+        "current_note" => {
+            let path = match scope_path {
+                Some(p) => p,
+                None => return Vec::new(),
+            };
+            if !is_safe_path(app_handle, path) {
+                return Vec::new();
+            }
+            let path_owned = path.to_string();
+            let query_owned = query.to_string();
+            let result = tauri::async_runtime::spawn_blocking(move || {
+                if let Ok(content) = fs::read_to_string(&path_owned) {
+                    if content.to_lowercase().contains(&query_owned.to_lowercase()) {
+                        let path_buf = PathBuf::from(&path_owned);
+                        let name = path_buf
+                            .file_stem()
+                            .unwrap_or_default()
+                            .to_string_lossy()
+                            .to_string();
+                        return Some(NoteEntry { name, path: path_owned });
                     }
                 }
+                None
+            })
+            .await
+            .unwrap_or(None);
+            result.into_iter().collect()
+        }
+        "current_folder" => {
+            let folder_path = scope_path.unwrap_or("");
+            let base = notes_dir(app_handle);
+            let dir = if folder_path.is_empty() {
+                base.clone()
+            } else {
+                base.join(folder_path)
+            };
+            let dir_owned = dir.to_string_lossy().to_string();
+            let query_owned = query.to_string();
+
+            tauri::async_runtime::spawn_blocking(move || {
+                let mut results = Vec::new();
+                let query_lower = query_owned.to_lowercase();
+                let dir_path = PathBuf::from(&dir_owned);
+
+                if let Ok(entries) = fs::read_dir(&dir_path) {
+                    for entry in entries.flatten() {
+                        let path = entry.path();
+                        if path.is_file() && path.extension().map_or(false, |ext| ext == "md")
+                        {
+                            let name = path
+                                .file_stem()
+                                .unwrap_or_default()
+                                .to_string_lossy()
+                                .to_string();
+                            let path_str = path.to_string_lossy().to_string();
+
+                            if name.to_lowercase().contains(&query_lower) {
+                                results.push(NoteEntry {
+                                    name,
+                                    path: path_str,
+                                });
+                                continue;
+                            }
+
+                            if let Ok(content) = fs::read_to_string(&path) {
+                                if content.to_lowercase().contains(&query_lower) {
+                                    results.push(NoteEntry {
+                                        name,
+                                        path: path_str,
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+
+                results.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+                results
+            })
+            .await
+            .unwrap_or_default()
+        }
+        _ => {
+            ensure_cache(app_handle);
+            let query_owned = query.to_string();
+
+            let entries: Vec<NoteEntry> = {
+                let cache = entry_cache().lock().unwrap();
+                cache.values().cloned().collect()
+            };
+
+            let mut results: Vec<NoteEntry> = entries
+                .iter()
+                .filter(|e| e.name.to_lowercase().contains(&query_lower))
+                .cloned()
+                .collect();
+
+            let candidates: Vec<NoteEntry> = entries
+                .into_iter()
+                .filter(|e| !e.name.to_lowercase().contains(&query_lower))
+                .collect();
+
+            if !candidates.is_empty() {
+                let content_matches = tauri::async_runtime::spawn_blocking(move || {
+                    candidates
+                        .into_iter()
+                        .filter(|e| {
+                            fs::read_to_string(&e.path).ok().map_or(false, |c| {
+                                c.to_lowercase().contains(&query_owned.to_lowercase())
+                            })
+                        })
+                        .collect::<Vec<NoteEntry>>()
+                })
+                .await
+                .unwrap_or_default();
+                results.extend(content_matches);
             }
+
+            results.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+            results
         }
     }
 }
@@ -219,6 +339,46 @@ pub fn list_notes_in_folder(app_handle: &AppHandle, folder_path: &str) -> Vec<No
     }
     notes.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
     notes
+}
+
+// ── Rename note ──
+
+pub fn rename_note(app_handle: &AppHandle, old_path: &str, new_name: &str) -> Result<(), String> {
+    if !is_safe_path(app_handle, old_path) {
+        return Err("Access denied: path traversal detected".to_string());
+    }
+
+    if new_name.is_empty()
+        || new_name.contains('/')
+        || new_name.contains('\\')
+        || new_name.contains("..")
+    {
+        return Err("Invalid note name".to_string());
+    }
+
+    let new_filename = if new_name.ends_with(".md") {
+        new_name.to_string()
+    } else {
+        format!("{}.md", new_name)
+    };
+
+    let old_path_buf = PathBuf::from(old_path);
+    let empty = PathBuf::from("");
+    let parent = old_path_buf.parent().unwrap_or(&empty);
+    let new_path = parent.join(&new_filename);
+
+    let new_path_str = new_path.to_string_lossy().to_string();
+    if !is_safe_path(app_handle, &new_path_str) {
+        return Err("Access denied: path traversal detected".to_string());
+    }
+
+    if new_path.exists() {
+        return Err("A note with that name already exists".to_string());
+    }
+
+    fs::rename(old_path, &new_path).map_err(|e| e.to_string())?;
+    invalidate_cache();
+    Ok(())
 }
 
 // ── User themes ──

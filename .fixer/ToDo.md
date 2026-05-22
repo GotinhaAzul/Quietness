@@ -15,22 +15,22 @@
 
 ## Group 2 — Performance
 
-- [ ] `T08` **Search optimization** — Move `search_notes` content reads to background thread (`tokio::spawn_blocking`); add in-memory filename index. Completion: search does not block UI thread; repeated searches are sub-second with index.
-- [ ] `T09` **Settings effect compartment split** — Only reconfigure CodeMirror compartments when editor-specific settings change (gutters, wordWrap, tabSize) in `NoteEditor.svelte:76-86`. Completion: theme slider drag does not re-trigger editor configuration.
-- [ ] `T10` **Markdown rendering memoization** — Cache `renderMarkdown()` output by content hash in `markdown.ts`. Completion: re-renders with unchanged content skip markdown-it parse.
+- [x] `T08` **Search optimization** — Move `search_notes` content reads to background thread (`tokio::spawn_blocking`); add in-memory filename index. Completion: search does not block UI thread; repeated searches are sub-second with index.
+- [x] `T09` **Settings effect compartment split** — Only reconfigure CodeMirror compartments when editor-specific settings change (gutters, wordWrap, tabSize) in `NoteEditor.svelte:76-86`. Completion: theme slider drag does not re-trigger editor configuration.
+- [x] `T10` **Markdown rendering memoization** — Cache `renderMarkdown()` output by content hash in `markdown.ts`. Completion: re-renders with unchanged content skip markdown-it parse.
 
 ## Group 3 — Qualidade de Vida
 
-- [ ] `T11` **Global keyboard shortcuts** — Register shortcuts in `+page.svelte` or dedicated utility: `Ctrl+S` save, `Ctrl+N` new note, `Ctrl+,` settings, `Ctrl+Shift+F` focus search, `Ctrl+Shift+E/S/P` toggle edit/split/preview. Completion: all listed shortcuts work app-wide.
-- [ ] `T12` **Note rename** — Add rename action in NoteList (context/hover) + new Tauri `rename_note` command in `fs.rs`. Completion: user can rename notes from the UI; filesystem is updated accordingly.
-- [ ] `T13` **Sidebar collapse toggle** — Add collapse/expand button in Sidebar; toggle via `ui.ts` store. Completion: sidebar can be hidden to give more writing space.
-- [ ] `T14` **Save status indicator** — Show "Saving…" / "Saved" / "Unsaved" state in the top bar of `+page.svelte`. Completion: user always knows persist state of current note.
-- [ ] `T15` **Search feedback** — Show result count ("X notes found") in SearchBar; consider dropdown for results. Completion: user sees whether search matched anything and how many results.
-- [ ] `T16` **Auto-focus new note input** — Use `bind:this` + `.focus()` when `showNewNoteInput` becomes true in Sidebar. Completion: clicking "+ New" immediately focuses the input.
-- [ ] `T17` **Focus trap in SettingsModal** — Trap Tab focus within the modal when open. Completion: Tab cycling does not escape to elements behind the overlay.
-- [ ] `T18` **Error toast dismiss + stacking** — Add dismiss button to error toasts; stack multiple errors instead of replacing. Completion: multiple errors are visible simultaneously; users can dismiss individually.
-- [ ] `T19` **Undo history across note switches** — Save CM6 history per note path; restore when switching back. Completion: switching away from a note and back preserves undo stack.
-- [ ] `T20` **Inline title editing** — Editable title field at top of NoteEditor that renames the note file on change. Completion: user can click the note title in the editor area, edit it, and the file is renamed accordingly.
-- [ ] `T21` **Settings always accessible** — Gear button visible on welcome/empty state, not only when a note is open. Completion: settings can be opened regardless of whether a note is active.
-- [ ] `T22` **Code format rendering** — Add CSS styling for inline code (`code`) and fenced code blocks (```) in NotePreview; ensure markdown-it renders them correctly. Completion: code formatting displays with proper monospace font, background, and syntax styling in preview.
-- [ ] - [ ] `T23` **Search by keyword with scope filter** — Add keyword search input with scope filter (current note / current folder / all notes). Current note scope searches within the open note's content; current folder scopes to notes in the active folder; all notes searches the entire vault. Show matches inline or in results dropdown. Completion: user can search by keyword and choose where to search.
+- [x] `T11` **Global keyboard shortcuts** — Register shortcuts in `+page.svelte` or dedicated utility: `Ctrl+S` save, `Ctrl+N` new note, `Ctrl+,` settings, `Ctrl+Shift+F` focus search, `Ctrl+Shift+E/S/P` toggle edit/split/preview. Completion: all listed shortcuts work app-wide.
+- [x] `T12` **Note rename** — Add rename action in NoteList (context/hover) + new Tauri `rename_note` command in `fs.rs`. Completion: user can rename notes from the UI; filesystem is updated accordingly.
+- [x] `T13` **Sidebar collapse toggle** — Add collapse/expand button in Sidebar; toggle via `ui.ts` store. Completion: sidebar can be hidden to give more writing space.
+- [x] `T14` **Save status indicator** — Show "Saving…" / "Saved" / "Unsaved" state in the top bar of `+page.svelte`. Completion: user always knows persist state of current note.
+- [x] `T15` **Search feedback** — Show result count ("X notes found") in SearchBar; consider dropdown for results. Completion: user sees whether search matched anything and how many results.
+- [x] `T16` **Auto-focus new note input** — Use `bind:this` + `.focus()` when `showNewNoteInput` becomes true in Sidebar. Completion: clicking "+ New" immediately focuses the input.
+- [x] `T17` **Focus trap in SettingsModal** — Trap Tab focus within the modal when open. Completion: Tab cycling does not escape to elements behind the overlay.
+- [x] `T18` **Error toast dismiss + stacking** — Add dismiss button to error toasts; stack multiple errors instead of replacing. Completion: multiple errors are visible simultaneously; users can dismiss individually.
+- [x] `T19` **Undo history across note switches** — Save CM6 history per note path; restore when switching back. Completion: switching away from a note and back preserves undo stack.
+- [x] `T20` **Inline title editing** — Editable title field at top of NoteEditor that renames the note file on change. Completion: user can click the note title in the editor area, edit it, and the file is renamed accordingly.
+- [x] `T21` **Settings always accessible** — Gear button visible on welcome/empty state, not only when a note is open. Completion: settings can be opened regardless of whether a note is active.
+- [x] `T22` **Code format rendering** — Add CSS styling for inline code (`code`) and fenced code blocks (```) in NotePreview; ensure markdown-it renders them correctly. Completion: code formatting displays with proper monospace font, background, and syntax styling in preview.
+- [x] `T23` **Search by keyword with scope filter** — Add keyword search input with scope filter (current note / current folder / all notes). Current note scope searches within the open note's content; current folder scopes to notes in the active folder; all notes searches the entire vault. Show matches inline or in results dropdown. Completion: user can search by keyword and choose where to search.

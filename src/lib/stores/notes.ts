@@ -16,18 +16,32 @@ export const notes: Writable<NoteEntry[]> = writable<NoteEntry[]>([]);
 export const currentNote: Writable<Note | null> = writable<Note | null>(null);
 export const loading: Writable<boolean> = writable<boolean>(false);
 export const noteListChanged: Writable<number> = writable<number>(0);
-export const errorMessage: Writable<string | null> = writable<string | null>(null);
+export interface ErrorToast {
+  id: number;
+  message: string;
+}
 
-let errorTimeout: any = null;
+export const errorMessage: Writable<ErrorToast[]> = writable<ErrorToast[]>([]);
+
+let errorIdCounter = 0;
+const errorTimeouts = new Map<number, any>();
+
 export function showError(message: string) {
-  errorMessage.set(message);
-  if (errorTimeout) {
-    clearTimeout(errorTimeout);
-  }
-  errorTimeout = setTimeout(() => {
-    errorMessage.set(null);
-    errorTimeout = null;
+  const id = ++errorIdCounter;
+  errorMessage.update(errors => [...errors, { id, message }]);
+  const timeout = setTimeout(() => {
+    dismissError(id);
   }, 4000);
+  errorTimeouts.set(id, timeout);
+}
+
+export function dismissError(id: number) {
+  const timeout = errorTimeouts.get(id);
+  if (timeout) {
+    clearTimeout(timeout);
+    errorTimeouts.delete(id);
+  }
+  errorMessage.update(errors => errors.filter(e => e.id !== id));
 }
 
 export async function loadNotes(): Promise<void> {

@@ -11,6 +11,27 @@ md.use(wikilinksPlugin);
 
 export default md;
 
+function hashContent(src: string): string {
+  let h = 0;
+  for (let i = 0; i < src.length; i++) {
+    h = ((h << 5) - h) + src.charCodeAt(i);
+    h |= 0;
+  }
+  return src.length + ':' + h;
+}
+
+const cache = new Map<string, string>();
+const CACHE_MAX = 50;
+
 export function renderMarkdown(src: string, existingNotes?: Set<string>): string {
-  return md.render(src, { existingNotes });
+  const key = hashContent(src) + (existingNotes ? ':' + existingNotes.size : '');
+  const cached = cache.get(key);
+  if (cached !== undefined) return cached;
+  if (cache.size >= CACHE_MAX) {
+    const first = cache.keys().next().value;
+    if (first !== undefined) cache.delete(first);
+  }
+  const result = md.render(src, { existingNotes });
+  cache.set(key, result);
+  return result;
 }

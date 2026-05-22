@@ -6,29 +6,69 @@
   let { open = false, onclose }: { open?: boolean; onclose?: () => void } = $props();
 
   let activeTab = $state<'theme' | 'fonts' | 'editor'>('theme');
+  let previousFocus: Element | null = null;
+  let modalRef: HTMLDivElement | undefined = $state();
+
+  function getFocusableElements(container: HTMLElement): HTMLElement[] {
+    const selectors = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+    return Array.from(container.querySelectorAll<HTMLElement>(selectors)).filter(
+      el => el.tabIndex >= 0 && !(el as HTMLInputElement).disabled
+    );
+  }
 
   $effect(() => {
     if (open) {
       userThemes.load();
+      previousFocus = document.activeElement;
+      requestAnimationFrame(() => {
+        if (modalRef) {
+          const focusable = getFocusableElements(modalRef);
+          if (focusable.length > 0) {
+            (focusable[0] as HTMLElement).focus();
+          }
+        }
+      });
+    } else if (previousFocus) {
+      (previousFocus as HTMLElement)?.focus();
+      previousFocus = null;
     }
   });
 
   function handleKeydown(e: KeyboardEvent) {
-    if (e.key === 'Escape') onclose?.();
+    if (e.key === 'Escape') {
+      onclose?.();
+      return;
+    }
+    if (e.key === 'Tab' && modalRef) {
+      const focusable = getFocusableElements(modalRef);
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    }
   }
 </script>
-
-<svelte:window onkeydown={handleKeydown} />
 
 {#if open}
   <!-- svelte-ignore a11y_interactive_supports_focus -->
   <div
+    bind:this={modalRef}
     class="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
     role="dialog"
     aria-modal="true"
     aria-label="Settings"
     onclick={(e) => { if (e.target === e.currentTarget) onclose?.(); }}
-    onkeydown={(e) => { if (e.key === 'Escape') onclose?.(); }}
+    onkeydown={handleKeydown}
   >
     <div
       class="mx-4 flex w-[560px] max-w-full flex-col rounded-xl border border-quiet-border bg-[var(--q-bg)] shadow-xl"

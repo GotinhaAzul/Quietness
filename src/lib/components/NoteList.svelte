@@ -2,12 +2,15 @@
   import { onMount } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { selectedFolder } from '$lib/stores/folders';
-  import { searchQuery } from '$lib/stores/ui';
-  import { currentNote, loadNote, deleteNote, noteListChanged, showError, type NoteEntry } from '$lib/stores/notes';
+  import { searchQuery, searchResultCount, searchResults, searchScope } from '$lib/stores/ui';
+  import { notes, currentNote, loadNote, deleteNote, noteListChanged, showError, type NoteEntry } from '$lib/stores/notes';
 
   let noteEntries = $state<NoteEntry[]>([]);
   let loading = $state(false);
   let requestId = 0;
+  let renamingPath = $state<string | null>(null);
+  let renameValue = $state('');
+  let renameInput = $state<HTMLInputElement | undefined>();
 
   onMount(() => {
     loadNoteList();
@@ -17,7 +20,15 @@
     $selectedFolder;
     $noteListChanged;
     $searchQuery;
+    $searchScope;
     loadNoteList();
+  });
+
+  $effect(() => {
+    if (renamingPath && renameInput) {
+      renameInput.focus();
+      renameInput.select();
+    }
   });
 
   async function loadNoteList() {
@@ -26,24 +37,31 @@
     try {
       const query = $searchQuery;
       if (query) {
-        const entries = await invoke<NoteEntry[]>('search_notes', { query });
+        const entries = await invoke<NoteEntry[]>('search_notes', { query, scope: $searchScope });
         if (currentRequest !== requestId) return;
         noteEntries = entries;
+        searchResultCount.set(entries.length);
+        searchResults.set(entries);
       } else {
         const folderPath = $selectedFolder ?? '';
         const entries = await invoke<NoteEntry[]>('list_notes_in_folder', { folderPath });
         if (currentRequest !== requestId) return;
         noteEntries = entries;
+        searchResultCount.set(0);
+        searchResults.set([]);
       }
     } catch (e) {
       showError(`Failed to load notes: ${e}`);
       noteEntries = [];
+      searchResultCount.set(0);
+      searchResults.set([]);
     } finally {
       loading = false;
     }
   }
 
   async function openNote(path: string) {
+    renamingPath = null;
     await loadNote(path);
   }
 
@@ -59,6 +77,45 @@
     }
     return `${base} text-quiet-muted hover:bg-quiet-hover hover:text-quiet-text`;
   }
+
+  function startRename(path: string, currentName: string, e: Event) {
+    e.stopPropagation();
+    renamingPath = path;
+    renameValue = currentName;
+  }
+
+  async function handleRename(oldPath: string) {
+    const newName = renameValue.trim();
+    if (!newName) {
+      renamingPath = null;
+      return;
+    }
+    const cleanName = newName.endsWith('.md') ? newName.slice(0, -3).trim() : newName.trim();
+    if (!cleanName) {
+      renamingPath = null;
+      return;
+    }
+    const lastSep = oldPath.lastIndexOf('/');
+    const parentDir = lastSep >= 0 ? oldPath.slice(0, lastSep) : '';
+    const newPath = parentDir ? `${parentDir}/${cleanName}.md` : `${cleanName}.md`;
+    try {
+      await invoke('rename_note', { oldPath, newName: cleanName });
+      notes.update(ns => ns.map(n => n.path === oldPath ? { ...n, name: cleanName, path: newPath } : n));
+      currentNote.update(n => n && n.path === oldPath ? { ...n, name: cleanName, path: newPath } : n);
+      noteListChanged.update(n => n + 1);
+    } catch (e) {
+      showError(`Failed to rename note: ${e}`);
+    }
+    renamingPath = null;
+  }
+
+  function handleRenameKeydown(event: KeyboardEvent, oldPath: string) {
+    if (event.key === 'Enter') {
+      handleRename(oldPath);
+    } else if (event.key === 'Escape') {
+      renamingPath = null;
+    }
+  }
 </script>
 
 {#if loading}
@@ -69,27 +126,46 @@
   <div class="space-y-px">
     {#each noteEntries as entry}
       <div class="group relative flex items-center">
-        <button
-          class={noteBtnClass($currentNote?.path === entry.path)}
-          onclick={() => openNote(entry.path)}
-        >
-          <svg class="h-3.5 w-3.5 shrink-0" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M2 1.75C2 .784 2.784 0 3.75 0h5.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 12.25 16h-8.5A1.75 1.75 0 0 1 2 14.25V1.75Z"/>
-          </svg>
-          <span class="truncate pr-5">{entry.name}</span>
-        </button>
-        <button
-          class="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-quiet-faded opacity-0 transition-all hover:bg-quiet-hover hover:text-quiet-danger group-hover:opacity-100"
-          onclick={(e) => {
-            e.stopPropagation();
-            handleDeleteSidebar(entry);
-          }}
-          title="Delete note"
-        >
-          <svg class="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M3 4h10M5 4v10a1 1 0 001 1h4a1 1 0 001-1V4M6.5 4V2.5a.5.5 0 01.5-.5h2a.5.5 0 01.5.5V4" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
+        {#if renamingPath === entry.path}
+          <input
+            bind:this={renameInput}
+            type="text"
+            bind:value={renameValue}
+            onkeydown={(e) => handleRenameKeydown(e, entry.path)}
+            onblur={() => handleRename(entry.path)}
+            class="w-full rounded-md border border-quiet-border bg-quiet-surface px-2.5 py-1.5 text-xs text-quiet-text outline-none transition-colors focus:border-quiet-accent/50"
+          />
+        {:else}
+          <button
+            class={noteBtnClass($currentNote?.path === entry.path)}
+            onclick={() => openNote(entry.path)}
+          >
+            <svg class="h-3.5 w-3.5 shrink-0" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M2 1.75C2 .784 2.784 0 3.75 0h5.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 12.25 16h-8.5A1.75 1.75 0 0 1 2 14.25V1.75Z"/>
+            </svg>
+            <span class="truncate pr-14">{entry.name}</span>
+          </button>
+          <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 transition-all group-hover:opacity-100">
+            <button
+              class="rounded p-1 text-quiet-faded hover:bg-quiet-hover hover:text-quiet-text"
+              onclick={(e) => startRename(entry.path, entry.name, e)}
+              title="Rename note"
+            >
+              <svg class="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25a1.75 1.75 0 0 1 .445-.758l8.61-8.61Z"/>
+              </svg>
+            </button>
+            <button
+              class="rounded p-1 text-quiet-faded hover:bg-quiet-hover hover:text-quiet-danger"
+              onclick={(e) => { e.stopPropagation(); handleDeleteSidebar(entry); }}
+              title="Delete note"
+            >
+              <svg class="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                <path d="M3 4h10M5 4v10a1 1 0 001 1h4a1 1 0 001-1V4M6.5 4V2.5a.5.5 0 01.5-.5h2a.5.5 0 01.5.5V4" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        {/if}
       </div>
     {/each}
   </div>

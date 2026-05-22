@@ -39,8 +39,19 @@ pub fn delete_note(app_handle: AppHandle, path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn search_notes(app_handle: AppHandle, query: String) -> Vec<NoteEntry> {
-    fs::search_notes(&app_handle, &query)
+pub async fn search_notes(
+    app_handle: AppHandle,
+    query: String,
+    scope: Option<String>,
+    scope_path: Option<String>,
+) -> Vec<NoteEntry> {
+    let scope = scope.unwrap_or_else(|| "all_notes".to_string());
+    fs::search_notes(&app_handle, &query, &scope, scope_path.as_deref()).await
+}
+
+#[tauri::command]
+pub fn rename_note(app_handle: AppHandle, old_path: String, new_name: String) -> Result<(), String> {
+    fs::rename_note(&app_handle, &old_path, &new_name)
 }
 
 #[tauri::command]

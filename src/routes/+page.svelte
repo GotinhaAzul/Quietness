@@ -4,12 +4,13 @@
   import NoteEditor from '$lib/components/NoteEditor.svelte';
   import NotePreview from '$lib/components/NotePreview.svelte';
   import SettingsModal from '$lib/components/SettingsModal.svelte';
-  import { loadNotes, currentNote, saveCurrentNote, deleteNote, errorMessage } from '$lib/stores/notes';
-  import { loadFolders } from '$lib/stores/folders';
-  import { viewMode, type ViewMode } from '$lib/stores/editor';
-  import { settings } from '$lib/stores/settings';
-  import { userThemes } from '$lib/stores/userThemes';
-  import { FONT_STACKS } from '$lib/utils/fonts';
+import { loadNotes, currentNote, saveCurrentNote, deleteNote, errorMessage, dismissError } from '$lib/stores/notes';
+import { loadFolders } from '$lib/stores/folders';
+import { viewMode, type ViewMode } from '$lib/stores/editor';
+import { settings } from '$lib/stores/settings';
+import { userThemes } from '$lib/stores/userThemes';
+import { focusSearchInput, showNewNoteInput } from '$lib/stores/ui';
+import { FONT_STACKS } from '$lib/utils/fonts';
 
   const modes: { value: ViewMode; label: string }[] = [
     { value: 'edit', label: 'Edit' },
@@ -22,6 +23,42 @@
   let showSettings = $state(false);
   let appReady = $state(false);
   let unsavedChanges = $state(false);
+  let saveStatus = $state<'saved' | 'saving' | 'unsaved'>('saved');
+
+  $effect(() => {
+    function handleKeydown(e: KeyboardEvent) {
+      const ctrl = e.ctrlKey || e.metaKey;
+      if (!ctrl) return;
+      if (e.key === 's' && !e.shiftKey) {
+        e.preventDefault();
+        handleSave();
+      } else if (e.key === 'n') {
+        e.preventDefault();
+        showNewNoteInput.set(true);
+      } else if (e.key === ',') {
+        e.preventDefault();
+        showSettings = true;
+      } else if (e.key === 'F' || e.key === 'f') {
+        if (e.shiftKey) {
+          e.preventDefault();
+          focusSearchInput.update(n => n + 1);
+        }
+      } else if (e.key === 'E' && e.shiftKey) {
+        e.preventDefault();
+        viewMode.set('edit');
+      } else if (e.key === 'S' && e.shiftKey) {
+        e.preventDefault();
+        viewMode.set('split');
+      } else if (e.key === 'P' && e.shiftKey) {
+        e.preventDefault();
+        viewMode.set('preview');
+      }
+    }
+    window.addEventListener('keydown', handleKeydown);
+    return () => {
+      window.removeEventListener('keydown', handleKeydown);
+    };
+  });
 
   onMount(() => {
     loadNotes();
@@ -91,13 +128,16 @@
     if (!$currentNote) return;
     $currentNote = { ...$currentNote, content: value };
     unsavedChanges = true;
+    saveStatus = 'unsaved';
 
     if (saveTimeout) {
       clearTimeout(saveTimeout);
     }
     saveTimeout = setTimeout(async () => {
+      saveStatus = 'saving';
       await saveCurrentNote();
       unsavedChanges = false;
+      saveStatus = 'saved';
     }, 800);
   }
 
@@ -105,8 +145,10 @@
     if (saveTimeout) {
       clearTimeout(saveTimeout);
     }
+    saveStatus = 'saving';
     await saveCurrentNote();
     unsavedChanges = false;
+    saveStatus = 'saved';
   }
 
   async function handleDelete() {
@@ -136,20 +178,19 @@
   <Sidebar />
 
   <main class="flex flex-1 flex-col">
-    {#if $currentNote}
-      <div class="flex items-center justify-between border-b border-quiet-border/60 px-6 py-3">
-        <h2 class="text-sm font-medium text-quiet-muted">{$currentNote.name}</h2>
-        <div class="flex items-center gap-2">
-          <button
-            class="rounded-md p-1.5 text-quiet-faded transition-colors hover:bg-quiet-hover hover:text-quiet-text"
-            onclick={() => (showSettings = true)}
-            aria-label="Settings"
-          >
-            <svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="8" cy="8" r="1.5" />
-              <path d="M8 1.5v1M8 13.5v1M3.3 3.3l.7.7M12 12l.7.7M1.5 8h1M13.5 8h1M3.3 12.7l.7-.7M12 4l.7-.7" />
-            </svg>
-          </button>
+    <div class="flex items-center justify-between border-b border-quiet-border/60 px-6 py-3">
+      <div class="flex items-center gap-3">
+        <h2 class="text-sm font-medium text-quiet-muted">
+          {#if $currentNote}{$currentNote.name}{/if}
+        </h2>
+        {#if saveStatus !== 'saved'}
+          <span class="text-[10px] text-quiet-faded">
+            {#if saveStatus === 'saving'}Saving…{:else}Unsaved{/if}
+          </span>
+        {/if}
+      </div>
+      <div class="flex items-center gap-2">
+        {#if $currentNote}
           <div class="flex overflow-hidden rounded-md border border-quiet-border/60">
             {#each modes as mode}
               <button
@@ -175,9 +216,21 @@
           >
             Delete
           </button>
-        </div>
+        {/if}
+        <button
+          class="rounded-md p-1.5 text-quiet-faded transition-colors hover:bg-quiet-hover hover:text-quiet-text"
+          onclick={() => (showSettings = true)}
+          aria-label="Settings"
+        >
+          <svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="8" cy="8" r="1.5" />
+            <path d="M8 1.5v1M8 13.5v1M3.3 3.3l.7.7M12 12l.7.7M1.5 8h1M13.5 8h1M3.3 12.7l.7-.7M12 4l.7-.7" />
+          </svg>
+        </button>
       </div>
+    </div>
 
+    {#if $currentNote}
       <div class="flex flex-1">
         {#if $viewMode === 'edit' || $viewMode === 'split'}
           <div class="{$viewMode === 'split' ? 'flex-1 border-r border-quiet-border/60' : 'flex-1'} overflow-hidden">
@@ -214,12 +267,25 @@
     {/if}
   </main>
 
-  {#if $errorMessage}
-    <div class="fixed bottom-4 right-4 z-50 flex max-w-sm items-center gap-3 rounded-lg border border-quiet-danger/20 bg-quiet-danger-bg/95 px-4 py-3 shadow-sm backdrop-blur-sm transition-all duration-300 ease-in-out">
-      <svg class="h-4 w-4 shrink-0 text-quiet-danger" viewBox="0 0 20 20" fill="currentColor">
-        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-      </svg>
-      <div class="text-xs font-medium text-quiet-danger">{$errorMessage}</div>
+  {#if $errorMessage.length > 0}
+    <div class="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
+      {#each $errorMessage as error (error.id)}
+        <div class="flex max-w-sm items-center gap-3 rounded-lg border border-quiet-danger/20 bg-quiet-danger-bg/95 px-4 py-3 shadow-sm backdrop-blur-sm transition-all duration-300 ease-in-out">
+          <svg class="h-4 w-4 shrink-0 text-quiet-danger" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+          </svg>
+          <div class="flex-1 text-xs font-medium text-quiet-danger">{error.message}</div>
+          <button
+            class="shrink-0 rounded p-0.5 text-quiet-danger/60 transition-colors hover:text-quiet-danger"
+            onclick={() => dismissError(error.id)}
+            aria-label="Dismiss error"
+          >
+            <svg class="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+              <path d="M4 4l8 8M12 4l-8 8" />
+            </svg>
+          </button>
+        </div>
+      {/each}
     </div>
   {/if}
 </div>
