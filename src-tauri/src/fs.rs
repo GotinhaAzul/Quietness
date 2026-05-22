@@ -1,6 +1,6 @@
 use std::fs;
 use std::path::PathBuf;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 use tauri::Manager;
 
@@ -148,6 +148,49 @@ fn list_folders_recursive(base: &PathBuf, current: &PathBuf, folders: &mut Vec<F
     }
 }
 
+pub fn search_notes(app_handle: &AppHandle, query: &str) -> Vec<NoteEntry> {
+    let dir = notes_dir(app_handle);
+    let query_lower = query.to_lowercase();
+    let mut results = Vec::new();
+    search_notes_recursive(&dir, &query_lower, &mut results);
+    results.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    results
+}
+
+fn search_notes_recursive(dir: &PathBuf, query: &str, results: &mut Vec<NoteEntry>) {
+    if let Ok(entries) = fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                search_notes_recursive(&path, query, results);
+            } else if path.extension().map_or(false, |ext| ext == "md") {
+                let name = path
+                    .file_stem()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .to_string();
+
+                if name.to_lowercase().contains(query) {
+                    results.push(NoteEntry {
+                        name,
+                        path: path.to_string_lossy().to_string(),
+                    });
+                    continue;
+                }
+
+                if let Ok(content) = fs::read_to_string(&path) {
+                    if content.to_lowercase().contains(query) {
+                        results.push(NoteEntry {
+                            name,
+                            path: path.to_string_lossy().to_string(),
+                        });
+                    }
+                }
+            }
+        }
+    }
+}
+
 pub fn list_notes_in_folder(app_handle: &AppHandle, folder_path: &str) -> Vec<NoteEntry> {
     let base = notes_dir(app_handle);
     let dir = if folder_path.is_empty() {
@@ -173,4 +216,82 @@ pub fn list_notes_in_folder(app_handle: &AppHandle, folder_path: &str) -> Vec<No
     }
     notes.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
     notes
+}
+
+// ── Settings ──
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FontSettings {
+    pub ui: String,
+    pub editor: String,
+    pub preview: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SizeSettings {
+    pub ui: u32,
+    pub editor: u32,
+    pub preview: u32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EditorSettings {
+    pub line_numbers: bool,
+    pub word_wrap: bool,
+    pub tab_size: u32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Settings {
+    pub theme: String,
+    pub fonts: FontSettings,
+    pub sizes: SizeSettings,
+    pub editor: EditorSettings,
+}
+
+fn settings_path(app_handle: &AppHandle) -> PathBuf {
+    notes_dir(app_handle).join("settings.json")
+}
+
+fn default_settings() -> Settings {
+    Settings {
+        theme: "quiet".to_string(),
+        fonts: FontSettings {
+            ui: "Inter".to_string(),
+            editor: "JetBrains Mono".to_string(),
+            preview: "Inter".to_string(),
+        },
+        sizes: SizeSettings {
+            ui: 14,
+            editor: 14,
+            preview: 16,
+        },
+        editor: EditorSettings {
+            line_numbers: true,
+            word_wrap: false,
+            tab_size: 4,
+        },
+    }
+}
+
+pub fn load_settings(app_handle: &AppHandle) -> Settings {
+    let path = settings_path(app_handle);
+    if path.exists() {
+        fs::read_to_string(&path)
+            .ok()
+            .and_then(|content| serde_json::from_str(&content).ok())
+            .unwrap_or_else(default_settings)
+    } else {
+        default_settings()
+    }
+}
+
+pub fn save_settings(app_handle: &AppHandle, settings: &Settings) -> Result<(), String> {
+    let path = settings_path(app_handle);
+    let json = serde_json::to_string_pretty(settings).map_err(|e| e.to_string())?;
+    fs::write(&path, &json).map_err(|e| e.to_string())
 }

@@ -1,1 +1,0 @@
-import{b5 as f,Y as e,b3 as t}from"./Cb20woAz.js";function c(n){throw new Error("https://svelte.dev/e/lifecycle_outside_component")}function u(n){e===null&&c(),f(()=>{const o=t(n);if(typeof o=="function")return o})}function r(n){e===null&&c(),u(()=>()=>t(n))}export{u as a,r as o};

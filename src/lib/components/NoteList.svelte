@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { selectedFolder } from '$lib/stores/folders';
+  import { searchQuery } from '$lib/stores/ui';
   import { currentNote, loadNote, deleteNote, noteListChanged, type NoteEntry } from '$lib/stores/notes';
 
   let noteEntries = $state<NoteEntry[]>([]);
@@ -14,15 +15,22 @@
   $effect(() => {
     $selectedFolder;
     $noteListChanged;
+    $searchQuery;
     loadNoteList();
   });
 
   async function loadNoteList() {
     loading = true;
     try {
-      const folderPath = $selectedFolder ?? '';
-      const entries = await invoke<NoteEntry[]>('list_notes_in_folder', { folderPath });
-      noteEntries = entries;
+      const query = $searchQuery;
+      if (query) {
+        const entries = await invoke<NoteEntry[]>('search_notes', { query });
+        noteEntries = entries;
+      } else {
+        const folderPath = $selectedFolder ?? '';
+        const entries = await invoke<NoteEntry[]>('list_notes_in_folder', { folderPath });
+        noteEntries = entries;
+      }
     } catch (e) {
       console.error('Failed to load notes:', e);
       noteEntries = [];

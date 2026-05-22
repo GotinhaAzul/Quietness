@@ -43,7 +43,6 @@ declare module '$env/static/private' {
 	export const ALLUSERSPROFILE: string;
 	export const APPDATA: string;
 	export const COLOR: string;
-	export const COLORTERM: string;
 	export const CommonProgramFiles: string;
 	export const CommonProgramW6432: string;
 	export const COMPUTERNAME: string;
@@ -55,7 +54,6 @@ declare module '$env/static/private' {
 	export const HOMEDRIVE: string;
 	export const HOMEPATH: string;
 	export const INIT_CWD: string;
-	export const LANG: string;
 	export const LOCALAPPDATA: string;
 	export const LOGONSERVER: string;
 	export const NODE: string;
@@ -82,11 +80,12 @@ declare module '$env/static/private' {
 	export const NUMBER_OF_PROCESSORS: string;
 	export const OneDrive: string;
 	export const OPENCODE: string;
+	export const OPENCODE_CLIENT: string;
 	export const OPENCODE_PID: string;
 	export const OPENCODE_PROCESS_ROLE: string;
 	export const OPENCODE_RUN_ID: string;
 	export const OS: string;
-	export const PATH: string;
+	export const Path: string;
 	export const PATHEXT: string;
 	export const PROCESSOR_ARCHITECTURE: string;
 	export const PROCESSOR_IDENTIFIER: string;
@@ -103,9 +102,6 @@ declare module '$env/static/private' {
 	export const SystemRoot: string;
 	export const TAVILY_API_KEY: string;
 	export const TEMP: string;
-	export const TERM: string;
-	export const TERM_PROGRAM: string;
-	export const TERM_PROGRAM_VERSION: string;
 	export const TMP: string;
 	export const USERDOMAIN: string;
 	export const USERDOMAIN_ROAMINGPROFILE: string;
@@ -113,7 +109,6 @@ declare module '$env/static/private' {
 	export const USERPROFILE: string;
 	export const windir: string;
 	export const ZED_ENVIRONMENT: string;
-	export const ZED_TERM: string;
 }
 
 /**
@@ -205,7 +200,6 @@ declare module '$env/dynamic/private' {
 		ALLUSERSPROFILE: string;
 		APPDATA: string;
 		COLOR: string;
-		COLORTERM: string;
 		CommonProgramFiles: string;
 		CommonProgramW6432: string;
 		COMPUTERNAME: string;
@@ -217,7 +211,6 @@ declare module '$env/dynamic/private' {
 		HOMEDRIVE: string;
 		HOMEPATH: string;
 		INIT_CWD: string;
-		LANG: string;
 		LOCALAPPDATA: string;
 		LOGONSERVER: string;
 		NODE: string;
@@ -244,11 +237,12 @@ declare module '$env/dynamic/private' {
 		NUMBER_OF_PROCESSORS: string;
 		OneDrive: string;
 		OPENCODE: string;
+		OPENCODE_CLIENT: string;
 		OPENCODE_PID: string;
 		OPENCODE_PROCESS_ROLE: string;
 		OPENCODE_RUN_ID: string;
 		OS: string;
-		PATH: string;
+		Path: string;
 		PATHEXT: string;
 		PROCESSOR_ARCHITECTURE: string;
 		PROCESSOR_IDENTIFIER: string;
@@ -265,9 +259,6 @@ declare module '$env/dynamic/private' {
 		SystemRoot: string;
 		TAVILY_API_KEY: string;
 		TEMP: string;
-		TERM: string;
-		TERM_PROGRAM: string;
-		TERM_PROGRAM_VERSION: string;
 		TMP: string;
 		USERDOMAIN: string;
 		USERDOMAIN_ROAMINGPROFILE: string;
@@ -275,7 +266,6 @@ declare module '$env/dynamic/private' {
 		USERPROFILE: string;
 		windir: string;
 		ZED_ENVIRONMENT: string;
-		ZED_TERM: string;
 		[key: `PUBLIC_${string}`]: undefined;
 		[key: `${string}`]: string | undefined;
 	}

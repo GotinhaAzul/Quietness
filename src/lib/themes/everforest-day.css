@@ -1,0 +1,15 @@
+:root.theme-everforest-day {
+  --q-bg: #fdf6e3;
+  --q-surface: #f5edd6;
+  --q-border: #e2dcc7;
+  --q-border-light: #ecf0d7;
+  --q-text: #5c6a64;
+  --q-muted: #9da9a0;
+  --q-faded: #b3beb0;
+  --q-accent: #7a9e7e;
+  --q-hover: #e8e0cc;
+  --q-active: #ddd8c0;
+  --q-danger: #e56e5a;
+  --q-danger-bg: #faede6;
+  color-scheme: light;
+}

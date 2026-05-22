@@ -1,5 +1,5 @@
 use tauri::AppHandle;
-use crate::fs::{self, FolderEntry, NoteEntry};
+use crate::fs::{self, FolderEntry, NoteEntry, Settings};
 
 #[tauri::command]
 pub fn list_notes(app_handle: AppHandle) -> Vec<NoteEntry> {
@@ -36,4 +36,19 @@ pub fn list_notes_in_folder(app_handle: AppHandle, folder_path: String) -> Vec<N
 #[tauri::command]
 pub fn delete_note(app_handle: AppHandle, path: String) -> Result<(), String> {
     fs::delete_note(&app_handle, &path)
+}
+
+#[tauri::command]
+pub fn search_notes(app_handle: AppHandle, query: String) -> Vec<NoteEntry> {
+    fs::search_notes(&app_handle, &query)
+}
+
+#[tauri::command]
+pub fn load_settings(app_handle: AppHandle) -> Settings {
+    fs::load_settings(&app_handle)
+}
+
+#[tauri::command]
+pub fn save_settings(app_handle: AppHandle, settings: Settings) -> Result<(), String> {
+    fs::save_settings(&app_handle, &settings)
 }

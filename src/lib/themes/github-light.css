@@ -1,0 +1,15 @@
+:root.theme-github-light {
+  --q-bg: #ffffff;
+  --q-surface: #f6f8fa;
+  --q-border: #d1d9e0;
+  --q-border-light: #e8ecef;
+  --q-text: #1f2328;
+  --q-muted: #656d76;
+  --q-faded: #8b949e;
+  --q-accent: #0969da;
+  --q-hover: #e8ecef;
+  --q-active: #d1d9e0;
+  --q-danger: #cf222e;
+  --q-danger-bg: #fce8e8;
+  color-scheme: light;
+}

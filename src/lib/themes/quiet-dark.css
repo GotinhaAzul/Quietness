@@ -1,0 +1,15 @@
+:root.theme-quiet-dark {
+  --q-bg: #1e1e1e;
+  --q-surface: #252525;
+  --q-border: #333333;
+  --q-border-light: #2a2a2a;
+  --q-text: #d4d4d4;
+  --q-muted: #888888;
+  --q-faded: #666666;
+  --q-accent: #8b8178;
+  --q-hover: #2d2d2d;
+  --q-active: #353535;
+  --q-danger: #e06c75;
+  --q-danger-bg: #2d1b1e;
+  color-scheme: dark;
+}

@@ -3,9 +3,12 @@
   import Sidebar from '$lib/components/Sidebar.svelte';
   import NoteEditor from '$lib/components/NoteEditor.svelte';
   import NotePreview from '$lib/components/NotePreview.svelte';
+  import SettingsModal from '$lib/components/SettingsModal.svelte';
   import { loadNotes, currentNote, saveCurrentNote, deleteNote, errorMessage } from '$lib/stores/notes';
   import { loadFolders } from '$lib/stores/folders';
   import { viewMode, type ViewMode } from '$lib/stores/editor';
+  import { settings } from '$lib/stores/settings';
+  import { FONT_STACKS } from '$lib/utils/fonts';
 
   const modes: { value: ViewMode; label: string }[] = [
     { value: 'edit', label: 'Edit' },
@@ -15,10 +18,13 @@
 
   let saveTimeout: any = null;
   let isDeleting = $state(false);
+  let showSettings = $state(false);
+  let appReady = $state(false);
 
   onMount(() => {
     loadNotes();
     loadFolders();
+    settings.load().then(() => { appReady = true; });
 
     const handleBeforeUnload = () => {
       if (saveTimeout) {
@@ -39,11 +45,26 @@
     }
   });
 
+  $effect(() => {
+    if (!appReady) return;
+    const s = $settings;
+    const root = document.documentElement;
+
+    root.className = `theme-${s.theme}`;
+
+    root.style.setProperty('--q-font-ui', FONT_STACKS[s.fonts.ui] ?? FONT_STACKS['Inter']);
+    root.style.setProperty('--q-font-editor', FONT_STACKS[s.fonts.editor] ?? FONT_STACKS['JetBrains Mono']);
+    root.style.setProperty('--q-font-preview', FONT_STACKS[s.fonts.preview] ?? FONT_STACKS['Inter']);
+
+    root.style.setProperty('--q-size-ui', `${s.sizes.ui}px`);
+    root.style.setProperty('--q-size-editor', `${s.sizes.editor}px`);
+    root.style.setProperty('--q-size-preview', `${s.sizes.preview}px`);
+  });
+
   function handleContentChange(value: string) {
     if (!$currentNote) return;
     $currentNote = { ...$currentNote, content: value };
 
-    // Debounced auto-save (800ms)
     if (saveTimeout) {
       clearTimeout(saveTimeout);
     }
@@ -90,6 +111,16 @@
       <div class="flex items-center justify-between border-b border-quiet-border/60 px-6 py-3">
         <h2 class="text-sm font-medium text-quiet-muted">{$currentNote.name}</h2>
         <div class="flex items-center gap-2">
+          <button
+            class="rounded-md p-1.5 text-quiet-faded transition-colors hover:bg-quiet-hover hover:text-quiet-text"
+            onclick={() => (showSettings = true)}
+            aria-label="Settings"
+          >
+            <svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="8" cy="8" r="1.5" />
+              <path d="M8 1.5v1M8 13.5v1M3.3 3.3l.7.7M12 12l.7.7M1.5 8h1M13.5 8h1M3.3 12.7l.7-.7M12 4l.7-.7" />
+            </svg>
+          </button>
           <div class="flex overflow-hidden rounded-md border border-quiet-border/60">
             {#each modes as mode}
               <button
@@ -163,4 +194,6 @@
     </div>
   {/if}
 </div>
+
+<SettingsModal open={showSettings} onclose={() => (showSettings = false)} />
 

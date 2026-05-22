@@ -1,0 +1,15 @@
+:root.theme-catppuccin-latte {
+  --q-bg: #eff1f5;
+  --q-surface: #e6e9ef;
+  --q-border: #ccd0da;
+  --q-border-light: #dce0e8;
+  --q-text: #4c4f69;
+  --q-muted: #7c7f93;
+  --q-faded: #9ca0b0;
+  --q-accent: #8839ef;
+  --q-hover: #dce0e8;
+  --q-active: #ccd0da;
+  --q-danger: #d20f39;
+  --q-danger-bg: #fce9ec;
+  color-scheme: light;
+}

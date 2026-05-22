@@ -1,0 +1,15 @@
+:root.theme-everforest-night {
+  --q-bg: #2d353b;
+  --q-surface: #343f44;
+  --q-border: #47555b;
+  --q-border-light: #3d484e;
+  --q-text: #d3c6aa;
+  --q-muted: #859289;
+  --q-faded: #6a7a72;
+  --q-accent: #a7c080;
+  --q-hover: #3d484e;
+  --q-active: #47555b;
+  --q-danger: #e67e80;
+  --q-danger-bg: #2d2424;
+  color-scheme: dark;
+}

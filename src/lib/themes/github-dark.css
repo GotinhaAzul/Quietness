@@ -1,0 +1,15 @@
+:root.theme-github-dark {
+  --q-bg: #0d1117;
+  --q-surface: #161b22;
+  --q-border: #30363d;
+  --q-border-light: #21262d;
+  --q-text: #e6edf3;
+  --q-muted: #8b949e;
+  --q-faded: #6e7681;
+  --q-accent: #58a6ff;
+  --q-hover: #21262d;
+  --q-active: #30363d;
+  --q-danger: #f85149;
+  --q-danger-bg: #2d1515;
+  color-scheme: dark;
+}

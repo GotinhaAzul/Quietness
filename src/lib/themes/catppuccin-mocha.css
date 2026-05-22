@@ -1,0 +1,15 @@
+:root.theme-catppuccin-mocha {
+  --q-bg: #1e1e2e;
+  --q-surface: #181825;
+  --q-border: #313244;
+  --q-border-light: #282840;
+  --q-text: #cdd6f4;
+  --q-muted: #9399b2;
+  --q-faded: #6c7086;
+  --q-accent: #cba6f7;
+  --q-hover: #313244;
+  --q-active: #45475a;
+  --q-danger: #f38ba8;
+  --q-danger-bg: #2d1b24;
+  color-scheme: dark;
+}

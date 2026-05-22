@@ -1,7 +1,8 @@
 import { a8 as ssr_context, k as attr_class, p as clsx, a9 as store_get, z as ensure_array_like, ad as unsubscribe_stores, l as attr_style, A as escape_html, aa as stringify, j as attr, w as derived, M as head } from "../../chunks/renderer.js";
 import "clsx";
 import { w as writable } from "../../chunks/index.js";
-import "@tauri-apps/api/core";
+import { invoke } from "@tauri-apps/api/core";
+import { Compartment } from "@codemirror/state";
 import MarkdownIt from "markdown-it";
 function html(value) {
   var html2 = String(value ?? "");
@@ -96,9 +97,11 @@ function NoteList($$renderer, $$props) {
     if ($$store_subs) unsubscribe_stores($$store_subs);
   });
 }
-function SearchBar($$renderer) {
-  let query = "";
-  $$renderer.push(`<div class="relative"><svg class="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-quiet-faded" viewBox="0 0 16 16" fill="currentColor"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"></path></svg> <input type="text" placeholder="Search notes…"${attr("value", query)} class="w-full rounded-md border border-quiet-border/70 bg-white/70 py-1.5 pl-9 pr-3 text-xs text-quiet-text placeholder-quiet-faded outline-none transition-colors focus:border-quiet-accent/40 focus:bg-white focus:ring-1 focus:ring-quiet-accent/20"/></div>`);
+function SearchBar($$renderer, $$props) {
+  $$renderer.component(($$renderer2) => {
+    let query = "";
+    $$renderer2.push(`<div class="relative"><svg class="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-quiet-faded" viewBox="0 0 16 16" fill="currentColor"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"></path></svg> <input type="text" placeholder="Search notes…"${attr("value", query)} class="w-full rounded-md border border-quiet-border/70 bg-white/70 py-1.5 pl-9 pr-3 text-xs text-quiet-text placeholder-quiet-faded outline-none transition-colors focus:border-quiet-accent/40 focus:bg-white focus:ring-1 focus:ring-quiet-accent/20"/></div>`);
+  });
 }
 function Sidebar($$renderer, $$props) {
   $$renderer.component(($$renderer2) => {
@@ -115,8 +118,70 @@ function Sidebar($$renderer, $$props) {
     $$renderer2.push(`<!----></div></aside>`);
   });
 }
+const DEFAULT_SETTINGS = {
+  theme: "quiet",
+  fonts: {
+    ui: "Inter",
+    editor: "JetBrains Mono",
+    preview: "Inter"
+  },
+  sizes: {
+    ui: 14,
+    editor: 14,
+    preview: 16
+  },
+  editor: {
+    lineNumbers: true,
+    wordWrap: false,
+    tabSize: 4
+  }
+};
+function createSettingsStore() {
+  const { subscribe, set, update } = writable({ ...DEFAULT_SETTINGS });
+  let ready = false;
+  let saveTimeout = null;
+  function scheduleSave(settings2) {
+    if (!ready) return;
+    if (saveTimeout) clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => {
+      invoke("save_settings", { settings: settings2 }).catch((e) => {
+        console.error("Failed to save settings:", e);
+      });
+    }, 300);
+  }
+  return {
+    subscribe,
+    set(value) {
+      set(value);
+      scheduleSave(value);
+    },
+    update(fn) {
+      update((current) => {
+        const next = fn(current);
+        scheduleSave(next);
+        return next;
+      });
+    },
+    async load() {
+      try {
+        const saved = await invoke("load_settings");
+        if (saved) {
+          set({ ...DEFAULT_SETTINGS, ...saved });
+        }
+      } catch (e) {
+        console.error("Failed to load settings:", e);
+      } finally {
+        ready = true;
+      }
+    }
+  };
+}
+const settings = createSettingsStore();
 function NoteEditor($$renderer, $$props) {
   $$renderer.component(($$renderer2) => {
+    new Compartment();
+    new Compartment();
+    new Compartment();
     $$renderer2.push(`<div class="h-full w-full"></div>`);
   });
 }
@@ -182,6 +247,55 @@ function NotePreview($$renderer, $$props) {
     if ($$store_subs) unsubscribe_stores($$store_subs);
   });
 }
+const AVAILABLE_THEMES = [
+  { id: "quiet", name: "Quiet Light", description: "Warm paper background, soft contrast", colors: { bg: "#f8f5f0", surface: "#f2eee8", text: "#2a2724", accent: "#6b615a", muted: "#7d7570" } },
+  { id: "quiet-dark", name: "Quiet Dark", description: "Dark background, muted tones", colors: { bg: "#1e1e1e", surface: "#252525", text: "#d4d4d4", accent: "#8b8178", muted: "#888888" } },
+  { id: "catppuccin-latte", name: "Catppuccin Latte", description: "Warm, gentle pastels", colors: { bg: "#eff1f5", surface: "#e6e9ef", text: "#4c4f69", accent: "#8839ef", muted: "#9ca0b0" } },
+  { id: "catppuccin-mocha", name: "Catppuccin Mocha", description: "Rich, cozy dark pastels", colors: { bg: "#1e1e2e", surface: "#181825", text: "#cdd6f4", accent: "#cba6f7", muted: "#a6adc8" } },
+  { id: "everforest-day", name: "Everforest Day", description: "Soft green-tinted light", colors: { bg: "#fdf6e3", surface: "#f5edd6", text: "#5c6a64", accent: "#7a9e7e", muted: "#9da9a0" } },
+  { id: "everforest-night", name: "Everforest Night", description: "Deep green-tinted dark", colors: { bg: "#2d353b", surface: "#343f44", text: "#d3c6aa", accent: "#a7c080", muted: "#859289" } },
+  { id: "github-light", name: "GitHub Light", description: "Clean, neutral light", colors: { bg: "#ffffff", surface: "#f6f8fa", text: "#1f2328", accent: "#0969da", muted: "#656d76" } },
+  { id: "github-dark", name: "GitHub Dark", description: "Clean, neutral dark", colors: { bg: "#0d1117", surface: "#161b22", text: "#e6edf3", accent: "#58a6ff", muted: "#8b949e" } },
+  { id: "nord", name: "Nord", description: "Arctic, bluish cool tones", colors: { bg: "#eceff4", surface: "#e5e9f0", text: "#2e3440", accent: "#5e81ac", muted: "#7b88a1" } }
+];
+function SettingsModal($$renderer, $$props) {
+  $$renderer.component(($$renderer2) => {
+    var $$store_subs;
+    let { open = false } = $$props;
+    let activeTab = "theme";
+    if (open) {
+      $$renderer2.push("<!--[0-->");
+      $$renderer2.push(`<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/30" role="dialog" aria-modal="true" aria-label="Settings"><div class="mx-4 flex w-[560px] max-w-full flex-col rounded-xl border border-quiet-border bg-[var(--q-bg)] shadow-xl" style="max-height: 80vh;"><div class="flex items-center justify-between border-b border-quiet-border/60 px-6 py-4"><h2 class="text-sm font-semibold text-quiet-text">Settings</h2> <button class="rounded-md p-1.5 text-quiet-faded transition-colors hover:bg-quiet-hover hover:text-quiet-text" aria-label="Close settings"><svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"></path></svg></button></div> <div class="flex border-b border-quiet-border/60 px-6"><!--[-->`);
+      const each_array = ensure_array_like([
+        { id: "theme", label: "Theme" },
+        { id: "fonts", label: "Fonts" },
+        { id: "editor", label: "Editor" }
+      ]);
+      for (let $$index = 0, $$length = each_array.length; $$index < $$length; $$index++) {
+        let tab = each_array[$$index];
+        $$renderer2.push(`<button${attr_class(`border-b-2 px-4 py-3 text-xs font-medium transition-colors ${activeTab === tab.id ? "border-quiet-accent text-quiet-text" : "border-transparent text-quiet-faded hover:text-quiet-muted"}`)}>${escape_html(tab.label)}</button>`);
+      }
+      $$renderer2.push(`<!--]--></div> <div class="flex-1 overflow-y-auto p-6">`);
+      {
+        $$renderer2.push("<!--[0-->");
+        $$renderer2.push(`<div class="grid grid-cols-3 gap-3"><!--[-->`);
+        const each_array_1 = ensure_array_like(AVAILABLE_THEMES);
+        for (let $$index_1 = 0, $$length = each_array_1.length; $$index_1 < $$length; $$index_1++) {
+          let theme = each_array_1[$$index_1];
+          const active = store_get($$store_subs ??= {}, "$settings", settings).theme === theme.id;
+          const c = theme.colors;
+          $$renderer2.push(`<button${attr_class(`rounded-lg border-2 p-4 text-left transition-all ${active ? "border-quiet-accent ring-1 ring-quiet-accent/30" : "border-quiet-border/60 hover:border-quiet-border hover:bg-quiet-hover"}`)}><div class="mb-3 flex gap-1"><span class="h-5 w-5 rounded-full border border-quiet-border/50"${attr_style(`background: ${stringify(c.bg)}`)} title="Background"></span> <span class="h-5 w-5 rounded-full border border-quiet-border/50"${attr_style(`background: ${stringify(c.surface)}`)} title="Surface"></span> <span class="h-5 w-5 rounded-full border border-quiet-border/50"${attr_style(`background: ${stringify(c.text)}`)} title="Text"></span> <span class="h-5 w-5 rounded-full border border-quiet-border/50"${attr_style(`background: ${stringify(c.accent)}`)} title="Accent"></span> <span class="h-5 w-5 rounded-full border border-quiet-border/50"${attr_style(`background: ${stringify(c.muted)}`)} title="Muted"></span></div> <div class="text-xs font-medium text-quiet-text">${escape_html(theme.name)}</div> <div class="mt-0.5 text-[11px] text-quiet-faded">${escape_html(theme.description)}</div></button>`);
+        }
+        $$renderer2.push(`<!--]--></div>`);
+      }
+      $$renderer2.push(`<!--]--></div> <div class="flex items-center justify-end border-t border-quiet-border/60 px-6 py-3"><button class="rounded-md bg-quiet-accent px-4 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90">Done</button></div></div></div>`);
+    } else {
+      $$renderer2.push("<!--[-1-->");
+    }
+    $$renderer2.push(`<!--]-->`);
+    if ($$store_subs) unsubscribe_stores($$store_subs);
+  });
+}
 const viewMode = writable("split");
 function _page($$renderer, $$props) {
   $$renderer.component(($$renderer2) => {
@@ -192,6 +306,7 @@ function _page($$renderer, $$props) {
       { value: "preview", label: "Preview" }
     ];
     let isDeleting = false;
+    let showSettings = false;
     onDestroy(() => {
     });
     head("1uha8ag", $$renderer2, ($$renderer3) => {
@@ -205,7 +320,7 @@ function _page($$renderer, $$props) {
     $$renderer2.push(`<!----> <main class="flex flex-1 flex-col">`);
     if (store_get($$store_subs ??= {}, "$currentNote", currentNote)) {
       $$renderer2.push("<!--[0-->");
-      $$renderer2.push(`<div class="flex items-center justify-between border-b border-quiet-border/60 px-6 py-3"><h2 class="text-sm font-medium text-quiet-muted">${escape_html(store_get($$store_subs ??= {}, "$currentNote", currentNote).name)}</h2> <div class="flex items-center gap-2"><div class="flex overflow-hidden rounded-md border border-quiet-border/60"><!--[-->`);
+      $$renderer2.push(`<div class="flex items-center justify-between border-b border-quiet-border/60 px-6 py-3"><h2 class="text-sm font-medium text-quiet-muted">${escape_html(store_get($$store_subs ??= {}, "$currentNote", currentNote).name)}</h2> <div class="flex items-center gap-2"><button class="rounded-md p-1.5 text-quiet-faded transition-colors hover:bg-quiet-hover hover:text-quiet-text" aria-label="Settings"><svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="1.5"></circle><path d="M8 1.5v1M8 13.5v1M3.3 3.3l.7.7M12 12l.7.7M1.5 8h1M13.5 8h1M3.3 12.7l.7-.7M12 4l.7-.7"></path></svg></button> <div class="flex overflow-hidden rounded-md border border-quiet-border/60"><!--[-->`);
       const each_array = ensure_array_like(modes);
       for (let $$index = 0, $$length = each_array.length; $$index < $$length; $$index++) {
         let mode = each_array[$$index];
@@ -245,7 +360,9 @@ function _page($$renderer, $$props) {
     } else {
       $$renderer2.push("<!--[-1-->");
     }
-    $$renderer2.push(`<!--]--></div>`);
+    $$renderer2.push(`<!--]--></div> `);
+    SettingsModal($$renderer2, { open: showSettings });
+    $$renderer2.push(`<!---->`);
     if ($$store_subs) unsubscribe_stores($$store_subs);
   });
 }
