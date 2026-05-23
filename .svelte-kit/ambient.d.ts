@@ -39,10 +39,10 @@
  */
 declare module '$env/static/private' {
 	export const ADL_4KWORKAROUND_CANCEL: string;
+	export const AGENT: string;
 	export const ALLUSERSPROFILE: string;
 	export const APPDATA: string;
 	export const COLOR: string;
-	export const COLORTERM: string;
 	export const CommonProgramFiles: string;
 	export const CommonProgramW6432: string;
 	export const COMPUTERNAME: string;
@@ -54,13 +54,10 @@ declare module '$env/static/private' {
 	export const HOMEDRIVE: string;
 	export const HOMEPATH: string;
 	export const INIT_CWD: string;
-	export const LANG: string;
 	export const LOCALAPPDATA: string;
 	export const LOGONSERVER: string;
 	export const NODE: string;
 	export const NODE_ENV: string;
-	export const NODE_EXE: string;
-	export const NPM_CLI_JS: string;
 	export const npm_command: string;
 	export const npm_config_cache: string;
 	export const npm_config_globalconfig: string;
@@ -80,12 +77,15 @@ declare module '$env/static/private' {
 	export const npm_package_json: string;
 	export const npm_package_name: string;
 	export const npm_package_version: string;
-	export const NPM_PREFIX_JS: string;
-	export const NPM_PREFIX_NPM_CLI_JS: string;
 	export const NUMBER_OF_PROCESSORS: string;
 	export const OneDrive: string;
+	export const OPENCODE: string;
+	export const OPENCODE_CLIENT: string;
+	export const OPENCODE_PID: string;
+	export const OPENCODE_PROCESS_ROLE: string;
+	export const OPENCODE_RUN_ID: string;
 	export const OS: string;
-	export const PATH: string;
+	export const Path: string;
 	export const PATHEXT: string;
 	export const PROCESSOR_ARCHITECTURE: string;
 	export const PROCESSOR_IDENTIFIER: string;
@@ -100,18 +100,8 @@ declare module '$env/static/private' {
 	export const SESSIONNAME: string;
 	export const SystemDrive: string;
 	export const SystemRoot: string;
-	export const TAURI_CLI_VERBOSITY: string;
-	export const TAURI_ENV_ARCH: string;
-	export const TAURI_ENV_DEBUG: string;
-	export const TAURI_ENV_FAMILY: string;
-	export const TAURI_ENV_PLATFORM: string;
-	export const TAURI_ENV_PLATFORM_VERSION: string;
-	export const TAURI_ENV_TARGET_TRIPLE: string;
 	export const TAVILY_API_KEY: string;
 	export const TEMP: string;
-	export const TERM: string;
-	export const TERM_PROGRAM: string;
-	export const TERM_PROGRAM_VERSION: string;
 	export const TMP: string;
 	export const USERDOMAIN: string;
 	export const USERDOMAIN_ROAMINGPROFILE: string;
@@ -119,7 +109,6 @@ declare module '$env/static/private' {
 	export const USERPROFILE: string;
 	export const windir: string;
 	export const ZED_ENVIRONMENT: string;
-	export const ZED_TERM: string;
 }
 
 /**
@@ -207,10 +196,10 @@ declare module '$env/static/public' {
 declare module '$env/dynamic/private' {
 	export const env: {
 		ADL_4KWORKAROUND_CANCEL: string;
+		AGENT: string;
 		ALLUSERSPROFILE: string;
 		APPDATA: string;
 		COLOR: string;
-		COLORTERM: string;
 		CommonProgramFiles: string;
 		CommonProgramW6432: string;
 		COMPUTERNAME: string;
@@ -222,13 +211,10 @@ declare module '$env/dynamic/private' {
 		HOMEDRIVE: string;
 		HOMEPATH: string;
 		INIT_CWD: string;
-		LANG: string;
 		LOCALAPPDATA: string;
 		LOGONSERVER: string;
 		NODE: string;
 		NODE_ENV: string;
-		NODE_EXE: string;
-		NPM_CLI_JS: string;
 		npm_command: string;
 		npm_config_cache: string;
 		npm_config_globalconfig: string;
@@ -248,12 +234,15 @@ declare module '$env/dynamic/private' {
 		npm_package_json: string;
 		npm_package_name: string;
 		npm_package_version: string;
-		NPM_PREFIX_JS: string;
-		NPM_PREFIX_NPM_CLI_JS: string;
 		NUMBER_OF_PROCESSORS: string;
 		OneDrive: string;
+		OPENCODE: string;
+		OPENCODE_CLIENT: string;
+		OPENCODE_PID: string;
+		OPENCODE_PROCESS_ROLE: string;
+		OPENCODE_RUN_ID: string;
 		OS: string;
-		PATH: string;
+		Path: string;
 		PATHEXT: string;
 		PROCESSOR_ARCHITECTURE: string;
 		PROCESSOR_IDENTIFIER: string;
@@ -268,18 +257,8 @@ declare module '$env/dynamic/private' {
 		SESSIONNAME: string;
 		SystemDrive: string;
 		SystemRoot: string;
-		TAURI_CLI_VERBOSITY: string;
-		TAURI_ENV_ARCH: string;
-		TAURI_ENV_DEBUG: string;
-		TAURI_ENV_FAMILY: string;
-		TAURI_ENV_PLATFORM: string;
-		TAURI_ENV_PLATFORM_VERSION: string;
-		TAURI_ENV_TARGET_TRIPLE: string;
 		TAVILY_API_KEY: string;
 		TEMP: string;
-		TERM: string;
-		TERM_PROGRAM: string;
-		TERM_PROGRAM_VERSION: string;
 		TMP: string;
 		USERDOMAIN: string;
 		USERDOMAIN_ROAMINGPROFILE: string;
@@ -287,7 +266,6 @@ declare module '$env/dynamic/private' {
 		USERPROFILE: string;
 		windir: string;
 		ZED_ENVIRONMENT: string;
-		ZED_TERM: string;
 		[key: `PUBLIC_${string}`]: undefined;
 		[key: `${string}`]: string | undefined;
 	}

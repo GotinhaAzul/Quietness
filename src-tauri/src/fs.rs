@@ -62,6 +62,23 @@ fn list_notes_recursive(dir: &PathBuf, notes: &mut Vec<NoteEntry>) {
     }
 }
 
+fn resolve_canonical(path: &std::path::Path) -> std::path::PathBuf {
+    match std::fs::canonicalize(path) {
+        Ok(p) => p,
+        Err(_) => {
+            if let Some(parent) = path.parent() {
+                let mut resolved = resolve_canonical(parent);
+                if let Some(name) = path.file_name() {
+                    resolved.push(name);
+                }
+                resolved
+            } else {
+                path.to_path_buf()
+            }
+        }
+    }
+}
+
 pub fn is_safe_path(app_handle: &AppHandle, path: &str) -> bool {
     let base = notes_dir(app_handle);
     let target = std::path::Path::new(path);
@@ -72,26 +89,10 @@ pub fn is_safe_path(app_handle: &AppHandle, path: &str) -> bool {
         base.join(target)
     };
 
-    let canon_base = std::fs::canonicalize(&base).unwrap_or(base.clone());
-    let canon_target = std::fs::canonicalize(&abs_target).unwrap_or(abs_target.clone());
+    let canon_base = std::fs::canonicalize(&base).unwrap_or_else(|_| base.clone());
+    let canon_target = resolve_canonical(&abs_target);
 
-    let mut normalized = std::path::PathBuf::new();
-    for component in canon_target.components() {
-        match component {
-            std::path::Component::ParentDir => {
-                normalized.pop();
-            }
-            std::path::Component::Normal(c) => {
-                normalized.push(c);
-            }
-            std::path::Component::RootDir | std::path::Component::Prefix(_) => {
-                normalized.push(component.as_os_str());
-            }
-            std::path::Component::CurDir => {}
-        }
-    }
-
-    normalized.starts_with(&canon_base)
+    canon_target.starts_with(&canon_base)
 }
 
 pub fn delete_note(app_handle: &AppHandle, path: &str) -> Result<(), String> {
@@ -376,8 +377,17 @@ pub fn rename_note(app_handle: &AppHandle, old_path: &str, new_name: &str) -> Re
         return Err("Access denied: path traversal detected".to_string());
     }
 
-    if new_path.exists() {
-        return Err("A note with that name already exists".to_string());
+    if new_path != old_path_buf {
+        if new_path.exists() {
+            let is_same = old_path_buf
+                .canonicalize()
+                .ok()
+                .and_then(|o| new_path.canonicalize().ok().map(|n| o == n))
+                .unwrap_or(false);
+            if !is_same {
+                return Err("A note with that name already exists".to_string());
+            }
+        }
     }
 
     fs::rename(old_path, &new_path).map_err(|e| e.to_string())?;
@@ -424,21 +434,9 @@ pub fn read_user_theme_css(app_handle: &AppHandle, id: &str) -> Result<String, S
     let dir = user_themes_dir(app_handle);
     let name = id.strip_prefix("user-").unwrap_or(id);
     let path = dir.join(format!("{}.css", name));
-    let normalized = path
-        .components()
-        .fold(PathBuf::new(), |acc, c| match c {
-            std::path::Component::ParentDir => {
-                let mut a = acc;
-                a.pop();
-                a
-            }
-            std::path::Component::Normal(c) => acc.join(c),
-            std::path::Component::RootDir | std::path::Component::Prefix(_) => {
-                PathBuf::from(c.as_os_str())
-            }
-            std::path::Component::CurDir => acc,
-        });
-    if !normalized.starts_with(&dir) {
+    let canon_dir = std::fs::canonicalize(&dir).unwrap_or_else(|_| dir.clone());
+    let canon_path = resolve_canonical(&path);
+    if !canon_path.starts_with(&canon_dir) {
         return Err("Access denied".to_string());
     }
     fs::read_to_string(path).map_err(|e| e.to_string())

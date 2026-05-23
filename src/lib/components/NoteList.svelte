@@ -95,6 +95,11 @@
       renamingPath = null;
       return;
     }
+    const currentName = noteEntries.find(n => n.path === oldPath)?.name;
+    if (currentName && cleanName === currentName) {
+      renamingPath = null;
+      return;
+    }
     const lastSep = oldPath.lastIndexOf('/');
     const parentDir = lastSep >= 0 ? oldPath.slice(0, lastSep) : '';
     const newPath = parentDir ? `${parentDir}/${cleanName}.md` : `${cleanName}.md`;

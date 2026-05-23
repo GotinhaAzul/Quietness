@@ -180,9 +180,6 @@ import { FONT_STACKS } from '$lib/utils/fonts';
   <main class="flex flex-1 flex-col">
     <div class="flex items-center justify-between border-b border-quiet-border/60 px-6 py-3">
       <div class="flex items-center gap-3">
-        <h2 class="text-sm font-medium text-quiet-muted">
-          {#if $currentNote}{$currentNote.name}{/if}
-        </h2>
         {#if saveStatus !== 'saved'}
           <span class="text-[10px] text-quiet-faded">
             {#if saveStatus === 'saving'}Saving…{:else}Unsaved{/if}
