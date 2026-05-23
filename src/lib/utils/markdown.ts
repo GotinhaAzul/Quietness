@@ -1,5 +1,6 @@
 import MarkdownIt from 'markdown-it';
 import wikilinksPlugin from './wikilinks';
+import tasklistsPlugin from './tasklists';
 
 const md = new MarkdownIt({
   html: false,
@@ -8,6 +9,7 @@ const md = new MarkdownIt({
 });
 
 md.use(wikilinksPlugin);
+md.use(tasklistsPlugin);
 
 export default md;
 

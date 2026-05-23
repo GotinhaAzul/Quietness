@@ -1,0 +1,105 @@
+<div class="quietness-flame" aria-hidden="true">
+  <div class="pixel p1"></div>
+  <div class="pixel p2"></div>
+  <div class="pixel p3"></div>
+  <div class="pixel p4"></div>
+  <div class="pixel p5"></div>
+  <div class="pixel p6"></div>
+  <div class="pixel p7"></div>
+  <div class="pixel p8"></div>
+  <div class="pixel p9"></div>
+  <div class="pixel p10"></div>
+  <div class="pixel p11"></div>
+  <div class="pixel p12"></div>
+  <div class="pixel p13"></div>
+  <div class="pixel p14"></div>
+  <div class="pixel p15"></div>
+  <div class="pixel p16"></div>
+  <div class="pixel p17"></div>
+  <div class="pixel p18"></div>
+  <div class="pixel p19"></div>
+  <div class="pixel p20"></div>
+  <div class="pixel p21"></div>
+  <div class="pixel p22"></div>
+  <div class="pixel p23"></div>
+  <div class="pixel p24"></div>
+  <div class="pixel p25"></div>
+</div>
+
+<style>
+  .quietness-flame {
+    position: fixed;
+    right: 28px;
+    bottom: 28px;
+    width: 112px;
+    height: 152px;
+    pointer-events: none;
+    transform-origin: bottom center;
+    animation: flame-sway 1.4s ease-in-out infinite;
+    filter: drop-shadow(0 0 10px rgba(162, 55, 255, 0.35));
+  }
+
+  .quietness-flame .pixel {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    animation: pixel-flicker 0.9s steps(2, end) infinite;
+  }
+
+  .p1  { left: 48px; top: 0;   background: #f7f5ff; animation-delay: .01s; }
+  .p2  { left: 48px; top: 16px; background: #f7f5ff; animation-delay: .05s; }
+  .p3  { left: 32px; top: 16px; background: #f7f5ff; animation-delay: .08s; }
+  .p4  { left: 32px; top: 32px; background: #d6a1ff; animation-delay: .12s; }
+  .p5  { left: 48px; top: 32px; background: #c786ff; animation-delay: .02s; }
+
+  .p6  { left: 32px; top: 48px; background: #b55cff; animation-delay: .14s; }
+  .p7  { left: 48px; top: 48px; background: #b55cff; animation-delay: .07s; }
+  .p8  { left: 64px; top: 48px; background: #9f45ff; animation-delay: .18s; }
+
+  .p9  { left: 16px; top: 64px; background: #9b40ff; animation-delay: .03s; }
+  .p10 { left: 32px; top: 64px; background: #bc67ff; animation-delay: .09s; }
+  .p11 { left: 48px; top: 64px; background: #bd6aff; animation-delay: .16s; }
+  .p12 { left: 64px; top: 64px; background: #8d22ee; animation-delay: .11s; }
+
+  .p13 { left: 16px; top: 80px; background: #a234ff; animation-delay: .21s; }
+  .p14 { left: 32px; top: 80px; background: #a234ff; animation-delay: .04s; }
+  .p15 { left: 48px; top: 80px; background: #8a00e6; animation-delay: .19s; }
+  .p16 { left: 64px; top: 80px; background: #7600d6; animation-delay: .13s; }
+  .p17 { left: 80px; top: 80px; background: #8a00e6; animation-delay: .06s; }
+
+  .p18 { left: 0;   top: 96px; background: #6b3ca8; animation-delay: .17s; opacity: .85; }
+  .p19 { left: 32px; top: 96px; background: #8c00e8; animation-delay: .1s; }
+  .p20 { left: 48px; top: 96px; background: #7b00d8; animation-delay: .15s; }
+  .p21 { left: 64px; top: 96px; background: #7100ca; animation-delay: .22s; }
+
+  .p22 { left: 32px; top: 112px; background: #7200d4; animation-delay: .08s; }
+  .p23 { left: 48px; top: 112px; background: #7200d4; animation-delay: .2s; }
+  .p24 { left: 64px; top: 112px; background: #8500ea; animation-delay: .05s; }
+  .p25 { left: 48px; top: 128px; background: #6500c9; animation-delay: .12s; }
+
+  @keyframes flame-sway {
+    0%, 100% {
+      transform: translateY(0) scaleX(1) scaleY(1);
+    }
+    25% {
+      transform: translateY(-2px) scaleX(0.96) scaleY(1.04);
+    }
+    50% {
+      transform: translateY(1px) scaleX(1.04) scaleY(0.98);
+    }
+    75% {
+      transform: translateY(-1px) scaleX(0.98) scaleY(1.03);
+    }
+  }
+
+  @keyframes pixel-flicker {
+    0%, 100% {
+      transform: translate(0, 0);
+      opacity: 1;
+    }
+    50% {
+      transform: translate(0, -1px);
+      opacity: .82;
+    }
+  }
+</style>

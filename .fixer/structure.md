@@ -15,6 +15,8 @@ quietness/
 │   │   │   ├── SearchBar.svelte        # Busca na sidebar
 │   │   │   ├── SettingsModal.svelte    # Modal de configurações
 │   │   │   ├── Sidebar.svelte          # Barra lateral com notas e pastas
+│   │   │   ├── FlamePet.svelte         # Componente do pet (flama)
+│   │   │   ├── pet-sprites.ts          # Dados dos sprites pixel art
 │   │   ├── stores/               # Stores Svelte (estado global)
 │   │   │   ├── editor.ts         # Estado do editor CodeMirror
 │   │   │   ├── folders.ts        # Estado das pastas

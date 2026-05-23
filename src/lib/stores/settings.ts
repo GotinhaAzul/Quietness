@@ -19,6 +19,8 @@ export const DEFAULT_SETTINGS: Settings = {
     lineNumbers: true,
     wordWrap: false,
     tabSize: 4,
+    dimInactiveLines: false,
+    smoothCaret: true,
   },
 };
 

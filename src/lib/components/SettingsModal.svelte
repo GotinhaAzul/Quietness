@@ -320,6 +320,34 @@
                 >+</button>
               </div>
             </div>
+
+            <!-- Dim Inactive Lines -->
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-quiet-text">Dim inactive lines</span>
+              <button
+                aria-label="Toggle dim inactive lines"
+                class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors {$settings.editor.dimInactiveLines ? 'bg-quiet-accent' : 'bg-quiet-border'}"
+                onclick={() => settings.update(s => ({ ...s, editor: { ...s.editor, dimInactiveLines: !s.editor.dimInactiveLines } }))}
+                role="switch"
+                aria-checked={$settings.editor.dimInactiveLines}
+              >
+                <span class="inline-block h-3.5 w-3.5 translate-x-0.5 transform rounded-full bg-white shadow-sm transition-transform {$settings.editor.dimInactiveLines ? 'translate-x-[18px]' : ''}"></span>
+              </button>
+            </div>
+
+            <!-- Smooth Caret -->
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-quiet-text">Smooth animated cursor</span>
+              <button
+                aria-label="Toggle smooth cursor animation"
+                class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors {$settings.editor.smoothCaret ? 'bg-quiet-accent' : 'bg-quiet-border'}"
+                onclick={() => settings.update(s => ({ ...s, editor: { ...s.editor, smoothCaret: !s.editor.smoothCaret } }))}
+                role="switch"
+                aria-checked={$settings.editor.smoothCaret}
+              >
+                <span class="inline-block h-3.5 w-3.5 translate-x-0.5 transform rounded-full bg-white shadow-sm transition-transform {$settings.editor.smoothCaret ? 'translate-x-[18px]' : ''}"></span>
+              </button>
+            </div>
           </div>
         {/if}
       </div>

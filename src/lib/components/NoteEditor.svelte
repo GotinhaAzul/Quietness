@@ -2,7 +2,8 @@
   import { EditorView, basicSetup } from 'codemirror';
   import { Compartment, EditorState } from '@codemirror/state';
   import { markdown } from '@codemirror/lang-markdown';
-  import { drawSelection } from '@codemirror/view';
+  import { drawSelection, keymap } from '@codemirror/view';
+  import { closeBrackets } from '@codemirror/autocomplete';
   import { onMount } from 'svelte';
   import { settings } from '$lib/stores/settings';
   import { currentNote, noteListChanged, notes, showError } from '$lib/stores/notes';
@@ -21,6 +22,8 @@
   const guttersComp = new Compartment();
   const wordWrapComp = new Compartment();
   const tabSizeComp = new Compartment();
+  const dimInactiveComp = new Compartment();
+  const smoothCaretComp = new Compartment();
 
   const noteStates = new Map<string, EditorState>();
   let prevPath = '';
@@ -61,10 +64,50 @@
     },
   });
 
+  function dimInactiveExt() {
+    return EditorView.theme({
+      '.cm-line:not(.cm-activeLine)': {
+        opacity: '0.4',
+        transition: 'opacity 0.15s ease',
+      },
+    });
+  }
+
+  function smoothCaretExt() {
+    return EditorView.theme({
+      '.cm-cursor': {
+        transition: 'left 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), top 0.12s cubic-bezier(0.34, 1.56, 0.64, 1) !important',
+      },
+    });
+  }
+
+  const backtickAutoClose = keymap.of([{
+    key: '`',
+    run: (view) => {
+      const { state } = view;
+      const pos = state.selection.main.head;
+      const charAt = state.sliceDoc(pos, pos + 1);
+      if (charAt === '`') {
+        view.dispatch({
+          changes: { from: pos, to: pos + 1 },
+          selection: { anchor: pos + 1, head: pos + 1 },
+        });
+        return true;
+      }
+      view.dispatch({
+        changes: { from: pos, insert: '``' },
+        selection: { anchor: pos + 1, head: pos + 1 },
+      });
+      return true;
+    },
+  }]);
+
   let editorCfg = $derived({
     lineNumbers: $settings.editor.lineNumbers,
     wordWrap: $settings.editor.wordWrap,
     tabSize: $settings.editor.tabSize,
+    dimInactiveLines: $settings.editor.dimInactiveLines,
+    smoothCaret: $settings.editor.smoothCaret,
   });
 
   let noteName = $derived($currentNote?.name ?? '');
@@ -86,6 +129,10 @@
         guttersComp.of(getGuttersExt(s.editor.lineNumbers)),
         wordWrapComp.of(s.editor.wordWrap ? EditorView.lineWrapping : []),
         tabSizeComp.of(EditorState.tabSize.of(s.editor.tabSize)),
+        dimInactiveComp.of(s.editor.dimInactiveLines ? dimInactiveExt() : []),
+        smoothCaretComp.of(s.editor.smoothCaret ? smoothCaretExt() : []),
+        closeBrackets(),
+        backtickAutoClose,
         markdown(),
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
@@ -110,6 +157,8 @@
         guttersComp.reconfigure(getGuttersExt(cfg.lineNumbers)),
         wordWrapComp.reconfigure(cfg.wordWrap ? EditorView.lineWrapping : []),
         tabSizeComp.reconfigure(EditorState.tabSize.of(cfg.tabSize)),
+        dimInactiveComp.reconfigure(cfg.dimInactiveLines ? dimInactiveExt() : []),
+        smoothCaretComp.reconfigure(cfg.smoothCaret ? smoothCaretExt() : []),
       ],
     });
   });

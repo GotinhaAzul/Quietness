@@ -188,10 +188,10 @@ import { FONT_STACKS } from '$lib/utils/fonts';
       </div>
       <div class="flex items-center gap-2">
         {#if $currentNote}
-          <div class="flex overflow-hidden rounded-md border border-quiet-border/60">
+            <div class="flex overflow-hidden rounded-md border border-quiet-border/60">
             {#each modes as mode}
               <button
-                class="px-3 py-1 text-xs transition-colors {$viewMode === mode.value
+                class="px-3 py-1 text-xs transition-all duration-150 ease-out {$viewMode === mode.value
                   ? 'bg-quiet-accent text-white'
                   : 'text-quiet-faded hover:bg-quiet-hover hover:text-quiet-text'}"
                 onclick={() => viewMode.set(mode.value)}
@@ -199,7 +199,7 @@ import { FONT_STACKS } from '$lib/utils/fonts';
                 {mode.label}
               </button>
             {/each}
-          </div>
+            </div>
           <button
             class="rounded-md px-3 py-1 text-xs text-quiet-faded transition-colors hover:bg-quiet-hover hover:text-quiet-text"
             onclick={handleSave}

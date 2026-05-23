@@ -1,0 +1,1 @@
+This folder is not listed in structure and only exists to display the examples of the flame. This folder will be deleted later, so don't use anything from here, just get the code.

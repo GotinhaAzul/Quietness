@@ -117,22 +117,38 @@ export async function createNote(name: string, folder: string = '', content: str
       return;
     }
 
-    await invoke('write_note', { path, content });
-    await loadNotes();
+    // Optimistic UI: add note and load it instantly
+    const entry: NoteEntry = { name: cleanName, path };
+    notes.update(list => [...list, entry]);
+    currentNote.set({ name: cleanName, path, content });
     noteListChanged.update(n => n + 1);
-    await loadNote(path);
+
+    try {
+      await invoke('write_note', { path, content });
+      await loadNotes();
+    } catch (e) {
+      notes.update(list => list.filter(n => n.path !== path));
+      currentNote.update(n => n?.path === path ? null : n);
+      showError(`Failed to create note: ${e}`);
+    }
   } catch (e) {
     showError(`Failed to create note: ${e}`);
   }
 }
 
 export async function deleteNote(path: string): Promise<void> {
+  const previousNotes = get(notes);
+  const previousCurrent = get(currentNote);
+
+  notes.update(list => list.filter(n => n.path !== path));
+  currentNote.update(n => (n && n.path === path) ? null : n);
+
   try {
     await invoke('delete_note', { path });
-    currentNote.update(n => (n && n.path === path) ? null : n);
-    await loadNotes();
     noteListChanged.update(n => n + 1);
   } catch (e) {
+    notes.set(previousNotes);
+    currentNote.set(previousCurrent);
     showError(`Failed to delete note: ${e}`);
   }
 }

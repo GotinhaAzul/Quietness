@@ -14,6 +14,8 @@ export interface EditorSettings {
   lineNumbers: boolean;
   wordWrap: boolean;
   tabSize: number;
+  dimInactiveLines: boolean;
+  smoothCaret: boolean;
 }
 
 export interface Settings {
