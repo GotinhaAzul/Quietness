@@ -246,6 +246,8 @@
     cursor: pointer;
     transition: background 0.15s;
     line-height: 1.4;
+    width: 100%;
+    text-align: left;
   }
   .title-button:hover {
     background: var(--q-hover);
