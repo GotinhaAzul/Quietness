@@ -26,7 +26,10 @@ const cache = new Map<string, string>();
 const CACHE_MAX = 50;
 
 export function renderMarkdown(src: string, existingNotes?: Set<string>): string {
-  const key = hashContent(src) + (existingNotes ? ':' + existingNotes.size : '');
+  const noteKey = existingNotes
+    ? Array.from(existingNotes).sort().join('\u0000')
+    : '';
+  const key = `${hashContent(src)}:${noteKey}`;
   const cached = cache.get(key);
   if (cached !== undefined) return cached;
   if (cache.size >= CACHE_MAX) {

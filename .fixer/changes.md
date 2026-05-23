@@ -36,3 +36,4 @@
 | 52 | **T05** — Autocomplete brackets/quotes: closeBrackets() from @codemirror/autocomplete + custom backtick auto-close keymap | May 23 |
 | 53 | **T06** — Smooth caret/animated cursor: CodeMirror extension with elastic cubic-bezier transition on .cm-cursor, Compartment toggle in NoteEditor, setting + toggle in SettingsModal | May 23 |
 | 54 | **T07** — Checkboxes/task lists: markdown-it plugin detecting `- [ ]` / `- [x]` syntax, inserts checkbox HTML in preview, scoped styling in NotePreview | May 23 |
+| 55 | **T08 fix** — Locked app shell/page scroll, bounded editor/preview scroll areas, styled settings sliders, fixed stale delete/sidebar state and markdown cache key | May 23 |

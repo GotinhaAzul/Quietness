@@ -2,7 +2,7 @@
   import { invoke } from '@tauri-apps/api/core';
   import { selectedFolder } from '$lib/stores/folders';
   import { searchQuery, searchResultCount, searchResults, searchScope } from '$lib/stores/ui';
-  import { notes, currentNote, loadNote, deleteNote, noteListChanged, showError, type NoteEntry } from '$lib/stores/notes';
+  import { notes, currentNote, deletingNotePaths, loadNote, deleteNote, noteListChanged, showError, type NoteEntry } from '$lib/stores/notes';
   import { buildRenamedNotePath, resolveRenameRequest } from '$lib/utils/noteRename';
 
   let noteEntries = $state<NoteEntry[]>([]);
@@ -25,6 +25,12 @@
       renameInput.focus();
       renameInput.select();
     }
+  });
+
+  $effect(() => {
+    const deleting = $deletingNotePaths;
+    if (deleting.size === 0) return;
+    noteEntries = noteEntries.filter(entry => !deleting.has(entry.path));
   });
 
   async function loadNoteList() {

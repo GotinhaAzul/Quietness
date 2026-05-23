@@ -174,10 +174,10 @@ import { FONT_STACKS } from '$lib/utils/fonts';
   />
 </svelte:head>
 
-<div class="flex min-h-screen">
+<div class="flex h-screen min-h-0 overflow-hidden">
   <Sidebar />
 
-  <main class="flex flex-1 flex-col">
+  <main class="flex min-h-0 flex-1 flex-col overflow-hidden">
     <div class="flex items-center justify-between border-b border-quiet-border/60 px-6 py-3">
       <div class="flex items-center gap-3">
         {#if saveStatus !== 'saved'}
@@ -228,26 +228,26 @@ import { FONT_STACKS } from '$lib/utils/fonts';
     </div>
 
     {#if $currentNote}
-      <div class="flex flex-1">
+      <div class="flex min-h-0 flex-1">
         {#if $viewMode === 'edit' || $viewMode === 'split'}
-          <div class="{$viewMode === 'split' ? 'flex-1 border-r border-quiet-border/60' : 'flex-1'} overflow-hidden">
-            <div class="flex h-full flex-col">
+          <div class="{$viewMode === 'split' ? 'min-h-0 flex-1 border-r border-quiet-border/60' : 'min-h-0 flex-1'} overflow-hidden">
+            <div class="flex h-full min-h-0 flex-col">
               <div class="border-b border-quiet-border/60 px-4 py-1.5 text-[10px] font-medium uppercase tracking-wider text-quiet-faded">
                 Editor
               </div>
-              <div class="flex-1">
+              <div class="min-h-0 flex-1">
                 <NoteEditor content={$currentNote.content} onContentChange={handleContentChange} />
               </div>
             </div>
           </div>
         {/if}
         {#if $viewMode === 'preview' || $viewMode === 'split'}
-          <div class="flex-1 overflow-hidden">
-            <div class="flex h-full flex-col">
+          <div class="min-h-0 flex-1 overflow-hidden">
+            <div class="flex h-full min-h-0 flex-col">
               <div class="border-b border-quiet-border/60 px-4 py-1.5 text-[10px] font-medium uppercase tracking-wider text-quiet-faded">
                 Preview
               </div>
-              <div class="flex-1 overflow-y-auto p-6">
+              <div class="min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-6">
                 <NotePreview content={$currentNote.content} />
               </div>
             </div>
@@ -288,4 +288,3 @@ import { FONT_STACKS } from '$lib/utils/fonts';
 </div>
 
 <SettingsModal open={showSettings} onclose={() => (showSettings = false)} />
-

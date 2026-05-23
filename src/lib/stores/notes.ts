@@ -16,6 +16,7 @@ export const notes: Writable<NoteEntry[]> = writable<NoteEntry[]>([]);
 export const currentNote: Writable<Note | null> = writable<Note | null>(null);
 export const loading: Writable<boolean> = writable<boolean>(false);
 export const noteListChanged: Writable<number> = writable<number>(0);
+export const deletingNotePaths: Writable<Set<string>> = writable(new Set());
 export interface ErrorToast {
   id: number;
   message: string;
@@ -140,6 +141,7 @@ export async function deleteNote(path: string): Promise<void> {
   const previousNotes = get(notes);
   const previousCurrent = get(currentNote);
 
+  deletingNotePaths.update(paths => new Set(paths).add(path));
   notes.update(list => list.filter(n => n.path !== path));
   currentNote.update(n => (n && n.path === path) ? null : n);
 
@@ -150,6 +152,12 @@ export async function deleteNote(path: string): Promise<void> {
     notes.set(previousNotes);
     currentNote.set(previousCurrent);
     showError(`Failed to delete note: ${e}`);
+  } finally {
+    deletingNotePaths.update(paths => {
+      const next = new Set(paths);
+      next.delete(path);
+      return next;
+    });
   }
 }
 

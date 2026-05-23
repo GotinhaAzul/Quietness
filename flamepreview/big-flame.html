@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Art Purple Flame Animation</title>
+    <style>
+        /* Dark, moody background to match your original sprite environment */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #111019;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .canvas-container {
+            position: relative;
+            /* Simple retro ambient glow behind the flame */
+            box-shadow: 0 0 100px rgba(145, 46, 255, 0.2);
+            border-radius: 8px;
+        }
+
+        canvas {
+            /* This property is crucial: it prevents the browser from blurring the pixels when scaled up */
+            image-rendering: crisp-edges;
+            image-rendering: pixelated;
+            width: 320px;
+            height: 320px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="canvas-container">
+        <canvas id="flameCanvas" width="32" height="32"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('flameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Color Palette from your image
+        const colors = {
+            bg: '#111019',
+            darkPurple: '#5a00c2',
+            medPurple: '#912eff',
+            lightPurple: '#c98aff',
+            white: '#ffffff'
+        };
+
+        // Particle array for the main flame body and stray embers
+        const particles = [];
+
+        class Particle {
+            constructor(x, y, isEmber = false) {
+                this.x = x;
+                this.y = y;
+                this.isEmber = isEmber;
+                // Upward velocity
+                this.vy = isEmber ? -(Math.random() * 0.2 + 0.1) : -(Math.random() * 0.2 + 0.2);
+                // Slight side-to-side sway
+                this.vx = (Math.random() - 0.5) * 0.15;
+                this.life = 1.0;
+                // Decay speed determines height of the flame
+                this.decay = Math.random() * 0.03 + 0.02;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life -= this.decay;
+                
+                // Add a little organic wavering as they rise
+                this.vx += (Math.random() - 0.5) * 0.05;
+            }
+
+            draw() {
+                if (this.life <= 0) return;
+
+                // Determine pixel color based on its height/life stage to mirror your gradient
+                let color = colors.darkPurple;
+                if (this.isEmber) {
+                    color = this.life > 0.5 ? colors.medPurple : colors.darkPurple;
+                } else {
+                    if (this.life > 0.75) {
+                        color = colors.white;
+                    } else if (this.life > 0.5) {
+                        color = colors.lightPurple;
+                    } else if (this.life > 0.25) {
+                        color = colors.medPurple;
+                    }
+                }
+
+                ctx.fillStyle = color;
+                // Draw a perfect crisp 1x1 pixel block on our small canvas
+                ctx.fillRect(Math.round(this.x), Math.round(this.y), 1, 1);
+            }
+        }
+
+        function animate() {
+            // Clear canvas every frame
+            ctx.fillStyle = colors.bg;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 1. Spawn main flame core particles at the bottom center (X: 16, Y: 26)
+            // Spawning multiple per frame gives it volume
+            for (let i = 0; i < 3; i++) {
+                // Keep the base tightly bunched in a flame shape width
+                const spawnX = 16 + (Math.random() - 0.5) * 4; 
+                particles.push(new Particle(spawnX, 26));
+            }
+
+            // 2. Spawn occasional floating side embers just like the reference image
+            if (Math.random() < 0.15) {
+                // Left side embers
+                particles.push(new Particle(10 + Math.random() * 2, 22 + Math.random() * 4, true));
+            }
+            if (Math.random() < 0.15) {
+                // Right side embers
+                particles.push(new Particle(20 + Math.random() * 2, 22 + Math.random() * 4, true));
+            }
+
+            // Update and draw all particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.update();
+                p.draw();
+
+                // Remove dead particles to keep performance pristine
+                if (p.life <= 0 || p.y < 2) {
+                    particles.splice(i, 1);
+                }
+            }
+
+            // Standard pixel-art outline/shaping rules: 
+            // We can optionally force a sharper tip structure by overwriting the apex point
+            ctx.fillStyle = colors.white;
+            ctx.fillRect(16, 7 + Math.round(Math.sin(Date.now() * 0.01) * 0.5), 1, 1);
+
+            requestAnimationFrame(animate);
+        }
+
+        // Start the animation loop
+        animate();
+    </script>
+</body>
+</html>

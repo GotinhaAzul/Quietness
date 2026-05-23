@@ -112,6 +112,15 @@
 
   let noteName = $derived($currentNote?.name ?? '');
 
+  let wordCount = $derived(
+    content
+      ? content.trim() === ''
+        ? 0
+        : content.trim().split(/\s+/).length
+      : 0
+  );
+  let charCount = $derived(content ? content.length : 0);
+
   function getGuttersExt(show: boolean) {
     return show
       ? []
@@ -257,7 +266,7 @@
   }
 </script>
 
-<div class="flex flex-col h-full w-full">
+<div class="flex h-full min-h-0 w-full flex-col">
   {#if $currentNote}
     <div class="title-bar">
       {#if titleEditing}
@@ -274,7 +283,10 @@
       {/if}
     </div>
   {/if}
-  <div bind:this={editorRef} class="flex-1 min-h-0"></div>
+  <div bind:this={editorRef} class="min-h-0 flex-1 overflow-hidden"></div>
+  {#if $currentNote}
+    <div class="word-count">{wordCount} words · {charCount} characters</div>
+  {/if}
 </div>
 
 <style>
@@ -315,5 +327,20 @@
     line-height: 1.4;
     width: 100%;
     max-width: 400px;
+  }
+  .word-count {
+    flex-shrink: 0;
+    padding: 4px 16px;
+    font-size: 11px;
+    color: var(--q-faded);
+    border-top: 1px solid var(--q-border);
+    text-align: right;
+    user-select: none;
+  }
+  :global(.cm-editor) {
+    height: 100%;
+  }
+  :global(.cm-scroller) {
+    overflow: auto;
   }
 </style>

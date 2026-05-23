@@ -182,13 +182,13 @@
                      <option value={font}>{font}</option>
                   {/each}
                 </select>
-                <div class="flex w-24 items-center gap-2">
+                <div class="flex w-32 items-center gap-3">
                   <input
                     type="range"
                     min="12"
                     max="24"
                     step="1"
-                    class="w-full accent-quiet-accent"
+                    class="quiet-range w-full"
                     value={$settings.sizes.ui}
                     oninput={(e) => {
                       const val = parseInt((e.target as HTMLInputElement).value);
@@ -218,13 +218,13 @@
                     <option value={font} style="font-family: {FONT_STACKS[font]}">{font}</option>
                   {/each}
                 </select>
-                <div class="flex w-24 items-center gap-2">
+                <div class="flex w-32 items-center gap-3">
                   <input
                     type="range"
                     min="12"
                     max="24"
                     step="1"
-                    class="w-full accent-quiet-accent"
+                    class="quiet-range w-full"
                     value={$settings.sizes.editor}
                     oninput={(e) => {
                       const val = parseInt((e.target as HTMLInputElement).value);
@@ -254,13 +254,13 @@
                     <option value={font} style="font-family: {FONT_STACKS[font]}">{font}</option>
                   {/each}
                 </select>
-                <div class="flex w-24 items-center gap-2">
+                <div class="flex w-32 items-center gap-3">
                   <input
                     type="range"
                     min="12"
                     max="24"
                     step="1"
-                    class="w-full accent-quiet-accent"
+                    class="quiet-range w-full"
                     value={$settings.sizes.preview}
                     oninput={(e) => {
                       const val = parseInt((e.target as HTMLInputElement).value);
