@@ -23,6 +23,8 @@
   --q-active: #e0dad1;
   --q-danger: #bf4a4a;
   --q-danger-bg: #fcf1f1;
+  --q-selection-bg: rgba(107, 97, 90, 0.32);
+  --q-selection-bg-inactive: rgba(107, 97, 90, 0.18);
 }
 
 /* ── Tailwind v4 theme mapping ── */
@@ -39,6 +41,8 @@
   --color-quiet-active: var(--q-active);
   --color-quiet-danger: var(--q-danger);
   --color-quiet-danger-bg: var(--q-danger-bg);
+  --color-quiet-selection: var(--q-selection-bg);
+  --color-quiet-selection-inactive: var(--q-selection-bg-inactive);
 }
 
 /* ── Font and size variables (overridden by settings store) ── */

@@ -38,3 +38,7 @@ Generic permissions do not revoke these rules.
 - **Editor:** CodeMirror 6
 - **Markdown:** markdown-it
 - **Styling:** Tailwind CSS
+
+## Preferences
+
+- Always consider performance when adding / planning new stuff.

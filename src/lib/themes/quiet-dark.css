@@ -11,5 +11,7 @@
   --q-active: #353535;
   --q-danger: #e06c75;
   --q-danger-bg: #2d1b1e;
+  --q-selection-bg: rgba(139, 129, 120, 0.42);
+  --q-selection-bg-inactive: rgba(139, 129, 120, 0.24);
   color-scheme: dark;
 }

@@ -2,6 +2,7 @@
   import { EditorView, basicSetup } from 'codemirror';
   import { Compartment, EditorState } from '@codemirror/state';
   import { markdown } from '@codemirror/lang-markdown';
+  import { drawSelection } from '@codemirror/view';
   import { onMount } from 'svelte';
   import { settings } from '$lib/stores/settings';
   import { currentNote, noteListChanged, notes, showError } from '$lib/stores/notes';
@@ -40,9 +41,17 @@
     '.cm-activeLine': {
       backgroundColor: 'var(--q-hover)',
     },
-    '&.cm-focused .cm-selectionLayer .cm-selectionBackground, .cm-selectionLayer .cm-selectionBackground': {
-      backgroundColor: 'var(--q-accent) !important',
-      opacity: '0.2',
+    '.cm-selectionBackground': {
+      backgroundColor: 'var(--q-selection-bg-inactive) !important',
+    },
+    '&.cm-focused .cm-selectionBackground': {
+      backgroundColor: 'var(--q-selection-bg) !important',
+    },
+    '.cm-content ::selection': {
+      backgroundColor: 'var(--q-selection-bg)',
+    },
+    '.cm-line::selection, .cm-line ::selection': {
+      backgroundColor: 'var(--q-selection-bg)',
     },
     '.cm-cursor': {
       borderLeftColor: 'var(--q-accent)',
@@ -72,6 +81,7 @@
       doc: content,
       extensions: [
         basicSetup,
+        drawSelection(),
         quietThemeExt,
         guttersComp.of(getGuttersExt(s.editor.lineNumbers)),
         wordWrapComp.of(s.editor.wordWrap ? EditorView.lineWrapping : []),

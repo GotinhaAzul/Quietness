@@ -6,7 +6,6 @@
   import { buildRenamedNotePath, resolveRenameRequest } from '$lib/utils/noteRename';
 
   let noteEntries = $state<NoteEntry[]>([]);
-  let loading = $state(false);
   let requestId = 0;
   let renamingPath = $state<string | null>(null);
   let renameValue = $state('');
@@ -30,7 +29,6 @@
 
   async function loadNoteList() {
     const currentRequest = ++requestId;
-    loading = true;
     try {
       const query = $searchQuery;
       if (query) {
@@ -49,11 +47,6 @@
       }
     } catch (e) {
       showError(`Failed to load notes: ${e}`);
-      noteEntries = [];
-      searchResultCount.set(0);
-      searchResults.set([]);
-    } finally {
-      loading = false;
     }
   }
 
@@ -125,9 +118,7 @@
   }
 </script>
 
-{#if loading}
-  <div class="px-3 py-2 text-xs text-quiet-faded">Loading...</div>
-{:else if noteEntries.length === 0}
+{#if noteEntries.length === 0}
   <div class="px-3 py-2 text-xs text-quiet-faded">No notes</div>
 {:else}
   <div class="space-y-px">
