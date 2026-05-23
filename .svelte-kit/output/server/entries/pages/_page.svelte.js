@@ -15,10 +15,6 @@ function onDestroy(fn) {
   /** @type {SSRContext} */
   ssr_context.r.on_destroy(fn);
 }
-const notes = writable([]);
-const currentNote = writable(null);
-const noteListChanged = writable(0);
-const deletingNotePaths = writable(/* @__PURE__ */ new Set());
 const errorMessage = writable([]);
 let errorIdCounter = 0;
 const errorTimeouts = /* @__PURE__ */ new Map();
@@ -37,28 +33,6 @@ function dismissError(id) {
     errorTimeouts.delete(id);
   }
   errorMessage.update((errors) => errors.filter((e) => e.id !== id));
-}
-async function deleteNote(path) {
-  if (get(deletingNotePaths).has(path)) return;
-  const previousNotes = get(notes);
-  const previousCurrent = get(currentNote);
-  deletingNotePaths.update((paths) => new Set(paths).add(path));
-  notes.update((list) => list.filter((n) => n.path !== path));
-  currentNote.update((n) => n && n.path === path ? null : n);
-  try {
-    await invoke("delete_note", { path });
-  } catch (e) {
-    notes.set(previousNotes);
-    currentNote.set(previousCurrent);
-    showError(`Failed to delete note: ${e}`);
-  } finally {
-    deletingNotePaths.update((paths) => {
-      const next = new Set(paths);
-      next.delete(path);
-      return next;
-    });
-    noteListChanged.update((n) => n + 1);
-  }
 }
 const selectedFolder = writable(null);
 function FolderTree($$renderer, $$props) {
@@ -118,6 +92,43 @@ const sidebarCollapsed = writable(false);
 const searchResultCount = writable(0);
 const searchResults = writable([]);
 const showNewNoteInput = writable(false);
+function normalizeNotePath(path) {
+  return path.replace(/\\/g, "/").toLowerCase();
+}
+function isSameNotePath(a, b) {
+  return normalizeNotePath(a) === normalizeNotePath(b);
+}
+function visibleNotesAfterOptimisticDelete(entries, deletingPaths) {
+  if (deletingPaths.size === 0) return entries;
+  const normalizedDeletingPaths = new Set(
+    [...deletingPaths].map((path) => normalizeNotePath(path))
+  );
+  return entries.filter((entry) => !normalizedDeletingPaths.has(normalizeNotePath(entry.path)));
+}
+const notes = writable([]);
+const currentNote = writable(null);
+const deletingNotePaths = writable(/* @__PURE__ */ new Set());
+async function deleteNote(path) {
+  if (get(deletingNotePaths).has(path)) return;
+  const previousNotes = get(notes);
+  const previousCurrent = get(currentNote);
+  deletingNotePaths.update((paths) => new Set(paths).add(path));
+  notes.update((list) => list.filter((n) => !isSameNotePath(n.path, path)));
+  currentNote.update((n) => n && isSameNotePath(n.path, path) ? null : n);
+  try {
+    await invoke("delete_note", { path });
+  } catch (e) {
+    notes.set(previousNotes);
+    currentNote.set(previousCurrent);
+    showError(`Failed to delete note: ${e}`);
+  } finally {
+    deletingNotePaths.update((paths) => {
+      const next = new Set(paths);
+      next.delete(path);
+      return next;
+    });
+  }
+}
 function ConfirmModal($$renderer, $$props) {
   $$renderer.component(($$renderer2) => {
     let {
@@ -148,6 +159,7 @@ function NoteList($$renderer, $$props) {
       if (!confirmDelete) return;
       const { path } = confirmDelete;
       confirmDelete = null;
+      noteEntries = visibleNotesAfterOptimisticDelete(noteEntries, /* @__PURE__ */ new Set([path]));
       await deleteNote(path);
     }
     function noteBtnClass(isActive) {

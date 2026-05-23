@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount, onDestroy, tick } from 'svelte';
   import Sidebar from '$lib/components/Sidebar.svelte';
   import NoteEditor from '$lib/components/NoteEditor.svelte';
   import NotePreview from '$lib/components/NotePreview.svelte';
@@ -12,6 +12,7 @@ import { settings } from '$lib/stores/settings';
 import { userThemes } from '$lib/stores/userThemes';
 import { focusSearchInput, showNewNoteInput } from '$lib/stores/ui';
 import { FONT_STACKS } from '$lib/utils/fonts';
+import { runAfterModalDismiss, waitForNextPaint } from '$lib/utils/confirmedAction';
 import ConfirmModal from '$lib/components/ConfirmModal.svelte';
 
   const modes: { value: ViewMode; label: string }[] = [
@@ -161,13 +162,24 @@ import ConfirmModal from '$lib/components/ConfirmModal.svelte';
     confirmDelete = true;
   }
 
-  async function confirmDeleteNote() {
+  function confirmDeleteNote() {
     if (!$currentNote) return;
-    confirmDelete = false;
-    if (saveTimeout) {
-      clearTimeout(saveTimeout);
-    }
-    await deleteNote($currentNote.path);
+    const path = $currentNote.path;
+    void runAfterModalDismiss({
+      close: () => {
+        confirmDelete = false;
+      },
+      waitForDismissal: async () => {
+        await tick();
+        await waitForNextPaint();
+      },
+      action: async () => {
+        if (saveTimeout) {
+          clearTimeout(saveTimeout);
+        }
+        await deleteNote(path);
+      },
+    });
   }
 </script>
 

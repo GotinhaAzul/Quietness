@@ -111,20 +111,24 @@ export async function createNote(name: string, folder: string = '', content: str
 }
 
 export async function deleteNote(path: string): Promise<void> {
-  if (get(deletingNotePaths).has(path)) return;
+  if ([...get(deletingNotePaths)].some(deletingPath => isSameNotePath(deletingPath, path))) return;
 
-  const previousNotes = get(notes);
   const previousCurrent = get(currentNote);
+  const deletedOpenNote = previousCurrent ? isSameNotePath(previousCurrent.path, path) : false;
 
   deletingNotePaths.update(paths => new Set(paths).add(path));
-  notes.update(list => list.filter(n => !isSameNotePath(n.path, path)));
-  currentNote.update(n => (n && isSameNotePath(n.path, path)) ? null : n);
+  if (deletedOpenNote) {
+    currentNote.set(null);
+  }
 
   try {
     await invoke('delete_note', { path });
+    await loadNotes();
   } catch (e) {
-    notes.set(previousNotes);
-    currentNote.set(previousCurrent);
+    if (deletedOpenNote) {
+      currentNote.set(previousCurrent);
+    }
+    await loadNotes();
     showError(`Failed to delete note: ${e}`);
   } finally {
     deletingNotePaths.update(paths => {

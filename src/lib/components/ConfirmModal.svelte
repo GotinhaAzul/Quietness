@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { fade } from 'svelte/transition';
-
   let { open = false, title = 'Confirm', message = '', confirmLabel = 'Delete', onconfirm, oncancel }: {
     open?: boolean;
     title?: string;
@@ -19,23 +17,21 @@
 
 {#if open}
   <div
-    class="fixed inset-0 z-50 flex items-center justify-center"
-    transition:fade={{ duration: 100 }}
+    class="pointer-events-none fixed inset-0 z-50 flex items-center justify-center"
   >
     <!-- svelte-ignore a11y_interactive_supports_focus -->
     <div
-      class="absolute inset-0 bg-black/30"
+      class="pointer-events-auto absolute inset-0 bg-black/30"
       role="presentation"
       onclick={oncancel}
     ></div>
     <div
-      class="relative mx-4 flex w-[320px] max-w-full flex-col rounded-xl border border-quiet-border bg-[var(--q-bg)] shadow-xl"
+      class="pointer-events-auto relative mx-4 flex w-[320px] max-w-full flex-col rounded-xl border border-quiet-border bg-[var(--q-bg)] shadow-xl"
       role="dialog"
       aria-modal="true"
       aria-label={title}
       tabindex="0"
       onkeydown={handleKeydown}
-      transition:fade={{ duration: 100 }}
     >
       <div class="px-5 py-4">
         <h3 class="text-sm font-semibold text-quiet-text">{title}</h3>

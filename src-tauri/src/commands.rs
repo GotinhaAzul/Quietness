@@ -34,8 +34,10 @@ pub fn list_notes_in_folder(app_handle: AppHandle, folder_path: String) -> Vec<N
 }
 
 #[tauri::command]
-pub fn delete_note(app_handle: AppHandle, path: String) -> Result<(), String> {
-    fs::delete_note(&app_handle, &path)
+pub async fn delete_note(app_handle: AppHandle, path: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || fs::delete_note(&app_handle, &path))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]

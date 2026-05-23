@@ -43,3 +43,7 @@
 | 59 | **Open-note delete close fix** — Normalized note path identity for delete so deleting an open note clears editor/preview even when path separators or casing differ | May 23 |
 | 60 | **Over-engineering cleanup** — Removed Rust search entry cache/invalidation, simplified rename helper to `string | null`, and dropped delete paint scheduler helper while keeping stale-list optimistic filtering | May 23 |
 | 61 | **Over-engineering review fixes** — Replaced markdown hash cache key with exact content/context key + LRU promotion, moved toast state to `stores/errors.ts`, removed `noteListChanged` counter in favor of `$notes` invalidation, and simplified SettingsModal focus handling | May 23 |
+| 62 | **Delete modal flush fix** - Added confirmed-action sequencing so delete confirmation closes, flushes Svelte DOM, and yields one paint frame before optimistic delete/backend work starts | May 23 |
+| 63 | **Delete backend unblock fix** - Moved the Tauri `delete_note` command onto `spawn_blocking` so filesystem deletion cannot hold the app main thread and block clicks after the dialog closes | May 23 |
+| 64 | **Delete click recovery hardening** - Made confirm delete handlers fire-and-forget after modal dismissal and changed ConfirmModal wrapper to avoid acting as an invisible pointer-event shield | May 23 |
+| 65 | **Backend-confirmed delete refresh** - Removed optimistic sidebar/search filtering for delete; lists now refresh from disk after `delete_note`, while deleting the open note still clears editor/preview immediately and restores on failure | May 23 |
