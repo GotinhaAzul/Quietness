@@ -41,3 +41,5 @@
 | 57 | **Delete UI sync fix** — Added shared optimistic-delete filtering for stale note/search results so deleted notes disappear immediately and do not reappear during async list refresh | May 23 |
 | 58 | **Instant delete feedback** — Removed sidebar delete slide transition and yielded one paint frame before invoking filesystem delete so optimistic removal renders before backend work | May 23 |
 | 59 | **Open-note delete close fix** — Normalized note path identity for delete so deleting an open note clears editor/preview even when path separators or casing differ | May 23 |
+| 60 | **Over-engineering cleanup** — Removed Rust search entry cache/invalidation, simplified rename helper to `string | null`, and dropped delete paint scheduler helper while keeping stale-list optimistic filtering | May 23 |
+| 61 | **Over-engineering review fixes** — Replaced markdown hash cache key with exact content/context key + LRU promotion, moved toast state to `stores/errors.ts`, removed `noteListChanged` counter in favor of `$notes` invalidation, and simplified SettingsModal focus handling | May 23 |

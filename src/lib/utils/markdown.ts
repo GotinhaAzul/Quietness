@@ -13,25 +13,20 @@ md.use(tasklistsPlugin);
 
 export default md;
 
-function hashContent(src: string): string {
-  let h = 0;
-  for (let i = 0; i < src.length; i++) {
-    h = ((h << 5) - h) + src.charCodeAt(i);
-    h |= 0;
-  }
-  return src.length + ':' + h;
-}
-
 const cache = new Map<string, string>();
 const CACHE_MAX = 50;
 
 export function renderMarkdown(src: string, existingNotes?: Set<string>): string {
-  const noteKey = existingNotes
+  const noteNames = existingNotes
     ? Array.from(existingNotes).sort().join('\u0000')
     : '';
-  const key = `${hashContent(src)}:${noteKey}`;
+  const key = JSON.stringify([src, noteNames]);
   const cached = cache.get(key);
-  if (cached !== undefined) return cached;
+  if (cached !== undefined) {
+    cache.delete(key);
+    cache.set(key, cached);
+    return cached;
+  }
   if (cache.size >= CACHE_MAX) {
     const first = cache.keys().next().value;
     if (first !== undefined) cache.delete(first);

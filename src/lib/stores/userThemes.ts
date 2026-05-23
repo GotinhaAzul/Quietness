@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store';
 import { invoke } from '@tauri-apps/api/core';
-import { showError } from '$lib/stores/notes';
+import { showError } from '$lib/stores/errors';
 
 export interface UserThemeMeta {
   id: string;

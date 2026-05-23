@@ -1,7 +1,3 @@
-export type RenameDecision =
-  | { kind: 'ignore' }
-  | { kind: 'submit'; cleanName: string };
-
 export function normalizeNoteName(name: string): string {
   const trimmed = name.trim();
   if (!trimmed) return '';
@@ -13,17 +9,17 @@ export function resolveRenameRequest(input: {
   currentName: string;
   requestedName: string;
   isSubmitting: boolean;
-}): RenameDecision {
+}): string | null {
   if (input.isSubmitting) {
-    return { kind: 'ignore' };
+    return null;
   }
 
   const cleanName = normalizeNoteName(input.requestedName);
   if (!cleanName || cleanName === input.currentName.trim()) {
-    return { kind: 'ignore' };
+    return null;
   }
 
-  return { kind: 'submit', cleanName };
+  return cleanName;
 }
 
 export function buildRenamedNotePath(oldPath: string, cleanName: string): string {

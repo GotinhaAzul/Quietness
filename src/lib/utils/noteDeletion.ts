@@ -20,17 +20,3 @@ export function visibleNotesAfterOptimisticDelete<T extends NoteIdentity>(
   );
   return entries.filter(entry => !normalizedDeletingPaths.has(normalizeNotePath(entry.path)));
 }
-
-export function waitForOptimisticDeletePaint(
-  schedule: (done: () => void) => void = (done) => {
-    if (typeof requestAnimationFrame === 'function') {
-      requestAnimationFrame(() => done());
-      return;
-    }
-    setTimeout(done, 0);
-  },
-): Promise<void> {
-  return new Promise(resolve => {
-    schedule(resolve);
-  });
-}

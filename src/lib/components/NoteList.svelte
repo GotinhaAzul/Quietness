@@ -3,7 +3,8 @@
   import { invoke } from '@tauri-apps/api/core';
   import { selectedFolder } from '$lib/stores/folders';
   import { searchQuery, searchResultCount, searchResults, searchScope } from '$lib/stores/ui';
-  import { notes, currentNote, deletingNotePaths, loadNote, deleteNote, noteListChanged, showError, type NoteEntry } from '$lib/stores/notes';
+  import { notes, currentNote, deletingNotePaths, loadNote, deleteNote, type NoteEntry } from '$lib/stores/notes';
+  import { showError } from '$lib/stores/errors';
   import { buildRenamedNotePath, resolveRenameRequest } from '$lib/utils/noteRename';
   import { visibleNotesAfterOptimisticDelete } from '$lib/utils/noteDeletion';
   import ConfirmModal from './ConfirmModal.svelte';
@@ -18,7 +19,7 @@
 
   $effect(() => {
     $selectedFolder;
-    $noteListChanged;
+    $notes;
     $searchQuery;
     $searchScope;
     loadNoteList();
@@ -102,26 +103,25 @@
       return;
     }
 
-    const decision = resolveRenameRequest({
+    const cleanName = resolveRenameRequest({
       currentName,
       requestedName: renameValue,
       isSubmitting: renamePending,
     });
-    if (decision.kind === 'ignore') {
+    if (!cleanName) {
       if (!renamePending) {
         renamingPath = null;
       }
       return;
     }
 
-    const newPath = buildRenamedNotePath(oldPath, decision.cleanName);
+    const newPath = buildRenamedNotePath(oldPath, cleanName);
     renamePending = true;
     try {
-      await invoke('rename_note', { oldPath, newName: decision.cleanName });
-      noteEntries = noteEntries.map(n => n.path === oldPath ? { ...n, name: decision.cleanName, path: newPath } : n);
-      notes.update(ns => ns.map(n => n.path === oldPath ? { ...n, name: decision.cleanName, path: newPath } : n));
-      currentNote.update(n => n && n.path === oldPath ? { ...n, name: decision.cleanName, path: newPath } : n);
-      noteListChanged.update(n => n + 1);
+      await invoke('rename_note', { oldPath, newName: cleanName });
+      noteEntries = noteEntries.map(n => n.path === oldPath ? { ...n, name: cleanName, path: newPath } : n);
+      notes.update(ns => ns.map(n => n.path === oldPath ? { ...n, name: cleanName, path: newPath } : n));
+      currentNote.update(n => n && n.path === oldPath ? { ...n, name: cleanName, path: newPath } : n);
     } catch (e) {
       showError(`Failed to rename note: ${e}`);
     } finally {

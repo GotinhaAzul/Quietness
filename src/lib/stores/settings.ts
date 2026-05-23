@@ -1,7 +1,7 @@
 import { writable, type Writable } from 'svelte/store';
 import { invoke } from '@tauri-apps/api/core';
 import type { Settings } from '$lib/types/settings';
-import { showError } from '$lib/stores/notes';
+import { showError } from '$lib/stores/errors';
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: 'quiet',

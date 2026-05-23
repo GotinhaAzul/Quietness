@@ -7,26 +7,14 @@
 
   let activeTab = $state<'theme' | 'fonts' | 'editor'>('theme');
   let previousFocus: Element | null = null;
-  let modalRef: HTMLDivElement | undefined = $state();
-
-  function getFocusableElements(container: HTMLElement): HTMLElement[] {
-    const selectors = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
-    return Array.from(container.querySelectorAll<HTMLElement>(selectors)).filter(
-      el => el.tabIndex >= 0 && !(el as HTMLInputElement).disabled
-    );
-  }
+  let closeButtonRef: HTMLButtonElement | undefined = $state();
 
   $effect(() => {
     if (open) {
       userThemes.load();
       previousFocus = document.activeElement;
       requestAnimationFrame(() => {
-        if (modalRef) {
-          const focusable = getFocusableElements(modalRef);
-          if (focusable.length > 0) {
-            (focusable[0] as HTMLElement).focus();
-          }
-        }
+        closeButtonRef?.focus();
       });
     } else if (previousFocus) {
       (previousFocus as HTMLElement)?.focus();
@@ -39,30 +27,12 @@
       onclose?.();
       return;
     }
-    if (e.key === 'Tab' && modalRef) {
-      const focusable = getFocusableElements(modalRef);
-      if (focusable.length === 0) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (e.shiftKey) {
-        if (document.activeElement === first) {
-          e.preventDefault();
-          last.focus();
-        }
-      } else {
-        if (document.activeElement === last) {
-          e.preventDefault();
-          first.focus();
-        }
-      }
-    }
   }
 </script>
 
 {#if open}
   <!-- svelte-ignore a11y_interactive_supports_focus -->
   <div
-    bind:this={modalRef}
     class="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
     role="dialog"
     aria-modal="true"
@@ -78,6 +48,7 @@
       <div class="flex items-center justify-between border-b border-quiet-border/60 px-6 py-4">
         <h2 class="text-sm font-semibold text-quiet-text">Settings</h2>
         <button
+          bind:this={closeButtonRef}
           class="rounded-md p-1.5 text-quiet-faded transition-colors hover:bg-quiet-hover hover:text-quiet-text"
           onclick={onclose}
           aria-label="Close settings"

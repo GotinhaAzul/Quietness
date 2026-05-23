@@ -32,22 +32,3 @@ test('visibleNotesAfterOptimisticDelete preserves the original list when no path
 
   assert.deepEqual(visibleNotesAfterOptimisticDelete(entries, new Set()), entries);
 });
-
-test('waitForOptimisticDeletePaint waits for the scheduled paint callback', async () => {
-  const { waitForOptimisticDeletePaint } = await import(
-    new URL('./noteDeletion.ts', import.meta.url).href
-  );
-  const calls: string[] = [];
-
-  const promise = waitForOptimisticDeletePaint((done: () => void) => {
-    calls.push('scheduled');
-    setTimeout(() => {
-      calls.push('painted');
-      done();
-    }, 0);
-  });
-
-  assert.deepEqual(calls, ['scheduled']);
-  await promise;
-  assert.deepEqual(calls, ['scheduled', 'painted']);
-});

@@ -4,7 +4,8 @@
   import NoteEditor from '$lib/components/NoteEditor.svelte';
   import NotePreview from '$lib/components/NotePreview.svelte';
   import SettingsModal from '$lib/components/SettingsModal.svelte';
-import { loadNotes, currentNote, saveCurrentNote, deleteNote, errorMessage, dismissError } from '$lib/stores/notes';
+import { loadNotes, currentNote, saveCurrentNote, deleteNote } from '$lib/stores/notes';
+import { errorMessage, dismissError } from '$lib/stores/errors';
 import { loadFolders } from '$lib/stores/folders';
 import { viewMode, type ViewMode } from '$lib/stores/editor';
 import { settings } from '$lib/stores/settings';

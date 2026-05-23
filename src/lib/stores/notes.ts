@@ -1,6 +1,7 @@
 import { writable, get, type Writable } from 'svelte/store';
 import { invoke } from '@tauri-apps/api/core';
-import { isSameNotePath, waitForOptimisticDeletePaint } from '$lib/utils/noteDeletion';
+import { isSameNotePath } from '$lib/utils/noteDeletion';
+import { showError } from '$lib/stores/errors';
 
 export interface NoteEntry {
   name: string;
@@ -16,35 +17,7 @@ export interface Note {
 export const notes: Writable<NoteEntry[]> = writable<NoteEntry[]>([]);
 export const currentNote: Writable<Note | null> = writable<Note | null>(null);
 export const loading: Writable<boolean> = writable<boolean>(false);
-export const noteListChanged: Writable<number> = writable<number>(0);
 export const deletingNotePaths: Writable<Set<string>> = writable(new Set());
-export interface ErrorToast {
-  id: number;
-  message: string;
-}
-
-export const errorMessage: Writable<ErrorToast[]> = writable<ErrorToast[]>([]);
-
-let errorIdCounter = 0;
-const errorTimeouts = new Map<number, any>();
-
-export function showError(message: string) {
-  const id = ++errorIdCounter;
-  errorMessage.update(errors => [...errors, { id, message }]);
-  const timeout = setTimeout(() => {
-    dismissError(id);
-  }, 4000);
-  errorTimeouts.set(id, timeout);
-}
-
-export function dismissError(id: number) {
-  const timeout = errorTimeouts.get(id);
-  if (timeout) {
-    clearTimeout(timeout);
-    errorTimeouts.delete(id);
-  }
-  errorMessage.update(errors => errors.filter(e => e.id !== id));
-}
 
 export async function loadNotes(): Promise<void> {
   loading.set(true);
@@ -123,7 +96,6 @@ export async function createNote(name: string, folder: string = '', content: str
     const entry: NoteEntry = { name: cleanName, path };
     notes.update(list => [...list, entry]);
     currentNote.set({ name: cleanName, path, content });
-    noteListChanged.update(n => n + 1);
 
     try {
       await invoke('write_note', { path, content });
@@ -149,7 +121,6 @@ export async function deleteNote(path: string): Promise<void> {
   currentNote.update(n => (n && isSameNotePath(n.path, path)) ? null : n);
 
   try {
-    await waitForOptimisticDeletePaint();
     await invoke('delete_note', { path });
   } catch (e) {
     notes.set(previousNotes);
@@ -161,7 +132,6 @@ export async function deleteNote(path: string): Promise<void> {
       next.delete(path);
       return next;
     });
-    noteListChanged.update(n => n + 1);
   }
 }
 

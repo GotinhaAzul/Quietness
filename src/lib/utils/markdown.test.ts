@@ -16,3 +16,8 @@ test('renderMarkdown cache accounts for actual existing note names', () => {
   assert.match(withBetaOnly, /data-wikilink="Alpha" class="wikilink broken"/);
   assert.match(withBetaOnly, /data-wikilink="Beta" class="wikilink"/);
 });
+
+test('renderMarkdown cache does not serve stale HTML for same-length hash collisions', () => {
+  assert.equal(renderMarkdown('Aa'), '<p>Aa</p>\n');
+  assert.equal(renderMarkdown('BB'), '<p>BB</p>\n');
+});

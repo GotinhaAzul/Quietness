@@ -1,7 +1,5 @@
-use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
-use std::sync::{Mutex, OnceLock};
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 use tauri::Manager;
@@ -98,7 +96,6 @@ pub fn delete_note(app_handle: &AppHandle, path: &str) -> Result<(), String> {
         return Err("Access denied: path traversal detected".to_string());
     }
     fs::remove_file(path).map_err(|e| e.to_string())?;
-    invalidate_cache();
     Ok(())
 }
 
@@ -118,7 +115,6 @@ pub fn write_note(app_handle: &AppHandle, path: &str, content: &str) -> Result<(
         fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
     fs::write(path, content).map_err(|e| e.to_string())?;
-    invalidate_cache();
     Ok(())
 }
 
@@ -154,30 +150,6 @@ fn list_folders_recursive(base: &PathBuf, current: &PathBuf, folders: &mut Vec<F
                 });
                 list_folders_recursive(base, &path, folders);
             }
-        }
-    }
-}
-
-static ENTRY_CACHE: OnceLock<Mutex<HashMap<String, NoteEntry>>> = OnceLock::new();
-
-fn entry_cache() -> &'static Mutex<HashMap<String, NoteEntry>> {
-    ENTRY_CACHE.get_or_init(|| Mutex::new(HashMap::new()))
-}
-
-fn ensure_cache(app_handle: &AppHandle) {
-    let mut cache = entry_cache().lock().unwrap();
-    if cache.is_empty() {
-        let notes = list_notes(app_handle);
-        for note in notes {
-            cache.insert(note.path.clone(), note);
-        }
-    }
-}
-
-pub fn invalidate_cache() {
-    if let Some(cache) = ENTRY_CACHE.get() {
-        if let Ok(mut c) = cache.lock() {
-            c.clear();
         }
     }
 }
@@ -274,13 +246,8 @@ pub async fn search_notes(
             .unwrap_or_default()
         }
         _ => {
-            ensure_cache(app_handle);
             let query_owned = query.to_string();
-
-            let entries: Vec<NoteEntry> = {
-                let cache = entry_cache().lock().unwrap();
-                cache.values().cloned().collect()
-            };
+            let entries = list_notes(app_handle);
 
             let mut results: Vec<NoteEntry> = entries
                 .iter()
@@ -387,7 +354,6 @@ pub fn rename_note(app_handle: &AppHandle, old_path: &str, new_name: &str) -> Re
     }
 
     fs::rename(old_path, &new_path).map_err(|e| e.to_string())?;
-    invalidate_cache();
     Ok(())
 }
 

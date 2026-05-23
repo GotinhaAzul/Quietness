@@ -6,7 +6,8 @@
   import { closeBrackets } from '@codemirror/autocomplete';
   import { onMount } from 'svelte';
   import { settings } from '$lib/stores/settings';
-  import { currentNote, noteListChanged, notes, showError } from '$lib/stores/notes';
+  import { currentNote, notes } from '$lib/stores/notes';
+  import { showError } from '$lib/stores/errors';
   import { invoke } from '@tauri-apps/api/core';
   import { buildRenamedNotePath, resolveRenameRequest } from '$lib/utils/noteRename';
 
@@ -29,7 +30,6 @@
   let prevPath = '';
 
   $effect(() => {
-    $noteListChanged;
     const currentPaths = new Set($notes.map(n => n.path));
     const current = $currentNote?.path;
     for (const path of noteStates.keys()) {
@@ -230,12 +230,12 @@
   async function saveTitle() {
     const note = $currentNote;
     if (!note) return;
-    const decision = resolveRenameRequest({
+    const cleanName = resolveRenameRequest({
       currentName: note.name,
       requestedName: titleValue,
       isSubmitting: titleRenamePending,
     });
-    if (decision.kind === 'ignore') {
+    if (!cleanName) {
       if (!titleRenamePending) {
         titleEditing = false;
       }
@@ -245,16 +245,15 @@
     titleRenamePending = true;
     titleEditing = false;
     try {
-      await invoke('rename_note', { oldPath: note.path, newName: decision.cleanName });
-      const newPath = buildRenamedNotePath(note.path, decision.cleanName);
+      await invoke('rename_note', { oldPath: note.path, newName: cleanName });
+      const newPath = buildRenamedNotePath(note.path, cleanName);
       const savedState = noteStates.get(note.path);
       if (savedState) {
         noteStates.delete(note.path);
         noteStates.set(newPath, savedState);
       }
-      currentNote.update(n => n ? { ...n, name: decision.cleanName, path: newPath } : n);
-      notes.update(list => list.map(n => n.path === note.path ? { ...n, name: decision.cleanName, path: newPath } : n));
-      noteListChanged.update(n => n + 1);
+      currentNote.update(n => n ? { ...n, name: cleanName, path: newPath } : n);
+      notes.update(list => list.map(n => n.path === note.path ? { ...n, name: cleanName, path: newPath } : n));
     } catch (e) {
       showError(`Failed to rename note: ${e}`);
     } finally {

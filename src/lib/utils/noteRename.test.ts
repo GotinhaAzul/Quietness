@@ -5,34 +5,34 @@ const { buildRenamedNotePath, resolveRenameRequest } = await import(
   new URL('./noteRename.ts', import.meta.url).href
 );
 
-test('resolveRenameRequest ignores in-flight duplicate submissions', () => {
+test('resolveRenameRequest returns null for in-flight duplicate submissions', () => {
   const result = resolveRenameRequest({
     currentName: 'Old title',
     requestedName: 'New title',
     isSubmitting: true,
   });
 
-  assert.deepEqual(result, { kind: 'ignore' });
+  assert.equal(result, null);
 });
 
-test('resolveRenameRequest trims and strips optional md extension', () => {
+test('resolveRenameRequest returns the normalized note name', () => {
   const result = resolveRenameRequest({
     currentName: 'Old title',
     requestedName: '  New title.md  ',
     isSubmitting: false,
   });
 
-  assert.deepEqual(result, { kind: 'submit', cleanName: 'New title' });
+  assert.equal(result, 'New title');
 });
 
-test('resolveRenameRequest ignores no-op renames after normalization', () => {
+test('resolveRenameRequest returns null for no-op renames after normalization', () => {
   const result = resolveRenameRequest({
     currentName: 'Same title',
     requestedName: ' Same title.md ',
     isSubmitting: false,
   });
 
-  assert.deepEqual(result, { kind: 'ignore' });
+  assert.equal(result, null);
 });
 
 test('buildRenamedNotePath replaces the file name while preserving the parent path', () => {
