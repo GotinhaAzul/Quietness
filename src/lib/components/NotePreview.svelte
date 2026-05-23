@@ -5,6 +5,12 @@
   let { content = '' }: { content?: string } = $props();
 
   let existingNoteNames = $derived(new Set($notes.map(n => n.name.toLowerCase())));
+  let noteIndex = $derived(
+    $notes.reduce<Record<string, (typeof $notes)[number]>>((idx, n) => {
+      idx[n.name.toLowerCase()] = n;
+      return idx;
+    }, {})
+  );
 
   function handleClick(event: Event) {
     const target = event.target as HTMLElement;
@@ -14,7 +20,7 @@
     const linkTarget = link.getAttribute('data-wikilink');
     if (!linkTarget) return;
 
-    const noteEntry = $notes.find(n => n.name.toLowerCase() === linkTarget.toLowerCase());
+    const noteEntry = noteIndex[linkTarget.toLowerCase()];
     if (noteEntry) {
       event.preventDefault();
       loadNote(noteEntry.path);

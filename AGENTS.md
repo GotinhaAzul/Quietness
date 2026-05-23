@@ -28,7 +28,7 @@ Generic permissions do not revoke these rules.
 - Do not modify `intent.md` without authorization.
 - Update `.fixer/changes.md` at the end of each work session.
 - Consult `.fixer/ToDo.md` for pending tasks.
-- Mark completed tasks by changing `[ ]` to `[x]` in `.fixer/ToDo.md`.
+- Always ark completed tasks by changing `[ ]` to `[x]` in `.fixer/ToDo.md`.
 - Consult `.fixer/decisions/` before reverting or questioning already-made decisions.
 
 ## Project stack

@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { selectedFolder } from '$lib/stores/folders';
   import { searchQuery, searchResultCount, searchResults, searchScope } from '$lib/stores/ui';
@@ -13,10 +12,6 @@
   let renameValue = $state('');
   let renameInput = $state<HTMLInputElement | undefined>();
   let renamePending = $state(false);
-
-  onMount(() => {
-    loadNoteList();
-  });
 
   $effect(() => {
     $selectedFolder;

@@ -24,9 +24,7 @@ pub fn notes_dir(app_handle: &AppHandle) -> PathBuf {
         .app_data_dir()
         .unwrap_or_else(|_| PathBuf::from("."))
         .join("notes");
-    if !dir.exists() {
-        let _ = fs::create_dir_all(&dir);
-    }
+    let _ = fs::create_dir_all(&dir);
     dir
 }
 
@@ -38,7 +36,7 @@ pub fn list_notes(app_handle: &AppHandle) -> Vec<NoteEntry> {
     let dir = notes_dir(app_handle);
     let mut notes = Vec::new();
     list_notes_recursive(&dir, &mut notes);
-    notes.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    notes.sort_by_cached_key(|a| a.name.to_lowercase());
     notes
 }
 
@@ -117,9 +115,7 @@ pub fn write_note(app_handle: &AppHandle, path: &str, content: &str) -> Result<(
     }
     let p = PathBuf::from(path);
     if let Some(parent) = p.parent() {
-        if !parent.exists() {
-            fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-        }
+        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
     fs::write(path, content).map_err(|e| e.to_string())?;
     invalidate_cache();
@@ -130,7 +126,7 @@ pub fn list_folders(app_handle: &AppHandle) -> Vec<FolderEntry> {
     let dir = notes_dir(app_handle);
     let mut folders = Vec::new();
     list_folders_recursive(&dir, &dir, &mut folders);
-    folders.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    folders.sort_by_cached_key(|a| a.name.to_lowercase());
     folders
 }
 
@@ -271,7 +267,7 @@ pub async fn search_notes(
                     }
                 }
 
-                results.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+                results.sort_by_cached_key(|a| a.name.to_lowercase());
                 results
             })
             .await
@@ -313,7 +309,7 @@ pub async fn search_notes(
                 results.extend(content_matches);
             }
 
-            results.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+            results.sort_by_cached_key(|a| a.name.to_lowercase());
             results
         }
     }
@@ -342,7 +338,7 @@ pub fn list_notes_in_folder(app_handle: &AppHandle, folder_path: &str) -> Vec<No
             }
         }
     }
-    notes.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    notes.sort_by_cached_key(|a| a.name.to_lowercase());
     notes
 }
 
@@ -405,9 +401,7 @@ pub struct UserThemeEntry {
 
 fn user_themes_dir(app_handle: &AppHandle) -> PathBuf {
     let dir = notes_dir(app_handle).join("_themes");
-    if !dir.exists() {
-        let _ = fs::create_dir_all(&dir);
-    }
+    let _ = fs::create_dir_all(&dir);
     dir
 }
 
@@ -426,7 +420,7 @@ pub fn list_user_themes(app_handle: &AppHandle) -> Vec<UserThemeEntry> {
             }
         }
     }
-    themes.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    themes.sort_by_cached_key(|a| a.name.to_lowercase());
     themes
 }
 
@@ -504,14 +498,10 @@ fn default_settings() -> Settings {
 
 pub fn load_settings(app_handle: &AppHandle) -> Settings {
     let path = settings_path(app_handle);
-    if path.exists() {
-        fs::read_to_string(&path)
-            .ok()
-            .and_then(|content| serde_json::from_str(&content).ok())
-            .unwrap_or_else(default_settings)
-    } else {
-        default_settings()
-    }
+    fs::read_to_string(&path)
+        .ok()
+        .and_then(|content| serde_json::from_str(&content).ok())
+        .unwrap_or_else(default_settings)
 }
 
 pub fn save_settings(app_handle: &AppHandle, settings: &Settings) -> Result<(), String> {

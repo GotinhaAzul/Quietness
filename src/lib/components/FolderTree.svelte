@@ -1,21 +1,15 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { folders, selectedFolder, loadFolders } from '$lib/stores/folders';
+  import { folders, selectedFolder } from '$lib/stores/folders';
   import type { FolderEntry } from '$lib/stores/folders';
 
   interface TreeNode {
     name: string;
     path: string;
     children: TreeNode[];
-    expanded: boolean;
   }
 
   let tree = $state<TreeNode[]>([]);
   let expandedPaths = $state<Set<string>>(new Set());
-
-  onMount(() => {
-    loadFolders();
-  });
 
   $effect(() => {
     const list = $folders;
@@ -32,7 +26,6 @@
         name: f.name,
         path: f.path,
         children: [],
-        expanded: expandedPaths.has(f.path),
       };
       map.set(f.path, node);
 
@@ -54,13 +47,13 @@
   }
 
   function toggleExpand(path: string) {
-    if (expandedPaths.has(path)) {
-      expandedPaths.delete(path);
+    const next = new Set(expandedPaths);
+    if (next.has(path)) {
+      next.delete(path);
     } else {
-      expandedPaths.add(path);
+      next.add(path);
     }
-    expandedPaths = new Set(expandedPaths);
-    tree = buildTree($folders);
+    expandedPaths = next;
   }
 
   function selectFolder(path: string | null) {
@@ -85,7 +78,7 @@
     >
       {#if node.children.length > 0}
         <span
-          class="inline-flex h-3.5 w-3.5 shrink-0 cursor-pointer items-center justify-center transition-transform {node.expanded ? 'rotate-90' : ''}"
+          class="inline-flex h-3.5 w-3.5 shrink-0 cursor-pointer items-center justify-center transition-transform {expandedPaths.has(node.path) ? 'rotate-90' : ''}"
           onclick={(e) => { e.stopPropagation(); toggleExpand(node.path); }}
           onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); toggleExpand(node.path); } }}
           role="button"
@@ -103,7 +96,7 @@
       </svg>
       <span class="truncate">{node.name}</span>
     </button>
-    {#if node.expanded && node.children.length > 0}
+    {#if expandedPaths.has(node.path) && node.children.length > 0}
       {#each node.children as child}
         {@render treeNode(child, depth + 1)}
       {/each}

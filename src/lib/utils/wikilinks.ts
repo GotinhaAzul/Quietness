@@ -10,19 +10,17 @@ export default function wikilinksPlugin(md: MarkdownIt): void {
     if (state.src.charCodeAt(pos + 1) !== 0x5B) return false;
 
     let close = -1;
-    for (let i = pos + 2; i < max; i++) {
-      const code = state.src.charCodeAt(i);
-      if (code === 0x5B) { // '['
-        // If we find another '[' before ']]', the outer link is invalid
-        return false;
+    const closeIdx = state.src.indexOf(']]', pos + 2);
+    if (closeIdx !== -1 && closeIdx + 2 <= max) {
+      let valid = true;
+      for (let i = pos + 2; i < closeIdx; i++) {
+        const code = state.src.charCodeAt(i);
+        if (code === 0x5B || code === 0x0A) {
+          valid = false;
+          break;
+        }
       }
-      if (code === 0x0A) { // '\n'
-        return false;
-      }
-      if (code === 0x5D && i + 1 < max && state.src.charCodeAt(i + 1) === 0x5D) { // ']]'
-        close = i;
-        break;
-      }
+      if (valid) close = closeIdx;
     }
 
     if (close === -1) return false;

@@ -123,14 +123,6 @@
       const saved = noteStates.get(newPath);
       if (saved && saved.doc.toString() === newContent) {
         view.setState(saved);
-        const cfg = editorCfg;
-        view.dispatch({
-          effects: [
-            guttersComp.reconfigure(getGuttersExt(cfg.lineNumbers)),
-            wordWrapComp.reconfigure(cfg.wordWrap ? EditorView.lineWrapping : []),
-            tabSizeComp.reconfigure(EditorState.tabSize.of(cfg.tabSize)),
-          ],
-        });
         return;
       }
       view.dispatch({
