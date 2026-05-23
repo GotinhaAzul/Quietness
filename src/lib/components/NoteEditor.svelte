@@ -4,8 +4,9 @@
   import { markdown } from '@codemirror/lang-markdown';
   import { onMount } from 'svelte';
   import { settings } from '$lib/stores/settings';
-  import { currentNote, notes, showError } from '$lib/stores/notes';
+  import { currentNote, noteListChanged, notes, showError } from '$lib/stores/notes';
   import { invoke } from '@tauri-apps/api/core';
+  import { buildRenamedNotePath, resolveRenameRequest } from '$lib/utils/noteRename';
 
   let { content = '', onContentChange }: { content?: string; onContentChange?: (value: string) => void } = $props();
 
@@ -14,6 +15,7 @@
   let ignoreContentUpdate = false;
   let titleEditing = $state(false);
   let titleValue = $state('');
+  let titleRenamePending = $state(false);
 
   const guttersComp = new Compartment();
   const wordWrapComp = new Compartment();
@@ -117,8 +119,9 @@
     if (prevPath !== newPath) {
       prevPath = newPath;
       ignoreContentUpdate = false;
+      const newContent = note?.content ?? '';
       const saved = noteStates.get(newPath);
-      if (saved) {
+      if (saved && saved.doc.toString() === newContent) {
         view.setState(saved);
         const cfg = editorCfg;
         view.dispatch({
@@ -130,12 +133,9 @@
         });
         return;
       }
-      const newContent = note?.content ?? '';
-      if (newContent) {
-        view.dispatch({
-          changes: { from: 0, to: view.state.doc.length, insert: newContent },
-        });
-      }
+      view.dispatch({
+        changes: { from: 0, to: view.state.doc.length, insert: newContent },
+      });
       return;
     }
 
@@ -144,7 +144,7 @@
       return;
     }
     const newContent = note?.content ?? '';
-    if (newContent && newContent !== view.state.doc.toString()) {
+    if (newContent !== view.state.doc.toString()) {
       view.dispatch({
         changes: { from: 0, to: view.state.doc.length, insert: newContent },
       });
@@ -157,18 +157,37 @@
   }
 
   async function saveTitle() {
-    titleEditing = false;
-    const trimmed = titleValue.trim();
-    if (!trimmed || trimmed === noteName) return;
     const note = $currentNote;
     if (!note) return;
+    const decision = resolveRenameRequest({
+      currentName: note.name,
+      requestedName: titleValue,
+      isSubmitting: titleRenamePending,
+    });
+    if (decision.kind === 'ignore') {
+      if (!titleRenamePending) {
+        titleEditing = false;
+      }
+      return;
+    }
+
+    titleRenamePending = true;
+    titleEditing = false;
     try {
-      await invoke('rename_note', { oldPath: note.path, newName: trimmed });
-      const newPath = note.path.replace(/[^/\\]+$/, trimmed + '.md');
-      currentNote.update(n => n ? { ...n, name: trimmed, path: newPath } : n);
-      notes.update(list => list.map(n => n.path === note.path ? { ...n, name: trimmed, path: newPath } : n));
+      await invoke('rename_note', { oldPath: note.path, newName: decision.cleanName });
+      const newPath = buildRenamedNotePath(note.path, decision.cleanName);
+      const savedState = noteStates.get(note.path);
+      if (savedState) {
+        noteStates.delete(note.path);
+        noteStates.set(newPath, savedState);
+      }
+      currentNote.update(n => n ? { ...n, name: decision.cleanName, path: newPath } : n);
+      notes.update(list => list.map(n => n.path === note.path ? { ...n, name: decision.cleanName, path: newPath } : n));
+      noteListChanged.update(n => n + 1);
     } catch (e) {
       showError(`Failed to rename note: ${e}`);
+    } finally {
+      titleRenamePending = false;
     }
   }
 

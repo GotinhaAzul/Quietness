@@ -4,6 +4,7 @@
   import { selectedFolder } from '$lib/stores/folders';
   import { searchQuery, searchResultCount, searchResults, searchScope } from '$lib/stores/ui';
   import { notes, currentNote, loadNote, deleteNote, noteListChanged, showError, type NoteEntry } from '$lib/stores/notes';
+  import { buildRenamedNotePath, resolveRenameRequest } from '$lib/utils/noteRename';
 
   let noteEntries = $state<NoteEntry[]>([]);
   let loading = $state(false);
@@ -11,6 +12,7 @@
   let renamingPath = $state<string | null>(null);
   let renameValue = $state('');
   let renameInput = $state<HTMLInputElement | undefined>();
+  let renamePending = $state(false);
 
   onMount(() => {
     loadNoteList();
@@ -85,33 +87,38 @@
   }
 
   async function handleRename(oldPath: string) {
-    const newName = renameValue.trim();
-    if (!newName) {
-      renamingPath = null;
-      return;
-    }
-    const cleanName = newName.endsWith('.md') ? newName.slice(0, -3).trim() : newName.trim();
-    if (!cleanName) {
-      renamingPath = null;
-      return;
-    }
     const currentName = noteEntries.find(n => n.path === oldPath)?.name;
-    if (currentName && cleanName === currentName) {
+    if (!currentName) {
       renamingPath = null;
       return;
     }
-    const lastSep = oldPath.lastIndexOf('/');
-    const parentDir = lastSep >= 0 ? oldPath.slice(0, lastSep) : '';
-    const newPath = parentDir ? `${parentDir}/${cleanName}.md` : `${cleanName}.md`;
+
+    const decision = resolveRenameRequest({
+      currentName,
+      requestedName: renameValue,
+      isSubmitting: renamePending,
+    });
+    if (decision.kind === 'ignore') {
+      if (!renamePending) {
+        renamingPath = null;
+      }
+      return;
+    }
+
+    const newPath = buildRenamedNotePath(oldPath, decision.cleanName);
+    renamePending = true;
     try {
-      await invoke('rename_note', { oldPath, newName: cleanName });
-      notes.update(ns => ns.map(n => n.path === oldPath ? { ...n, name: cleanName, path: newPath } : n));
-      currentNote.update(n => n && n.path === oldPath ? { ...n, name: cleanName, path: newPath } : n);
+      await invoke('rename_note', { oldPath, newName: decision.cleanName });
+      noteEntries = noteEntries.map(n => n.path === oldPath ? { ...n, name: decision.cleanName, path: newPath } : n);
+      notes.update(ns => ns.map(n => n.path === oldPath ? { ...n, name: decision.cleanName, path: newPath } : n));
+      currentNote.update(n => n && n.path === oldPath ? { ...n, name: decision.cleanName, path: newPath } : n);
       noteListChanged.update(n => n + 1);
     } catch (e) {
       showError(`Failed to rename note: ${e}`);
+    } finally {
+      renamePending = false;
+      renamingPath = null;
     }
-    renamingPath = null;
   }
 
   function handleRenameKeydown(event: KeyboardEvent, oldPath: string) {
