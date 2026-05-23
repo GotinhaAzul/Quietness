@@ -1,5 +1,6 @@
 import { writable, get, type Writable } from 'svelte/store';
 import { invoke } from '@tauri-apps/api/core';
+import { isSameNotePath, waitForOptimisticDeletePaint } from '$lib/utils/noteDeletion';
 
 export interface NoteEntry {
   name: string;
@@ -138,16 +139,18 @@ export async function createNote(name: string, folder: string = '', content: str
 }
 
 export async function deleteNote(path: string): Promise<void> {
+  if (get(deletingNotePaths).has(path)) return;
+
   const previousNotes = get(notes);
   const previousCurrent = get(currentNote);
 
   deletingNotePaths.update(paths => new Set(paths).add(path));
-  notes.update(list => list.filter(n => n.path !== path));
-  currentNote.update(n => (n && n.path === path) ? null : n);
+  notes.update(list => list.filter(n => !isSameNotePath(n.path, path)));
+  currentNote.update(n => (n && isSameNotePath(n.path, path)) ? null : n);
 
   try {
+    await waitForOptimisticDeletePaint();
     await invoke('delete_note', { path });
-    noteListChanged.update(n => n + 1);
   } catch (e) {
     notes.set(previousNotes);
     currentNote.set(previousCurrent);
@@ -158,6 +161,7 @@ export async function deleteNote(path: string): Promise<void> {
       next.delete(path);
       return next;
     });
+    noteListChanged.update(n => n + 1);
   }
 }
 

@@ -37,3 +37,7 @@
 | 53 | **T06** — Smooth caret/animated cursor: CodeMirror extension with elastic cubic-bezier transition on .cm-cursor, Compartment toggle in NoteEditor, setting + toggle in SettingsModal | May 23 |
 | 54 | **T07** — Checkboxes/task lists: markdown-it plugin detecting `- [ ]` / `- [x]` syntax, inserts checkbox HTML in preview, scoped styling in NotePreview | May 23 |
 | 55 | **T08 fix** — Locked app shell/page scroll, bounded editor/preview scroll areas, styled settings sliders, fixed stale delete/sidebar state and markdown cache key | May 23 |
+| 56 | **Robust deletion** — Guard against double-delete in `deleteNote()`, fix rollback bug (noteEntries not restored on failure via `noteListChanged` in `finally`), CSS slide transition (150ms) in NoteList, custom ConfirmModal replacing native `confirm()`, Ctrl+Shift+D shortcut, EditorState cache cleanup on delete | May 23 |
+| 57 | **Delete UI sync fix** — Added shared optimistic-delete filtering for stale note/search results so deleted notes disappear immediately and do not reappear during async list refresh | May 23 |
+| 58 | **Instant delete feedback** — Removed sidebar delete slide transition and yielded one paint frame before invoking filesystem delete so optimistic removal renders before backend work | May 23 |
+| 59 | **Open-note delete close fix** — Normalized note path identity for delete so deleting an open note clears editor/preview even when path separators or casing differ | May 23 |

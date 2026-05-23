@@ -11,6 +11,7 @@ import { settings } from '$lib/stores/settings';
 import { userThemes } from '$lib/stores/userThemes';
 import { focusSearchInput, showNewNoteInput } from '$lib/stores/ui';
 import { FONT_STACKS } from '$lib/utils/fonts';
+import ConfirmModal from '$lib/components/ConfirmModal.svelte';
 
   const modes: { value: ViewMode; label: string }[] = [
     { value: 'edit', label: 'Edit' },
@@ -19,8 +20,8 @@ import { FONT_STACKS } from '$lib/utils/fonts';
   ];
 
   let saveTimeout: any = null;
-  let isDeleting = $state(false);
   let showSettings = $state(false);
+  let confirmDelete = $state(false);
   let appReady = $state(false);
   let unsavedChanges = $state(false);
   let saveStatus = $state<'saved' | 'saving' | 'unsaved'>('saved');
@@ -52,6 +53,9 @@ import { FONT_STACKS } from '$lib/utils/fonts';
       } else if (e.key === 'P' && e.shiftKey) {
         e.preventDefault();
         viewMode.set('preview');
+      } else if (e.key === 'D' && e.shiftKey) {
+        e.preventDefault();
+        handleDelete();
       }
     }
     window.addEventListener('keydown', handleKeydown);
@@ -151,18 +155,18 @@ import { FONT_STACKS } from '$lib/utils/fonts';
     saveStatus = 'saved';
   }
 
-  async function handleDelete() {
-    if (!$currentNote || isDeleting) return;
-    if (!confirm(`Delete "${$currentNote.name}"?`)) return;
-    isDeleting = true;
-    try {
-      if (saveTimeout) {
-        clearTimeout(saveTimeout);
-      }
-      await deleteNote($currentNote.path);
-    } finally {
-      isDeleting = false;
+  function handleDelete() {
+    if (!$currentNote) return;
+    confirmDelete = true;
+  }
+
+  async function confirmDeleteNote() {
+    if (!$currentNote) return;
+    confirmDelete = false;
+    if (saveTimeout) {
+      clearTimeout(saveTimeout);
     }
+    await deleteNote($currentNote.path);
   }
 </script>
 
@@ -207,8 +211,7 @@ import { FONT_STACKS } from '$lib/utils/fonts';
             Save
           </button>
           <button
-            disabled={isDeleting}
-            class="rounded-md px-3 py-1 text-xs text-quiet-danger/70 transition-colors hover:bg-quiet-danger-bg hover:text-quiet-danger disabled:opacity-50"
+            class="rounded-md px-3 py-1 text-xs text-quiet-danger/70 transition-colors hover:bg-quiet-danger-bg hover:text-quiet-danger"
             onclick={handleDelete}
           >
             Delete
@@ -288,3 +291,12 @@ import { FONT_STACKS } from '$lib/utils/fonts';
 </div>
 
 <SettingsModal open={showSettings} onclose={() => (showSettings = false)} />
+
+<ConfirmModal
+  open={confirmDelete && $currentNote !== null}
+  title="Delete note"
+  message={$currentNote ? `Delete "${$currentNote.name}"?` : ''}
+  confirmLabel="Delete"
+  onconfirm={confirmDeleteNote}
+  oncancel={() => (confirmDelete = false)}
+/>

@@ -28,6 +28,17 @@
   const noteStates = new Map<string, EditorState>();
   let prevPath = '';
 
+  $effect(() => {
+    $noteListChanged;
+    const currentPaths = new Set($notes.map(n => n.path));
+    const current = $currentNote?.path;
+    for (const path of noteStates.keys()) {
+      if (path !== current && !currentPaths.has(path)) {
+        noteStates.delete(path);
+      }
+    }
+  });
+
   const quietThemeExt = EditorView.theme({
     '&': {
       backgroundColor: 'var(--q-bg)',

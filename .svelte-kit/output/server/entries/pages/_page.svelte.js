@@ -1,12 +1,13 @@
-import { a8 as ssr_context, k as attr_class, p as clsx, a9 as store_get, z as ensure_array_like, ad as unsubscribe_stores, l as attr_style, A as escape_html, aa as stringify, j as attr, w as derived, M as head } from "../../chunks/renderer.js";
+import { a8 as ssr_context, k as attr_class, p as clsx, a9 as store_get, z as ensure_array_like, ae as unsubscribe_stores, l as attr_style, A as escape_html, aa as stringify, j as attr, w as derived, M as head } from "../../chunks/renderer.js";
 import "clsx";
-import { w as writable } from "../../chunks/index.js";
+import { w as writable, g as get } from "../../chunks/index.js";
 import { invoke } from "@tauri-apps/api/core";
 import { EditorView } from "codemirror";
 import { Compartment } from "@codemirror/state";
+import { keymap } from "@codemirror/view";
 import MarkdownIt from "markdown-it";
 function html(value) {
-  var html2 = String(value ?? "");
+  var html2 = String(value);
   var open = "<!---->";
   return open + html2 + "<!---->";
 }
@@ -16,6 +17,8 @@ function onDestroy(fn) {
 }
 const notes = writable([]);
 const currentNote = writable(null);
+const noteListChanged = writable(0);
+const deletingNotePaths = writable(/* @__PURE__ */ new Set());
 const errorMessage = writable([]);
 let errorIdCounter = 0;
 const errorTimeouts = /* @__PURE__ */ new Map();
@@ -35,11 +38,34 @@ function dismissError(id) {
   }
   errorMessage.update((errors) => errors.filter((e) => e.id !== id));
 }
+async function deleteNote(path) {
+  if (get(deletingNotePaths).has(path)) return;
+  const previousNotes = get(notes);
+  const previousCurrent = get(currentNote);
+  deletingNotePaths.update((paths) => new Set(paths).add(path));
+  notes.update((list) => list.filter((n) => n.path !== path));
+  currentNote.update((n) => n && n.path === path ? null : n);
+  try {
+    await invoke("delete_note", { path });
+  } catch (e) {
+    notes.set(previousNotes);
+    currentNote.set(previousCurrent);
+    showError(`Failed to delete note: ${e}`);
+  } finally {
+    deletingNotePaths.update((paths) => {
+      const next = new Set(paths);
+      next.delete(path);
+      return next;
+    });
+    noteListChanged.update((n) => n + 1);
+  }
+}
 const selectedFolder = writable(null);
 function FolderTree($$renderer, $$props) {
   $$renderer.component(($$renderer2) => {
     var $$store_subs;
     let tree = [];
+    let expandedPaths = /* @__PURE__ */ new Set();
     function folderBtnClass(path, isActive) {
       const base = "flex w-full items-center gap-1.5 rounded-md px-3 py-1.5 text-left text-xs transition-colors";
       if (isActive) {
@@ -51,13 +77,13 @@ function FolderTree($$renderer, $$props) {
       $$renderer3.push(`<div><button${attr_class(clsx(folderBtnClass(node.path, store_get($$store_subs ??= {}, "$selectedFolder", selectedFolder) === node.path)))}${attr_style(`padding-left: ${stringify(12 + depth * 12)}px`)}>`);
       if (node.children.length > 0) {
         $$renderer3.push("<!--[0-->");
-        $$renderer3.push(`<span${attr_class(`inline-flex h-3.5 w-3.5 shrink-0 cursor-pointer items-center justify-center transition-transform ${node.expanded ? "rotate-90" : ""}`)} role="button" tabindex="0"><svg viewBox="0 0 16 16" fill="currentColor" class="h-3 w-3"><path d="M6 4l4 4-4 4"></path></svg></span>`);
+        $$renderer3.push(`<span${attr_class(`inline-flex h-3.5 w-3.5 shrink-0 cursor-pointer items-center justify-center transition-transform ${expandedPaths.has(node.path) ? "rotate-90" : ""}`)} role="button" tabindex="0"><svg viewBox="0 0 16 16" fill="currentColor" class="h-3 w-3"><path d="M6 4l4 4-4 4"></path></svg></span>`);
       } else {
         $$renderer3.push("<!--[-1-->");
         $$renderer3.push(`<span class="inline-flex w-3.5 shrink-0"></span>`);
       }
       $$renderer3.push(`<!--]--> <svg class="h-3.5 w-3.5 shrink-0" viewBox="0 0 16 16" fill="currentColor"><path d="M.5 3.5a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3h3.672a2 2 0 0 1 2 2v6.5a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2v-7.5Z"></path></svg> <span class="truncate">${escape_html(node.name)}</span></button> `);
-      if (node.expanded && node.children.length > 0) {
+      if (expandedPaths.has(node.path) && node.children.length > 0) {
         $$renderer3.push("<!--[0-->");
         $$renderer3.push(`<!--[-->`);
         const each_array = ensure_array_like(node.children);
@@ -92,12 +118,38 @@ const sidebarCollapsed = writable(false);
 const searchResultCount = writable(0);
 const searchResults = writable([]);
 const showNewNoteInput = writable(false);
+function ConfirmModal($$renderer, $$props) {
+  $$renderer.component(($$renderer2) => {
+    let {
+      open = false,
+      title = "Confirm",
+      message = "",
+      confirmLabel = "Delete",
+      onconfirm,
+      oncancel
+    } = $$props;
+    if (open) {
+      $$renderer2.push("<!--[0-->");
+      $$renderer2.push(`<div class="fixed inset-0 z-50 flex items-center justify-center"><div class="absolute inset-0 bg-black/30" role="presentation"></div> <div class="relative mx-4 flex w-[320px] max-w-full flex-col rounded-xl border border-quiet-border bg-[var(--q-bg)] shadow-xl" role="dialog" aria-modal="true"${attr("aria-label", title)} tabindex="0"><div class="px-5 py-4"><h3 class="text-sm font-semibold text-quiet-text">${escape_html(title)}</h3> <p class="mt-1.5 text-xs text-quiet-muted">${escape_html(message)}</p></div> <div class="flex items-center justify-end gap-2 border-t border-quiet-border/60 px-5 py-3"><button class="rounded-md px-3.5 py-1.5 text-xs font-medium text-quiet-faded transition-colors hover:bg-quiet-hover hover:text-quiet-text">Cancel</button> <button class="rounded-md bg-quiet-danger px-3.5 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90">${escape_html(confirmLabel)}</button></div></div></div>`);
+    } else {
+      $$renderer2.push("<!--[-1-->");
+    }
+    $$renderer2.push(`<!--]-->`);
+  });
+}
 function NoteList($$renderer, $$props) {
   $$renderer.component(($$renderer2) => {
     var $$store_subs;
     let noteEntries = [];
     let renamingPath = null;
     let renameValue = "";
+    let confirmDelete = null;
+    async function confirmDeleteNote() {
+      if (!confirmDelete) return;
+      const { path } = confirmDelete;
+      confirmDelete = null;
+      await deleteNote(path);
+    }
     function noteBtnClass(isActive) {
       const base = "flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-xs transition-colors";
       if (isActive) {
@@ -106,7 +158,7 @@ function NoteList($$renderer, $$props) {
       return `${base} text-quiet-muted hover:bg-quiet-hover hover:text-quiet-text`;
     }
     if (noteEntries.length === 0) {
-      $$renderer2.push("<!--[1-->");
+      $$renderer2.push("<!--[0-->");
       $$renderer2.push(`<div class="px-3 py-2 text-xs text-quiet-faded">No notes</div>`);
     } else {
       $$renderer2.push("<!--[-1-->");
@@ -126,7 +178,16 @@ function NoteList($$renderer, $$props) {
       }
       $$renderer2.push(`<!--]--></div>`);
     }
-    $$renderer2.push(`<!--]-->`);
+    $$renderer2.push(`<!--]--> `);
+    ConfirmModal($$renderer2, {
+      open: confirmDelete !== null,
+      title: "Delete note",
+      message: confirmDelete ? `Delete "${confirmDelete.name}"?` : "",
+      confirmLabel: "Delete",
+      onconfirm: confirmDeleteNote,
+      oncancel: () => confirmDelete = null
+    });
+    $$renderer2.push(`<!---->`);
     if ($$store_subs) unsubscribe_stores($$store_subs);
   });
 }
@@ -182,7 +243,7 @@ function Sidebar($$renderer, $$props) {
   $$renderer.component(($$renderer2) => {
     var $$store_subs;
     let newNoteName = "";
-    $$renderer2.push(`<aside${attr_class(`flex shrink-0 flex-col border-r border-quiet-border/70 bg-quiet-surface/40 transition-[width] duration-200 ease-in-out ${store_get($$store_subs ??= {}, "$sidebarCollapsed", sidebarCollapsed) ? "w-10" : "w-64"}`)}>`);
+    $$renderer2.push(`<aside${attr_class(`flex shrink-0 flex-col border-r border-quiet-border/70 bg-quiet-surface/40 transition-all duration-150 ease-out ${store_get($$store_subs ??= {}, "$sidebarCollapsed", sidebarCollapsed) ? "w-10" : "w-64"}`)}>`);
     if (!store_get($$store_subs ??= {}, "$sidebarCollapsed", sidebarCollapsed)) {
       $$renderer2.push("<!--[0-->");
       $$renderer2.push(`<div class="border-b border-quiet-border/60 px-4 py-4"><h1 class="text-sm font-semibold tracking-tight text-quiet-text">Quietness</h1> <p class="text-xs text-quiet-faded">A quiet place to write.</p></div> <div class="px-3 pt-3 pb-1">`);
@@ -229,7 +290,9 @@ const DEFAULT_SETTINGS = {
   editor: {
     lineNumbers: true,
     wordWrap: false,
-    tabSize: 4
+    tabSize: 4,
+    dimInactiveLines: false,
+    smoothCaret: true
   }
 };
 function createSettingsStore() {
@@ -276,6 +339,9 @@ const settings = createSettingsStore();
 function NoteEditor($$renderer, $$props) {
   $$renderer.component(($$renderer2) => {
     var $$store_subs;
+    let { content = "" } = $$props;
+    new Compartment();
+    new Compartment();
     new Compartment();
     new Compartment();
     new Compartment();
@@ -288,15 +354,39 @@ function NoteEditor($$renderer, $$props) {
       },
       ".cm-activeLineGutter": { backgroundColor: "var(--q-hover)" },
       ".cm-activeLine": { backgroundColor: "var(--q-hover)" },
-      "&.cm-focused .cm-selectionLayer .cm-selectionBackground, .cm-selectionLayer .cm-selectionBackground": {
-        backgroundColor: "var(--q-accent) !important",
-        opacity: "0.2"
-      },
+      ".cm-selectionBackground": { backgroundColor: "var(--q-selection-bg-inactive) !important" },
+      "&.cm-focused .cm-selectionBackground": { backgroundColor: "var(--q-selection-bg) !important" },
+      ".cm-content ::selection": { backgroundColor: "var(--q-selection-bg)" },
+      ".cm-line::selection, .cm-line ::selection": { backgroundColor: "var(--q-selection-bg)" },
       ".cm-cursor": { borderLeftColor: "var(--q-accent)" },
       "&.cm-focused": { outline: "none" }
     });
+    keymap.of([
+      {
+        key: "`",
+        run: (view) => {
+          const { state } = view;
+          const pos = state.selection.main.head;
+          const charAt = state.sliceDoc(pos, pos + 1);
+          if (charAt === "`") {
+            view.dispatch({
+              changes: { from: pos, to: pos + 1 },
+              selection: { anchor: pos + 1, head: pos + 1 }
+            });
+            return true;
+          }
+          view.dispatch({
+            changes: { from: pos, insert: "``" },
+            selection: { anchor: pos + 1, head: pos + 1 }
+          });
+          return true;
+        }
+      }
+    ]);
     let noteName = derived(() => store_get($$store_subs ??= {}, "$currentNote", currentNote)?.name ?? "");
-    $$renderer2.push(`<div class="flex flex-col h-full w-full">`);
+    let wordCount = derived(() => content ? content.trim() === "" ? 0 : content.trim().split(/\s+/).length : 0);
+    let charCount = derived(() => content ? content.length : 0);
+    $$renderer2.push(`<div class="flex h-full min-h-0 w-full flex-col">`);
     if (store_get($$store_subs ??= {}, "$currentNote", currentNote)) {
       $$renderer2.push("<!--[0-->");
       $$renderer2.push(`<div class="title-bar svelte-hrl8lz">`);
@@ -308,7 +398,14 @@ function NoteEditor($$renderer, $$props) {
     } else {
       $$renderer2.push("<!--[-1-->");
     }
-    $$renderer2.push(`<!--]--> <div class="flex-1 min-h-0"></div></div>`);
+    $$renderer2.push(`<!--]--> <div class="min-h-0 flex-1 overflow-hidden"></div> `);
+    if (store_get($$store_subs ??= {}, "$currentNote", currentNote)) {
+      $$renderer2.push("<!--[0-->");
+      $$renderer2.push(`<div class="word-count svelte-hrl8lz">${escape_html(wordCount())} words · ${escape_html(charCount())} characters</div>`);
+    } else {
+      $$renderer2.push("<!--[-1-->");
+    }
+    $$renderer2.push(`<!--]--></div>`);
     if ($$store_subs) unsubscribe_stores($$store_subs);
   });
 }
@@ -320,18 +417,17 @@ function wikilinksPlugin(md2) {
     if (state.src.charCodeAt(pos) !== 91) return false;
     if (state.src.charCodeAt(pos + 1) !== 91) return false;
     let close = -1;
-    for (let i = pos + 2; i < max; i++) {
-      const code = state.src.charCodeAt(i);
-      if (code === 91) {
-        return false;
+    const closeIdx = state.src.indexOf("]]", pos + 2);
+    if (closeIdx !== -1 && closeIdx + 2 <= max) {
+      let valid = true;
+      for (let i = pos + 2; i < closeIdx; i++) {
+        const code = state.src.charCodeAt(i);
+        if (code === 91 || code === 10) {
+          valid = false;
+          break;
+        }
       }
-      if (code === 10) {
-        return false;
-      }
-      if (code === 93 && i + 1 < max && state.src.charCodeAt(i + 1) === 93) {
-        close = i;
-        break;
-      }
+      if (valid) close = closeIdx;
     }
     if (close === -1) return false;
     const content = state.src.slice(pos + 2, close);
@@ -356,41 +452,55 @@ function wikilinksPlugin(md2) {
     return true;
   });
 }
+function tasklistsPlugin(md2) {
+  md2.core.ruler.after("inline", "tasklists", (state) => {
+    const tokens = state.tokens;
+    for (let i = 0; i < tokens.length; i++) {
+      if (tokens[i].type !== "inline") continue;
+      const content = tokens[i].content;
+      const match = content.match(/^\[([ x])\]\s+/);
+      if (!match) continue;
+      let inListItem = false;
+      for (let j = i - 1; j >= 0; j--) {
+        if (tokens[j].type === "list_item_open") {
+          inListItem = true;
+          tokens[j].attrJoin("class", "task-list-item");
+          break;
+        }
+        if (tokens[j].type === "bullet_list_close" || tokens[j].type === "ordered_list_close") {
+          break;
+        }
+      }
+      if (!inListItem) continue;
+      const checked = match[1] === "x";
+      tokens[i].content = content.slice(match[0].length);
+      const children = tokens[i].children;
+      if (children && children.length > 0) {
+        const firstChild = children[0];
+        if (firstChild.type === "text") {
+          firstChild.content = firstChild.content.slice(match[0].length);
+        }
+      }
+      const checkboxHtml = checked ? '<input type="checkbox" class="task-checkbox" checked disabled> ' : '<input type="checkbox" class="task-checkbox" disabled> ';
+      const checkboxToken = new state.Token("html_inline", "", 0);
+      checkboxToken.content = checkboxHtml;
+      if (children) {
+        children.unshift(checkboxToken);
+      }
+    }
+  });
+}
 const md = new MarkdownIt({
   html: false,
   linkify: false,
   typographer: false
 });
 md.use(wikilinksPlugin);
-function hashContent(src) {
-  let h = 0;
-  for (let i = 0; i < src.length; i++) {
-    h = (h << 5) - h + src.charCodeAt(i);
-    h |= 0;
-  }
-  return src.length + ":" + h;
-}
-const cache = /* @__PURE__ */ new Map();
-const CACHE_MAX = 50;
-function renderMarkdown(src, existingNotes) {
-  const key = hashContent(src) + (existingNotes ? ":" + existingNotes.size : "");
-  const cached = cache.get(key);
-  if (cached !== void 0) return cached;
-  if (cache.size >= CACHE_MAX) {
-    const first = cache.keys().next().value;
-    if (first !== void 0) cache.delete(first);
-  }
-  const result = md.render(src, { existingNotes });
-  cache.set(key, result);
-  return result;
-}
+md.use(tasklistsPlugin);
 function NotePreview($$renderer, $$props) {
   $$renderer.component(($$renderer2) => {
-    var $$store_subs;
-    let { content = "" } = $$props;
-    let existingNoteNames = derived(() => new Set(store_get($$store_subs ??= {}, "$notes", notes).map((n) => n.name.toLowerCase())));
-    $$renderer2.push(`<div class="preview-content" role="region">${html(renderMarkdown(content, existingNoteNames()))}</div>`);
-    if ($$store_subs) unsubscribe_stores($$store_subs);
+    let renderedHTML = "";
+    $$renderer2.push(`<div class="preview-content" role="region">${html(renderedHTML)}</div>`);
   });
 }
 function createUserThemesStore() {
@@ -496,26 +606,24 @@ function _page($$renderer, $$props) {
       { value: "split", label: "Split" },
       { value: "preview", label: "Preview" }
     ];
-    let isDeleting = false;
     let showSettings = false;
+    let confirmDelete = false;
     onDestroy(() => {
     });
+    async function confirmDeleteNote() {
+      if (!store_get($$store_subs ??= {}, "$currentNote", currentNote)) return;
+      confirmDelete = false;
+      await deleteNote(store_get($$store_subs ??= {}, "$currentNote", currentNote).path);
+    }
     head("1uha8ag", $$renderer2, ($$renderer3) => {
       $$renderer3.title(($$renderer4) => {
         $$renderer4.push(`<title>Quietness</title>`);
       });
       $$renderer3.push(`<meta name="description" content="Offline note taking app with a calm, minimal writing surface."/>`);
     });
-    $$renderer2.push(`<div class="flex min-h-screen">`);
+    $$renderer2.push(`<div class="flex h-screen min-h-0 overflow-hidden">`);
     Sidebar($$renderer2);
-    $$renderer2.push(`<!----> <main class="flex flex-1 flex-col"><div class="flex items-center justify-between border-b border-quiet-border/60 px-6 py-3"><div class="flex items-center gap-3"><h2 class="text-sm font-medium text-quiet-muted">`);
-    if (store_get($$store_subs ??= {}, "$currentNote", currentNote)) {
-      $$renderer2.push("<!--[0-->");
-      $$renderer2.push(`${escape_html(store_get($$store_subs ??= {}, "$currentNote", currentNote).name)}`);
-    } else {
-      $$renderer2.push("<!--[-1-->");
-    }
-    $$renderer2.push(`<!--]--></h2> `);
+    $$renderer2.push(`<!----> <main class="flex min-h-0 flex-1 flex-col overflow-hidden"><div class="flex items-center justify-between border-b border-quiet-border/60 px-6 py-3"><div class="flex items-center gap-3">`);
     {
       $$renderer2.push("<!--[-1-->");
     }
@@ -526,19 +634,19 @@ function _page($$renderer, $$props) {
       const each_array = ensure_array_like(modes);
       for (let $$index = 0, $$length = each_array.length; $$index < $$length; $$index++) {
         let mode = each_array[$$index];
-        $$renderer2.push(`<button${attr_class(`px-3 py-1 text-xs transition-colors ${store_get($$store_subs ??= {}, "$viewMode", viewMode) === mode.value ? "bg-quiet-accent text-white" : "text-quiet-faded hover:bg-quiet-hover hover:text-quiet-text"}`)}>${escape_html(mode.label)}</button>`);
+        $$renderer2.push(`<button${attr_class(`px-3 py-1 text-xs transition-all duration-150 ease-out ${store_get($$store_subs ??= {}, "$viewMode", viewMode) === mode.value ? "bg-quiet-accent text-white" : "text-quiet-faded hover:bg-quiet-hover hover:text-quiet-text"}`)}>${escape_html(mode.label)}</button>`);
       }
-      $$renderer2.push(`<!--]--></div> <button class="rounded-md px-3 py-1 text-xs text-quiet-faded transition-colors hover:bg-quiet-hover hover:text-quiet-text">Save</button> <button${attr("disabled", isDeleting, true)} class="rounded-md px-3 py-1 text-xs text-quiet-danger/70 transition-colors hover:bg-quiet-danger-bg hover:text-quiet-danger disabled:opacity-50">Delete</button>`);
+      $$renderer2.push(`<!--]--></div> <button class="rounded-md px-3 py-1 text-xs text-quiet-faded transition-colors hover:bg-quiet-hover hover:text-quiet-text">Save</button> <button class="rounded-md px-3 py-1 text-xs text-quiet-danger/70 transition-colors hover:bg-quiet-danger-bg hover:text-quiet-danger">Delete</button>`);
     } else {
       $$renderer2.push("<!--[-1-->");
     }
     $$renderer2.push(`<!--]--> <button class="rounded-md p-1.5 text-quiet-faded transition-colors hover:bg-quiet-hover hover:text-quiet-text" aria-label="Settings"><svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="1.5"></circle><path d="M8 1.5v1M8 13.5v1M3.3 3.3l.7.7M12 12l.7.7M1.5 8h1M13.5 8h1M3.3 12.7l.7-.7M12 4l.7-.7"></path></svg></button></div></div> `);
     if (store_get($$store_subs ??= {}, "$currentNote", currentNote)) {
       $$renderer2.push("<!--[0-->");
-      $$renderer2.push(`<div class="flex flex-1">`);
+      $$renderer2.push(`<div class="flex min-h-0 flex-1">`);
       if (store_get($$store_subs ??= {}, "$viewMode", viewMode) === "edit" || store_get($$store_subs ??= {}, "$viewMode", viewMode) === "split") {
         $$renderer2.push("<!--[0-->");
-        $$renderer2.push(`<div${attr_class(`${store_get($$store_subs ??= {}, "$viewMode", viewMode) === "split" ? "flex-1 border-r border-quiet-border/60" : "flex-1"} overflow-hidden`)}><div class="flex h-full flex-col"><div class="border-b border-quiet-border/60 px-4 py-1.5 text-[10px] font-medium uppercase tracking-wider text-quiet-faded">Editor</div> <div class="flex-1">`);
+        $$renderer2.push(`<div${attr_class(`${store_get($$store_subs ??= {}, "$viewMode", viewMode) === "split" ? "min-h-0 flex-1 border-r border-quiet-border/60" : "min-h-0 flex-1"} overflow-hidden`)}><div class="flex h-full min-h-0 flex-col"><div class="border-b border-quiet-border/60 px-4 py-1.5 text-[10px] font-medium uppercase tracking-wider text-quiet-faded">Editor</div> <div class="min-h-0 flex-1">`);
         NoteEditor($$renderer2, {
           content: store_get($$store_subs ??= {}, "$currentNote", currentNote).content
         });
@@ -549,7 +657,7 @@ function _page($$renderer, $$props) {
       $$renderer2.push(`<!--]--> `);
       if (store_get($$store_subs ??= {}, "$viewMode", viewMode) === "preview" || store_get($$store_subs ??= {}, "$viewMode", viewMode) === "split") {
         $$renderer2.push("<!--[0-->");
-        $$renderer2.push(`<div class="flex-1 overflow-hidden"><div class="flex h-full flex-col"><div class="border-b border-quiet-border/60 px-4 py-1.5 text-[10px] font-medium uppercase tracking-wider text-quiet-faded">Preview</div> <div class="flex-1 overflow-y-auto p-6">`);
+        $$renderer2.push(`<div class="min-h-0 flex-1 overflow-hidden"><div class="flex h-full min-h-0 flex-col"><div class="border-b border-quiet-border/60 px-4 py-1.5 text-[10px] font-medium uppercase tracking-wider text-quiet-faded">Preview</div> <div class="min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-6">`);
         NotePreview($$renderer2, {
           content: store_get($$store_subs ??= {}, "$currentNote", currentNote).content
         });
@@ -577,6 +685,15 @@ function _page($$renderer, $$props) {
     }
     $$renderer2.push(`<!--]--></div> `);
     SettingsModal($$renderer2, { open: showSettings });
+    $$renderer2.push(`<!----> `);
+    ConfirmModal($$renderer2, {
+      open: confirmDelete && store_get($$store_subs ??= {}, "$currentNote", currentNote) !== null,
+      title: "Delete note",
+      message: store_get($$store_subs ??= {}, "$currentNote", currentNote) ? `Delete "${store_get($$store_subs ??= {}, "$currentNote", currentNote).name}"?` : "",
+      confirmLabel: "Delete",
+      onconfirm: confirmDeleteNote,
+      oncancel: () => confirmDelete = false
+    });
     $$renderer2.push(`<!---->`);
     if ($$store_subs) unsubscribe_stores($$store_subs);
   });

@@ -1,9 +1,12 @@
 <script lang="ts">
+  import { get } from 'svelte/store';
   import { invoke } from '@tauri-apps/api/core';
   import { selectedFolder } from '$lib/stores/folders';
   import { searchQuery, searchResultCount, searchResults, searchScope } from '$lib/stores/ui';
   import { notes, currentNote, deletingNotePaths, loadNote, deleteNote, noteListChanged, showError, type NoteEntry } from '$lib/stores/notes';
   import { buildRenamedNotePath, resolveRenameRequest } from '$lib/utils/noteRename';
+  import { visibleNotesAfterOptimisticDelete } from '$lib/utils/noteDeletion';
+  import ConfirmModal from './ConfirmModal.svelte';
 
   let noteEntries = $state<NoteEntry[]>([]);
   let requestId = 0;
@@ -11,6 +14,7 @@
   let renameValue = $state('');
   let renameInput = $state<HTMLInputElement | undefined>();
   let renamePending = $state(false);
+  let confirmDelete = $state<{ path: string; name: string } | null>(null);
 
   $effect(() => {
     $selectedFolder;
@@ -31,6 +35,9 @@
     const deleting = $deletingNotePaths;
     if (deleting.size === 0) return;
     noteEntries = noteEntries.filter(entry => !deleting.has(entry.path));
+    const visibleResults = visibleNotesAfterOptimisticDelete(get(searchResults), deleting);
+    searchResults.set(visibleResults);
+    searchResultCount.set(visibleResults.length);
   });
 
   async function loadNoteList() {
@@ -40,14 +47,15 @@
       if (query) {
         const entries = await invoke<NoteEntry[]>('search_notes', { query, scope: $searchScope });
         if (currentRequest !== requestId) return;
-        noteEntries = entries;
-        searchResultCount.set(entries.length);
-        searchResults.set(entries);
+        const visibleEntries = visibleNotesAfterOptimisticDelete(entries, $deletingNotePaths);
+        noteEntries = visibleEntries;
+        searchResultCount.set(visibleEntries.length);
+        searchResults.set(visibleEntries);
       } else {
         const folderPath = $selectedFolder ?? '';
         const entries = await invoke<NoteEntry[]>('list_notes_in_folder', { folderPath });
         if (currentRequest !== requestId) return;
-        noteEntries = entries;
+        noteEntries = visibleNotesAfterOptimisticDelete(entries, $deletingNotePaths);
         searchResultCount.set(0);
         searchResults.set([]);
       }
@@ -61,9 +69,16 @@
     await loadNote(path);
   }
 
-  async function handleDeleteSidebar(entry: NoteEntry) {
-    if (!confirm(`Delete "${entry.name}"?`)) return;
-    await deleteNote(entry.path);
+  function handleDeleteSidebar(entry: NoteEntry) {
+    confirmDelete = { path: entry.path, name: entry.name };
+  }
+
+  async function confirmDeleteNote() {
+    if (!confirmDelete) return;
+    const { path } = confirmDelete;
+    confirmDelete = null;
+    noteEntries = visibleNotesAfterOptimisticDelete(noteEntries, new Set([path]));
+    await deleteNote(path);
   }
 
   function noteBtnClass(isActive: boolean): string {
@@ -128,7 +143,7 @@
   <div class="px-3 py-2 text-xs text-quiet-faded">No notes</div>
 {:else}
   <div class="space-y-px">
-    {#each noteEntries as entry}
+    {#each noteEntries as entry (entry.path)}
       <div class="group relative flex items-center">
         {#if renamingPath === entry.path}
           <input
@@ -174,3 +189,12 @@
     {/each}
   </div>
 {/if}
+
+<ConfirmModal
+  open={confirmDelete !== null}
+  title="Delete note"
+  message={confirmDelete ? `Delete "${confirmDelete.name}"?` : ''}
+  confirmLabel="Delete"
+  onconfirm={confirmDeleteNote}
+  oncancel={() => (confirmDelete = null)}
+/>
