@@ -6,6 +6,7 @@ const md = new MarkdownIt({
   html: false,
   linkify: false,
   typographer: false,
+  breaks: true,
 });
 
 md.use(wikilinksPlugin);

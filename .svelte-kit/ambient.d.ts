@@ -38,23 +38,25 @@
  * The above values will be the same _even if_ different values for `ENVIRONMENT` or `PUBLIC_BASE_URL` are set at runtime, as they are statically replaced in your code with their build time values.
  */
 declare module '$env/static/private' {
+	export const ADL_4KWORKAROUND_CANCEL: string;
 	export const ALLUSERSPROFILE: string;
 	export const APPDATA: string;
-	export const CODEX_MANAGED_BY_NPM: string;
-	export const CODEX_MANAGED_PACKAGE_ROOT: string;
-	export const CODEX_SANDBOX_NETWORK_DISABLED: string;
-	export const CODEX_THREAD_ID: string;
 	export const COLOR: string;
+	export const COLORTERM: string;
 	export const CommonProgramFiles: string;
 	export const CommonProgramW6432: string;
 	export const COMPUTERNAME: string;
 	export const ComSpec: string;
 	export const DriverData: string;
 	export const EDITOR: string;
+	export const EFC_7872_1592913036: string;
+	export const FPS_BROWSER_APP_PROFILE_STRING: string;
+	export const FPS_BROWSER_USER_PROFILE_STRING: string;
 	export const HOME: string;
 	export const HOMEDRIVE: string;
 	export const HOMEPATH: string;
 	export const INIT_CWD: string;
+	export const LANG: string;
 	export const LOCALAPPDATA: string;
 	export const LOGONSERVER: string;
 	export const NODE: string;
@@ -109,15 +111,17 @@ declare module '$env/static/private' {
 	export const TAURI_ENV_TARGET_TRIPLE: string;
 	export const TAVILY_API_KEY: string;
 	export const TEMP: string;
+	export const TERM: string;
+	export const TERM_PROGRAM: string;
+	export const TERM_PROGRAM_VERSION: string;
 	export const TMP: string;
 	export const USERDOMAIN: string;
 	export const USERDOMAIN_ROAMINGPROFILE: string;
 	export const USERNAME: string;
 	export const USERPROFILE: string;
 	export const windir: string;
-	export const WSLENV: string;
-	export const WT_PROFILE_ID: string;
-	export const WT_SESSION: string;
+	export const ZED_ENVIRONMENT: string;
+	export const ZED_TERM: string;
 }
 
 /**
@@ -204,23 +208,25 @@ declare module '$env/static/public' {
  */
 declare module '$env/dynamic/private' {
 	export const env: {
+		ADL_4KWORKAROUND_CANCEL: string;
 		ALLUSERSPROFILE: string;
 		APPDATA: string;
-		CODEX_MANAGED_BY_NPM: string;
-		CODEX_MANAGED_PACKAGE_ROOT: string;
-		CODEX_SANDBOX_NETWORK_DISABLED: string;
-		CODEX_THREAD_ID: string;
 		COLOR: string;
+		COLORTERM: string;
 		CommonProgramFiles: string;
 		CommonProgramW6432: string;
 		COMPUTERNAME: string;
 		ComSpec: string;
 		DriverData: string;
 		EDITOR: string;
+		EFC_7872_1592913036: string;
+		FPS_BROWSER_APP_PROFILE_STRING: string;
+		FPS_BROWSER_USER_PROFILE_STRING: string;
 		HOME: string;
 		HOMEDRIVE: string;
 		HOMEPATH: string;
 		INIT_CWD: string;
+		LANG: string;
 		LOCALAPPDATA: string;
 		LOGONSERVER: string;
 		NODE: string;
@@ -275,15 +281,17 @@ declare module '$env/dynamic/private' {
 		TAURI_ENV_TARGET_TRIPLE: string;
 		TAVILY_API_KEY: string;
 		TEMP: string;
+		TERM: string;
+		TERM_PROGRAM: string;
+		TERM_PROGRAM_VERSION: string;
 		TMP: string;
 		USERDOMAIN: string;
 		USERDOMAIN_ROAMINGPROFILE: string;
 		USERNAME: string;
 		USERPROFILE: string;
 		windir: string;
-		WSLENV: string;
-		WT_PROFILE_ID: string;
-		WT_SESSION: string;
+		ZED_ENVIRONMENT: string;
+		ZED_TERM: string;
 		[key: `PUBLIC_${string}`]: undefined;
 		[key: `${string}`]: string | undefined;
 	}

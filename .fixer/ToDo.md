@@ -23,9 +23,9 @@
 
 ## Group 3.5 — List Support (Obsidian-style)
 
-- [ ] `T08a` **Tab/Shift+Tab para indentar listas no editor** — Adicionar `indentWithTab` de `@codemirror/commands` às extensions do editor. Completion: Tab indenta lista, Shift+Tab outdenta, sem conflito com navegação.
-- [ ] `T08b` **Estilo polido de listas no preview** — Melhorar CSS em `app.css` para bullets aninhados (`•` → `◦` → `▪`), espaçamento consistente, ordered lists estilizadas. Completion: listas no preview têm hierarquia visual clara e agradável.
-- [ ] `T08c` **Checkbox interativo no preview** — Clicar em checkbox no preview toggle `[ ]` ↔ `[x]` no editor via `data-list-index` no plugin `tasklists.ts`. Completion: clique no checkbox alterna estado e atualiza o markdown fonte em tempo real.
+- [x] `T08a` **Tab/Shift+Tab para indentar listas no editor** — Adicionar `indentWithTab` de `@codemirror/commands` às extensions do editor. Completion: Tab indenta lista, Shift+Tab outdenta, sem conflito com navegação.
+- [x] `T08b` **Estilo polido de listas no preview** — Melhorar CSS em `app.css` para bullets aninhados (`•` → `◦` → `▪`), espaçamento consistente, ordered lists estilizadas. Completion: listas no preview têm hierarquia visual clara e agradável.
+- [x] `T08c` **Checkbox interativo no preview** — Clicar em checkbox no preview toggle `[ ]` ↔ `[x]` no editor via `data-list-index` no plugin `tasklists.ts`. Completion: clique no checkbox alterna estado e atualiza o markdown fonte em tempo real.
 
 ## Group 4 — The Pet (Flama)
 

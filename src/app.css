@@ -191,16 +191,60 @@ a.wikilink.broken:hover {
   font-style: italic;
 }
 
+/* ── Lists ── */
 .preview-content ul,
 .preview-content ol {
   margin: 0.75em 0;
-  padding-left: 1.5em;
+  padding-left: 1.6em;
+}
+
+/* Nested list tighter spacing */
+.preview-content li > ul,
+.preview-content li > ol {
+  margin: 0.2em 0 0.2em 0;
+}
+
+/* Bullet hierarchy: • → ◦ → ▪ */
+.preview-content ul {
+  list-style-type: disc;
+}
+.preview-content ul ul {
+  list-style-type: circle;
+}
+.preview-content ul ul ul {
+  list-style-type: square;
+}
+
+/* Ordered list hierarchy: 1. → a. → i. */
+.preview-content ol {
+  list-style-type: decimal;
+}
+.preview-content ol ol {
+  list-style-type: lower-alpha;
+}
+.preview-content ol ol ol {
+  list-style-type: lower-roman;
 }
 
 .preview-content li {
-  margin: 0.25em 0;
-  line-height: 1.6;
+  margin: 0.2em 0;
+  line-height: 1.65;
+  padding-left: 0.15em;
 }
+
+/* Task list item — no bullet, aligned with checkbox */
+.preview-content .task-list-item {
+  list-style: none;
+  margin-left: -1.4em;
+  display: flex;
+  align-items: baseline;
+  gap: 0.1em;
+}
+
+.preview-content .task-list-item:hover {
+  color: var(--q-text);
+}
+
 
 .preview-content blockquote {
   margin: 1em 0;

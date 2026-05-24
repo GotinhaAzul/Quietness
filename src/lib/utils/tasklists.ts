@@ -3,6 +3,7 @@ import type MarkdownIt from 'markdown-it';
 export default function tasklistsPlugin(md: MarkdownIt): void {
   md.core.ruler.after('inline', 'tasklists', (state) => {
     const tokens = state.tokens;
+    let checkboxCount = 0;
 
     for (let i = 0; i < tokens.length; i++) {
       if (tokens[i].type !== 'inline') continue;
@@ -37,8 +38,10 @@ export default function tasklistsPlugin(md: MarkdownIt): void {
       }
 
       const checkboxHtml = checked
-        ? '<input type="checkbox" class="task-checkbox" checked disabled> '
-        : '<input type="checkbox" class="task-checkbox" disabled> ';
+        ? `<input type="checkbox" class="task-checkbox" data-list-index="${checkboxCount}" checked> `
+        : `<input type="checkbox" class="task-checkbox" data-list-index="${checkboxCount}"> `;
+
+      checkboxCount++;
 
       const checkboxToken = new state.Token('html_inline', '', 0);
       checkboxToken.content = checkboxHtml;
@@ -48,4 +51,35 @@ export default function tasklistsPlugin(md: MarkdownIt): void {
       }
     }
   });
+}
+
+export function toggleMarkdownCheckbox(markdown: string, targetIndex: number, checked: boolean): string {
+  const lines = markdown.split(/\r?\n/);
+  let currentIndex = 0;
+  let inCodeBlock = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    if (line.trim().startsWith('```')) {
+      inCodeBlock = !inCodeBlock;
+      continue;
+    }
+
+    if (inCodeBlock) {
+      continue;
+    }
+
+    const match = line.match(/^([\s>]*(?:[-*+]|\d+\.)\s+)\[([ x])\](\s+)/);
+    if (match) {
+      if (currentIndex === targetIndex) {
+        const newState = checked ? 'x' : ' ';
+        lines[i] = line.replace(/^([\s>]*(?:[-*+]|\d+\.)\s+)\[([ x])\](\s+)/, `$1[${newState}]$3`);
+        break;
+      }
+      currentIndex++;
+    }
+  }
+
+  return lines.join('\n');
 }

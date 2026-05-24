@@ -1,6 +1,7 @@
 <script lang="ts">
   import { renderMarkdown } from '$lib/utils/markdown';
-  import { notes, loadNote, createNoteFromWikilink } from '$lib/stores/notes';
+  import { notes, loadNote, createNoteFromWikilink, currentNote } from '$lib/stores/notes';
+  import { toggleMarkdownCheckbox } from '$lib/utils/tasklists';
 
   let { content = '' }: { content?: string } = $props();
 
@@ -52,6 +53,26 @@
 
   function handleClick(event: Event) {
     const target = event.target as HTMLElement;
+
+    // Handle checkbox toggle
+    const checkbox = target.closest('.task-checkbox') as HTMLInputElement | null;
+    if (checkbox) {
+      event.preventDefault();
+      const note = $currentNote;
+      if (!note) return;
+      const indexAttr = checkbox.getAttribute('data-list-index');
+      if (indexAttr === null) return;
+      const listIndex = parseInt(indexAttr, 10);
+      if (isNaN(listIndex)) return;
+      const newChecked = !checkbox.checked;
+      const updated = toggleMarkdownCheckbox(note.content, listIndex, newChecked);
+      if (updated !== note.content) {
+        currentNote.set({ ...note, content: updated });
+      }
+      return;
+    }
+
+    // Handle wikilink click
     const link = target.closest('[data-wikilink]') as HTMLElement | null;
     if (!link) return;
 
@@ -81,7 +102,7 @@
     border-radius: 3px;
     margin: 0 6px 0 0;
     vertical-align: middle;
-    cursor: default;
+    cursor: pointer;
     display: inline-block;
     position: relative;
     top: -1px;

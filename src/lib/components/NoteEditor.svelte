@@ -9,7 +9,31 @@
   import { currentNote, notes } from '$lib/stores/notes';
   import { showError } from '$lib/stores/errors';
   import { invoke } from '@tauri-apps/api/core';
+  import { indentWithTab } from '@codemirror/commands';
   import { buildRenamedNotePath, resolveRenameRequest } from '$lib/utils/noteRename';
+
+  function getSingleDiff(oldStr: string, newStr: string) {
+    if (oldStr === newStr) return null;
+    if (oldStr.length !== newStr.length) return null;
+
+    let firstDiff = -1;
+    let lastDiff = -1;
+    for (let i = 0; i < oldStr.length; i++) {
+      if (oldStr[i] !== newStr[i]) {
+        if (firstDiff === -1) firstDiff = i;
+        lastDiff = i;
+      }
+    }
+
+    if (firstDiff !== -1 && lastDiff === firstDiff) {
+      return {
+        from: firstDiff,
+        to: firstDiff + 1,
+        insert: newStr[firstDiff],
+      };
+    }
+    return null;
+  }
 
   let { content = '', onContentChange }: { content?: string; onContentChange?: (value: string) => void } = $props();
 
@@ -153,6 +177,7 @@
         smoothCaretComp.of(s.editor.smoothCaret ? smoothCaretExt() : []),
         closeBrackets(),
         backtickAutoClose,
+        keymap.of([indentWithTab]),
         markdown(),
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
@@ -215,10 +240,18 @@
       return;
     }
     const newContent = note?.content ?? '';
-    if (newContent !== view.state.doc.toString()) {
-      view.dispatch({
-        changes: { from: 0, to: view.state.doc.length, insert: newContent },
-      });
+    const oldContent = view.state.doc.toString();
+    if (newContent !== oldContent) {
+      const diff = getSingleDiff(oldContent, newContent);
+      if (diff) {
+        view.dispatch({
+          changes: { from: diff.from, to: diff.to, insert: diff.insert },
+        });
+      } else {
+        view.dispatch({
+          changes: { from: 0, to: oldContent.length, insert: newContent },
+        });
+      }
     }
   });
 
