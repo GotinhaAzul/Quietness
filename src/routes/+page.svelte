@@ -14,6 +14,7 @@ import { focusSearchInput, showNewNoteInput } from '$lib/stores/ui';
 import { FONT_STACKS } from '$lib/utils/fonts';
 import { runAfterModalDismiss, waitForNextPaint } from '$lib/utils/confirmedAction';
 import ConfirmModal from '$lib/components/ConfirmModal.svelte';
+import FlamePet from '$lib/components/FlamePet.svelte';
 
   const modes: { value: ViewMode; label: string }[] = [
     { value: 'edit', label: 'Edit' },
@@ -313,3 +314,5 @@ import ConfirmModal from '$lib/components/ConfirmModal.svelte';
   onconfirm={confirmDeleteNote}
   oncancel={() => (confirmDelete = false)}
 />
+
+<FlamePet />

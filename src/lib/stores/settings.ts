@@ -22,6 +22,16 @@ export const DEFAULT_SETTINGS: Settings = {
     dimInactiveLines: false,
     smoothCaret: true,
   },
+  pet: {
+    enabled: true,
+    colors: {
+      core: '#ffffff',
+      inner: '#c98aff',
+      mid: '#912eff',
+      outer: '#5a00c2',
+      ember: '#5a00c2',
+    },
+  },
 };
 
 function createSettingsStore() {

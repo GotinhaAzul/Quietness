@@ -18,9 +18,23 @@ export interface EditorSettings {
   smoothCaret: boolean;
 }
 
+export interface PetColorPalette {
+  core: string;
+  inner: string;
+  mid: string;
+  outer: string;
+  ember: string;
+}
+
+export interface PetSettings {
+  enabled: boolean;
+  colors: PetColorPalette;
+}
+
 export interface Settings {
   theme: string;
   fonts: FontSettings;
   sizes: SizeSettings;
   editor: EditorSettings;
+  pet: PetSettings;
 }

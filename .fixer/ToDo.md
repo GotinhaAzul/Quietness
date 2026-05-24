@@ -21,7 +21,7 @@
 - [x] `T08` **Note-scoped scrollbar** — Scope scrollbar to note container so oversized content doesn't push UI chrome or trigger full-page scroll. Completion: only the note area scrolls; sidebar, toolbar, and status bar remain fixed regardless of note length.
 - [x] `T09` **Word count** — Add small word/character count at bottom of NoteEditor. Completion: word count updates in real-time as user types.
 
-## Group 3.5 — List Support (Obsidian-style)
+## Group 3.5 — List Support (Obsidian-style) [This commit marks 3.5 as done: 8242809a02b83e75a8b3cfa32b5f402ebc278e36]
 
 - [x] `T08a` **Tab/Shift+Tab para indentar listas no editor** — Adicionar `indentWithTab` de `@codemirror/commands` às extensions do editor. Completion: Tab indenta lista, Shift+Tab outdenta, sem conflito com navegação.
 - [x] `T08b` **Estilo polido de listas no preview** — Melhorar CSS em `app.css` para bullets aninhados (`•` → `◦` → `▪`), espaçamento consistente, ordered lists estilizadas. Completion: listas no preview têm hierarquia visual clara e agradável.
@@ -29,7 +29,7 @@
 
 ## Group 4 — The Pet (Flama)
 
-- [ ] `T10` **Sprite data + rendering** — Define pixel art sprites in `pet-sprites.ts` (big flame, small particle, burst/wiggle/spin frames); implement dual render loop in `FlamePet.svelte` with color customization. Completion: both flames render with editable colors and basic animation.
+- [x] `T10` **Sprite data + rendering** — Define pixel art sprites in `pet-sprites.ts` (big flame, small particle, burst/wiggle/spin frames); implement dual render loop in `FlamePet.svelte` with color customization. Completion: both flames render with editable colors and basic animation.
 - [ ] `T11` **Core behaviors (separation + following)** — Big flame stays at preview corner; on typing, small particle separates and follows the last typed letter; position syncs with editor cursor. Completion: particle separates/attaches correctly based on typing activity.
 - [ ] `T12` **Idle timer behaviors** — 2s inactive → small particle spins in place; 10s inactive → particle returns to big flame and merges; big flame does bursts/wiggles while idle in preview/split mode. Completion: idle animations trigger at correct timeouts and feel natural.
 - [ ] `T13` **Mode-specific behavior** — Edit-only mode: small flame enters from screen edge (no big flame); preview/split mode: full big flame + particle behavior; handle mode switches gracefully (particle returns on mode change). Completion: behavior matches current editor mode without glitches.
