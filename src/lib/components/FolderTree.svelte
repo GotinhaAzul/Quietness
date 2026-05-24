@@ -1,6 +1,9 @@
 <script lang="ts">
-  import { folders, selectedFolder, createFolder } from '$lib/stores/folders';
+  import { tick } from 'svelte';
+  import { folders, selectedFolder, createFolder, deleteFolder } from '$lib/stores/folders';
   import type { FolderEntry } from '$lib/stores/folders';
+  import { runAfterModalDismiss, waitForNextPaint } from '$lib/utils/confirmedAction';
+  import ConfirmModal from './ConfirmModal.svelte';
 
   interface TreeNode {
     name: string;
@@ -13,6 +16,7 @@
   let showNewFolderInput = $state(false);
   let newFolderName = $state('');
   let newFolderInput: HTMLInputElement | undefined = $state();
+  let confirmDelete = $state<{ path: string; name: string } | null>(null);
 
   $effect(() => {
     const list = $folders;
@@ -99,6 +103,28 @@
       newFolderName = '';
     }
   }
+
+  function handleDeleteFolder(e: MouseEvent, entry: { path: string; name: string }) {
+    e.stopPropagation();
+    confirmDelete = { path: entry.path, name: entry.name };
+  }
+
+  function confirmDeleteFolder() {
+    if (!confirmDelete) return;
+    const { path } = confirmDelete;
+    void runAfterModalDismiss({
+      close: () => {
+        confirmDelete = null;
+      },
+      waitForDismissal: async () => {
+        await tick();
+        await waitForNextPaint();
+      },
+      action: async () => {
+        await deleteFolder(path);
+      },
+    });
+  }
 </script>
 
 <div class="flex items-center justify-between px-2 pt-3 pb-1">
@@ -123,7 +149,7 @@
 {/if}
 
 {#snippet treeNode(node: TreeNode, depth: number = 0)}
-  <div>
+  <div class="group relative">
     <button
       class={folderBtnClass(node.path, $selectedFolder === node.path)}
       style="padding-left: {12 + depth * 12}px"
@@ -149,6 +175,17 @@
       </svg>
       <span class="truncate">{node.name}</span>
     </button>
+    <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 transition-all group-hover:opacity-100">
+      <button
+        class="rounded p-1 text-quiet-faded hover:bg-quiet-hover hover:text-quiet-danger"
+        onclick={(e) => handleDeleteFolder(e, node)}
+        title="Delete folder"
+      >
+        <svg class="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M3 4h10M5 4v10a1 1 0 001 1h4a1 1 0 001-1V4M6.5 4V2.5a.5.5 0 01.5-.5h2a.5.5 0 01.5.5V4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
     {#if expandedPaths.has(node.path) && node.children.length > 0}
       {#each node.children as child}
         {@render treeNode(child, depth + 1)}
@@ -175,3 +212,12 @@
     {/each}
   </div>
 {/if}
+
+<ConfirmModal
+  open={confirmDelete !== null}
+  title="Delete folder"
+  message={confirmDelete ? `Delete "${confirmDelete.name}" and all its notes?` : ''}
+  confirmLabel="Delete"
+  onconfirm={confirmDeleteFolder}
+  oncancel={() => (confirmDelete = null)}
+/>

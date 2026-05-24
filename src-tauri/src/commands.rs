@@ -29,6 +29,13 @@ pub fn create_folder(app_handle: AppHandle, path: String) -> Result<(), String> 
 }
 
 #[tauri::command]
+pub async fn delete_folder(app_handle: AppHandle, path: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || fs::delete_folder(&app_handle, &path))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
 pub fn list_folders(app_handle: AppHandle) -> Vec<FolderEntry> {
     fs::list_folders(&app_handle)
 }
