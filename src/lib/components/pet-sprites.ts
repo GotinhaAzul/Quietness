@@ -33,12 +33,12 @@ export const ORB_CORE: [number, number][] = [
 ];
 
 export const BIG_FLAME_CONFIG = {
-  spawnRate: 3,
-  spawnWidth: 4,
-  baseY: 42,
-  velocities: { vyMin: -0.4, vyMax: -0.2, vxRange: 0.15 },
-  decayRange: { min: 0.02, max: 0.05 },
-  emberChance: 0.15,
+  spawnRate: 6,
+  spawnWidth: 20,
+  baseY: 100,
+  velocities: { vyMin: -1.2, vyMax: -0.6, vxRange: 0.3 },
+  decayRange: { min: 0.01, max: 0.02 },
+  emberChance: 0.2,
 } as const;
 
 export const SMALL_PARTICLE_CONFIG = {
@@ -46,7 +46,6 @@ export const SMALL_PARTICLE_CONFIG = {
   sparkRadius: 2.5,
   sparkSpeed: 0.04,
   spinSpeed: 0.06,
-  pixelScale: 3,
 } as const;
 
 export const ANIMATION_PRESETS: Record<AnimState, {
@@ -61,3 +60,4 @@ export const ANIMATION_PRESETS: Record<AnimState, {
 };
 
 export const PIXEL = 4;
+export const SMALL_PIXEL = 3;

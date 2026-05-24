@@ -11,6 +11,7 @@
   import { invoke } from '@tauri-apps/api/core';
   import { indentWithTab } from '@codemirror/commands';
   import { buildRenamedNotePath, resolveRenameRequest } from '$lib/utils/noteRename';
+  import { petCursorCoords, petLastTypingTime } from '$lib/stores/pet';
 
   function getSingleDiff(oldStr: string, newStr: string) {
     if (oldStr === newStr) return null;
@@ -183,6 +184,14 @@
           if (update.docChanged) {
             ignoreContentUpdate = true;
             onContentChange?.(update.state.doc.toString());
+
+            const sel = update.state.selection.main;
+            const pos = sel.head;
+            const coords = update.view.coordsAtPos(pos);
+            if (coords) {
+              petCursorCoords.set({ x: coords.left, y: coords.top });
+              petLastTypingTime.set(performance.now());
+            }
           }
         }),
       ],

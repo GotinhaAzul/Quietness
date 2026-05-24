@@ -259,7 +259,7 @@ import FlamePet from '$lib/components/FlamePet.svelte';
           </div>
         {/if}
         {#if $viewMode === 'preview' || $viewMode === 'split'}
-          <div class="min-h-0 flex-1 overflow-hidden">
+          <div id="preview-panel" class="min-h-0 flex-1 overflow-hidden">
             <div class="flex h-full min-h-0 flex-col">
               <div class="border-b border-quiet-border/60 px-4 py-1.5 text-[10px] font-medium uppercase tracking-wider text-quiet-faded">
                 Preview

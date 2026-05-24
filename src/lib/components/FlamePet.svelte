@@ -1,9 +1,10 @@
 <script lang="ts">
   import { settings } from '$lib/stores/settings';
   import { viewMode } from '$lib/stores/editor';
+  import { petCursorCoords, petLastTypingTime } from '$lib/stores/pet';
   import {
     DEFAULT_COLORS, ORB_CORE, BIG_FLAME_CONFIG, SMALL_PARTICLE_CONFIG,
-    ANIMATION_PRESETS, PIXEL,
+    ANIMATION_PRESETS, PIXEL, SMALL_PIXEL,
     type PetColorPalette, type AnimState,
   } from '$lib/components/pet-sprites';
   import { onMount, onDestroy } from 'svelte';
@@ -11,6 +12,8 @@
   let colors: PetColorPalette = $derived($settings.pet.colors);
   let enabled = $derived($settings.pet.enabled);
   let currentMode = $derived($viewMode);
+  let cursorCoords = $derived($petCursorCoords);
+  let lastTyping = $derived($petLastTypingTime);
   let animState: AnimState = $state('idle');
   let canvasEl: HTMLCanvasElement = $state(null as unknown as HTMLCanvasElement);
   let ctx: CanvasRenderingContext2D | null = null;
@@ -39,23 +42,34 @@
   }
 
   let spOrbiters: Spark[] = [];
-  let bfX: number;
-  let bfY: number;
-  let spX: number;
-  let spY: number;
 
-  function updatePositions() {
-    bfX = canvasEl.width - 60;
-    bfY = canvasEl.height - 60;
-    spX = canvasEl.width / 2 - 100;
-    spY = canvasEl.height - 200;
+  let bfX = 0;
+  let bfY = 0;
+  let showBigFlame = true;
+
+  let spX = 0;
+  let spY = 0;
+  let spTargetX = 0;
+  let spTargetY = 0;
+  let isSeparated = false;
+
+  function updateBigFlamePosition() {
+    const preview = document.getElementById('preview-panel');
+    if (preview && (currentMode === 'split' || currentMode === 'preview')) {
+      const rect = preview.getBoundingClientRect();
+      bfX = rect.right - 50;
+      bfY = rect.bottom + 95;
+      showBigFlame = true;
+    } else {
+      showBigFlame = false;
+    }
   }
 
   function resize() {
     if (!canvasEl) return;
     canvasEl.width = window.innerWidth;
     canvasEl.height = window.innerHeight;
-    updatePositions();
+    updateBigFlamePosition();
   }
 
   function initSparks() {
@@ -69,6 +83,8 @@
   }
 
   function drawBigFlame() {
+    if (!showBigFlame) return;
+
     const cfg = BIG_FLAME_CONFIG;
     const preset = ANIMATION_PRESETS[animState];
 
@@ -149,10 +165,12 @@
   }
 
   function drawSmallParticle() {
+    if (!showBigFlame && !isSeparated) return;
+
     const cfg = SMALL_PARTICLE_CONFIG;
 
-    const cx = Math.round(spX / PIXEL) * PIXEL;
-    const cy = Math.round(spY / PIXEL) * PIXEL;
+    const cx = Math.round(spX / SMALL_PIXEL) * SMALL_PIXEL;
+    const cy = Math.round(spY / SMALL_PIXEL) * SMALL_PIXEL;
 
     for (const [ox, oy] of ORB_CORE) {
       const dist = Math.sqrt(ox * ox + oy * oy);
@@ -161,7 +179,7 @@
       const col = t < 0.25 ? colors.core : t < 0.5 ? colors.inner : t < 0.75 ? colors.mid : colors.outer;
       ctx!.globalAlpha = 0.9;
       ctx!.fillStyle = col;
-      ctx!.fillRect(cx + ox * PIXEL, cy + oy * PIXEL, PIXEL, PIXEL);
+      ctx!.fillRect(cx + ox * SMALL_PIXEL, cy + oy * SMALL_PIXEL, SMALL_PIXEL, SMALL_PIXEL);
     }
 
     const sparkSpeed = animState === 'spin' ? ANIMATION_PRESETS.spin.spin!.speed : cfg.sparkSpeed;
@@ -171,11 +189,11 @@
       s.phase += s.phaseSpeed;
 
       const r = s.radius + Math.sin(s.phase) * 0.5;
-      const sx = cx + Math.round(Math.cos(s.angle) * r) * PIXEL;
-      const sy = cy + Math.round(Math.sin(s.angle) * r) * PIXEL;
+      const sx = cx + Math.round(Math.cos(s.angle) * r) * SMALL_PIXEL;
+      const sy = cy + Math.round(Math.sin(s.angle) * r) * SMALL_PIXEL;
       ctx!.globalAlpha = 0.4 + 0.3 * Math.sin(s.phase);
       ctx!.fillStyle = colors.outer;
-      ctx!.fillRect(sx, sy, PIXEL, PIXEL);
+      ctx!.fillRect(sx, sy, SMALL_PIXEL, SMALL_PIXEL);
     }
 
     ctx!.globalAlpha = 1;
@@ -185,6 +203,40 @@
     if (!ctx) return;
     ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
     bfFrame++;
+
+    updateBigFlamePosition();
+
+    const now = performance.now();
+    const recentlyTyped = lastTyping > 0 && (now - lastTyping) < 2000;
+
+    if (recentlyTyped && cursorCoords) {
+      spTargetX = cursorCoords.x + 12;
+      spTargetY = cursorCoords.y;
+      isSeparated = true;
+    } else if (isSeparated) {
+      if (showBigFlame) {
+        spTargetX = bfX - 10;
+        spTargetY = bfY - 20;
+      } else {
+        spTargetX = 40;
+        spTargetY = canvasEl.height / 2;
+      }
+      const dx = spX - spTargetX;
+      const dy = spY - spTargetY;
+      if (Math.sqrt(dx * dx + dy * dy) < 8) {
+        isSeparated = false;
+      }
+    } else if (!showBigFlame) {
+      spTargetX = 40;
+      spTargetY = canvasEl.height / 2;
+    } else {
+      spTargetX = bfX - 10;
+      spTargetY = bfY - 20;
+    }
+
+    const lerpFactor = recentlyTyped ? 0.18 : 0.04;
+    spX += (spTargetX - spX) * lerpFactor;
+    spY += (spTargetY - spY) * lerpFactor;
 
     drawBigFlame();
     drawSmallParticle();
@@ -199,6 +251,17 @@
     if (ctx && !rafId) {
       resize();
       initSparks();
+      updateBigFlamePosition();
+      const isEditMode = currentMode === 'edit' || !showBigFlame;
+      if (isEditMode) {
+        spX = 40;
+        spY = canvasEl.height / 2;
+      } else {
+        spX = bfX - 10;
+        spY = bfY - 20;
+      }
+      spTargetX = spX;
+      spTargetY = spY;
       rafId = requestAnimationFrame(tick);
     }
   }
