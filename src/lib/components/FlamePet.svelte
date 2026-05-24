@@ -10,7 +10,8 @@
   import { onMount, onDestroy } from 'svelte';
 
   let colors: PetColorPalette = $derived($settings.pet.colors);
-  let enabled = $derived($settings.pet.enabled);
+  let bigFlameEnabled = $derived($settings.pet.bigFlameEnabled);
+  let smallParticleEnabled = $derived($settings.pet.smallParticleEnabled);
   let currentMode = $derived($viewMode);
   let cursorCoords = $derived($petCursorCoords);
   let lastTyping = $derived($petLastTypingTime);
@@ -52,13 +53,37 @@
   let spTargetX = 0;
   let spTargetY = 0;
   let isSeparated = false;
+  let spSpinning = false;
+  let prevMode = 'split';
+
+  $effect(() => {
+    if (currentMode !== prevMode) {
+      prevMode = currentMode;
+
+      burstFramesRemaining = 0;
+      animState = 'idle';
+      spSpinning = false;
+
+      petLastTypingTime.set(0);
+
+      if (currentMode === 'edit') {
+        isSeparated = false;
+        spX = -30;
+        spY = window.innerHeight / 2;
+        spTargetX = 40;
+        spTargetY = window.innerHeight / 2;
+      } else {
+        isSeparated = true;
+      }
+    }
+  });
 
   function updateBigFlamePosition() {
     const preview = document.getElementById('preview-panel');
-    if (preview && (currentMode === 'split' || currentMode === 'preview')) {
+    if (preview && (currentMode === 'split' || currentMode === 'preview') && bigFlameEnabled) {
       const rect = preview.getBoundingClientRect();
       bfX = rect.right - 50;
-      bfY = rect.bottom + 95;
+      bfY = rect.bottom + 45;
       showBigFlame = true;
     } else {
       showBigFlame = false;
@@ -122,8 +147,8 @@
     for (const p of bfParticles) {
       p.x += p.vx;
       p.y += p.vy;
-      p.vx += (Math.random() - 0.5) * 0.02;
-      p.vy += (Math.random() - 0.5) * 0.01;
+      p.vx += (Math.random() - 0.5) * 0.06;
+      p.vy += (Math.random() - 0.5) * 0.02;
       p.life -= p.decay;
     }
 
@@ -165,7 +190,7 @@
   }
 
   function drawSmallParticle() {
-    if (!showBigFlame && !isSeparated) return;
+    if (!isSeparated || !smallParticleEnabled) return;
 
     const cfg = SMALL_PARTICLE_CONFIG;
 
@@ -182,7 +207,7 @@
       ctx!.fillRect(cx + ox * SMALL_PIXEL, cy + oy * SMALL_PIXEL, SMALL_PIXEL, SMALL_PIXEL);
     }
 
-    const sparkSpeed = animState === 'spin' ? ANIMATION_PRESETS.spin.spin!.speed : cfg.sparkSpeed;
+    const sparkSpeed = spSpinning ? ANIMATION_PRESETS.spin.spin!.speed : cfg.sparkSpeed;
 
     for (const s of spOrbiters) {
       s.angle += sparkSpeed;
@@ -207,13 +232,48 @@
     updateBigFlamePosition();
 
     const now = performance.now();
-    const recentlyTyped = lastTyping > 0 && (now - lastTyping) < 2000;
+    const elapsed = lastTyping > 0 ? now - lastTyping : Infinity;
+    const isActive = elapsed < 2000;
+    const isIdleSpin = elapsed >= 2000 && elapsed < 10000;
+    const isIdleMerged = elapsed >= 10000;
 
-    if (recentlyTyped && cursorCoords) {
+    // ── Small particle spinning ──
+    spSpinning = isIdleSpin && isSeparated;
+
+    // ── Big flame idle animations (burst / wiggle) ──
+    if (showBigFlame && !isActive) {
+      if (burstFramesRemaining > 0) {
+        burstFramesRemaining--;
+        animState = 'burst';
+      } else if (animState === 'burst') {
+        animState = 'idle';
+      } else if (animState === 'wiggle' && Math.random() < 0.02) {
+        animState = 'idle';
+      } else if (animState !== 'wiggle' && Math.random() < 0.003) {
+        animState = 'burst';
+        burstFramesRemaining = ANIMATION_PRESETS.burst.burst!.duration;
+      } else if (animState !== 'wiggle' && Math.random() < 0.008) {
+        animState = 'wiggle';
+      } else if (isIdleSpin) {
+        animState = 'spin';
+      } else {
+        animState = 'idle';
+      }
+    } else if (isActive) {
+      animState = 'idle';
+    }
+
+    // ── Small particle positioning ──
+    if (isActive && cursorCoords) {
       spTargetX = cursorCoords.x + 12;
       spTargetY = cursorCoords.y;
       isSeparated = true;
-    } else if (isSeparated) {
+    } else if (isIdleSpin && isSeparated) {
+      // Spin in place — keep current position as target
+      spTargetX = spX;
+      spTargetY = spY;
+    } else if (isIdleMerged && isSeparated) {
+      // Return to big flame (or left edge in edit-only mode)
       if (showBigFlame) {
         spTargetX = bfX - 10;
         spTargetY = bfY - 20;
@@ -225,16 +285,20 @@
       const dy = spY - spTargetY;
       if (Math.sqrt(dx * dx + dy * dy) < 8) {
         isSeparated = false;
+        spSpinning = false;
       }
-    } else if (!showBigFlame) {
-      spTargetX = 40;
-      spTargetY = canvasEl.height / 2;
     } else {
-      spTargetX = bfX - 10;
-      spTargetY = bfY - 20;
+      // Resting at big flame or left edge
+      if (showBigFlame) {
+        spTargetX = bfX - 10;
+        spTargetY = bfY - 20;
+      } else {
+        spTargetX = 40;
+        spTargetY = canvasEl.height / 2;
+      }
     }
 
-    const lerpFactor = recentlyTyped ? 0.18 : 0.04;
+    const lerpFactor = isActive ? 0.18 : 0.04;
     spX += (spTargetX - spX) * lerpFactor;
     spY += (spTargetY - spY) * lerpFactor;
 
@@ -254,7 +318,7 @@
       updateBigFlamePosition();
       const isEditMode = currentMode === 'edit' || !showBigFlame;
       if (isEditMode) {
-        spX = 40;
+        spX = -20;
         spY = canvasEl.height / 2;
       } else {
         spX = bfX - 10;
@@ -279,7 +343,7 @@
 
   onMount(() => {
     window.addEventListener('resize', resize);
-    if (enabled && canvasEl) {
+    if ((bigFlameEnabled || smallParticleEnabled) && canvasEl) {
       startLoop();
     }
   });
@@ -290,7 +354,8 @@
   });
 
   $effect(() => {
-    if (enabled) {
+    const anyEnabled = bigFlameEnabled || smallParticleEnabled;
+    if (anyEnabled) {
       if (canvasEl && !rafId) {
         startLoop();
       }
@@ -300,7 +365,7 @@
   });
 </script>
 
-{#if enabled}
+{#if bigFlameEnabled || smallParticleEnabled}
   <canvas
     bind:this={canvasEl}
     class="flame-canvas"

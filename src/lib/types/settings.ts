@@ -27,7 +27,8 @@ export interface PetColorPalette {
 }
 
 export interface PetSettings {
-  enabled: boolean;
+  bigFlameEnabled: boolean;
+  smallParticleEnabled: boolean;
   colors: PetColorPalette;
 }
 

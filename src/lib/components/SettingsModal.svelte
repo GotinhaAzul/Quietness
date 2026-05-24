@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { settings } from '$lib/stores/settings';
+  import { settings, DEFAULT_SETTINGS } from '$lib/stores/settings';
   import { userThemes } from '$lib/stores/userThemes';
   import { UI_FONTS, EDITOR_FONTS, PREVIEW_FONTS, AVAILABLE_THEMES, FONT_STACKS } from '$lib/utils/fonts';
 
   let { open = false, onclose }: { open?: boolean; onclose?: () => void } = $props();
 
-  let activeTab = $state<'theme' | 'fonts' | 'editor'>('theme');
+  let activeTab = $state<'theme' | 'fonts' | 'editor' | 'pet'>('theme');
   let previousFocus: Element | null = null;
   let closeButtonRef: HTMLButtonElement | undefined = $state();
 
@@ -65,6 +65,7 @@
           { id: 'theme', label: 'Theme' },
           { id: 'fonts', label: 'Fonts' },
           { id: 'editor', label: 'Editor' },
+          { id: 'pet', label: 'Pet' },
         ] as const) as tab}
           <button
             class="border-b-2 px-4 py-3 text-xs font-medium transition-colors {activeTab === tab.id
@@ -319,6 +320,75 @@
                 <span class="inline-block h-3.5 w-3.5 translate-x-0.5 transform rounded-full bg-white shadow-sm transition-transform {$settings.editor.smoothCaret ? 'translate-x-[18px]' : ''}"></span>
               </button>
             </div>
+          </div>
+
+        {:else if activeTab === 'pet'}
+          <div class="space-y-5">
+            <!-- Big Flame Toggle -->
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-quiet-text">Big Flame</span>
+              <button
+                aria-label="Toggle big flame"
+                class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors {$settings.pet.bigFlameEnabled ? 'bg-quiet-accent' : 'bg-quiet-border'}"
+                onclick={() => settings.update(s => ({ ...s, pet: { ...s.pet, bigFlameEnabled: !s.pet.bigFlameEnabled } }))}
+                role="switch"
+                aria-checked={$settings.pet.bigFlameEnabled}
+              >
+                <span class="inline-block h-3.5 w-3.5 translate-x-0.5 transform rounded-full bg-white shadow-sm transition-transform {$settings.pet.bigFlameEnabled ? 'translate-x-[18px]' : ''}"></span>
+              </button>
+            </div>
+
+            <!-- Small Particle Toggle -->
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-quiet-text">Small Particle</span>
+              <button
+                aria-label="Toggle small particle"
+                class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors {$settings.pet.smallParticleEnabled ? 'bg-quiet-accent' : 'bg-quiet-border'}"
+                onclick={() => settings.update(s => ({ ...s, pet: { ...s.pet, smallParticleEnabled: !s.pet.smallParticleEnabled } }))}
+                role="switch"
+                aria-checked={$settings.pet.smallParticleEnabled}
+              >
+                <span class="inline-block h-3.5 w-3.5 translate-x-0.5 transform rounded-full bg-white shadow-sm transition-transform {$settings.pet.smallParticleEnabled ? 'translate-x-[18px]' : ''}"></span>
+              </button>
+            </div>
+
+            <hr class="border-quiet-border/60" />
+
+            <h3 class="text-xs font-medium text-quiet-text">Flame Colors</h3>
+
+            {#each ([
+              { key: 'core', label: 'Core' },
+              { key: 'inner', label: 'Inner' },
+              { key: 'mid', label: 'Mid' },
+              { key: 'outer', label: 'Outer' },
+              { key: 'ember', label: 'Ember' },
+            ] as const) as color}
+              <div class="flex items-center justify-between">
+                <span class="text-xs text-quiet-text">{color.label}</span>
+                <input
+                  type="color"
+                  value={$settings.pet.colors[color.key]}
+                  oninput={(e) => {
+                    const val = (e.target as HTMLInputElement).value;
+                    settings.update(s => ({
+                      ...s,
+                      pet: { ...s.pet, colors: { ...s.pet.colors, [color.key]: val } }
+                    }));
+                  }}
+                  class="h-7 w-10 cursor-pointer rounded border border-quiet-border/70 bg-transparent p-0.5"
+                />
+              </div>
+            {/each}
+
+            <button
+              class="mt-2 w-full rounded-md border border-quiet-border/60 px-3 py-1.5 text-xs text-quiet-faded transition-colors hover:border-quiet-border hover:bg-quiet-hover hover:text-quiet-text"
+              onclick={() => settings.update(s => ({
+                ...s,
+                pet: { ...s.pet, colors: { ...DEFAULT_SETTINGS.pet.colors } }
+              }))}
+            >
+              Reset to default colors
+            </button>
           </div>
         {/if}
       </div>

@@ -33,12 +33,12 @@ export const ORB_CORE: [number, number][] = [
 ];
 
 export const BIG_FLAME_CONFIG = {
-  spawnRate: 6,
-  spawnWidth: 20,
-  baseY: 100,
-  velocities: { vyMin: -1.2, vyMax: -0.6, vxRange: 0.3 },
-  decayRange: { min: 0.01, max: 0.02 },
-  emberChance: 0.2,
+  spawnRate: 3,
+  spawnWidth: 12,
+  baseY: 50,
+  velocities: { vyMin: -0.9, vyMax: -0.5, vxRange: 0.3 },
+  decayRange: { min: 0.015, max: 0.025 },
+  emberChance: 0.25,
 } as const;
 
 export const SMALL_PARTICLE_CONFIG = {

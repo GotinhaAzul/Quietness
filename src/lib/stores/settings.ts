@@ -23,7 +23,8 @@ export const DEFAULT_SETTINGS: Settings = {
     smoothCaret: true,
   },
   pet: {
-    enabled: true,
+    bigFlameEnabled: true,
+    smallParticleEnabled: true,
     colors: {
       core: '#ffffff',
       inner: '#c98aff',

@@ -430,11 +430,30 @@ pub struct EditorSettings {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct PetColorPalette {
+    pub core: String,
+    pub inner: String,
+    pub mid: String,
+    pub outer: String,
+    pub ember: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PetSettings {
+    pub big_flame_enabled: bool,
+    pub small_particle_enabled: bool,
+    pub colors: PetColorPalette,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Settings {
     pub theme: String,
     pub fonts: FontSettings,
     pub sizes: SizeSettings,
     pub editor: EditorSettings,
+    pub pet: PetSettings,
 }
 
 fn settings_path(app_handle: &AppHandle) -> PathBuf {
@@ -458,6 +477,17 @@ fn default_settings() -> Settings {
             line_numbers: true,
             word_wrap: false,
             tab_size: 4,
+        },
+        pet: PetSettings {
+            big_flame_enabled: true,
+            small_particle_enabled: true,
+            colors: PetColorPalette {
+                core: "#ffffff".to_string(),
+                inner: "#c98aff".to_string(),
+                mid: "#912eff".to_string(),
+                outer: "#5a00c2".to_string(),
+                ember: "#5a00c2".to_string(),
+            },
         },
     }
 }
