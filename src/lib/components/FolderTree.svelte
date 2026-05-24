@@ -1,8 +1,9 @@
 <script lang="ts">
   import { tick } from 'svelte';
-  import { folders, selectedFolder, createFolder, deleteFolder } from '$lib/stores/folders';
+  import { folders, selectedFolder, createFolder, deleteFolder, renameFolder } from '$lib/stores/folders';
   import type { FolderEntry } from '$lib/stores/folders';
   import { runAfterModalDismiss, waitForNextPaint } from '$lib/utils/confirmedAction';
+  import { resolveFolderRenameRequest } from '$lib/utils/renameFolder';
   import ConfirmModal from './ConfirmModal.svelte';
 
   interface TreeNode {
@@ -17,6 +18,16 @@
   let newFolderName = $state('');
   let newFolderInput: HTMLInputElement | undefined = $state();
   let confirmDelete = $state<{ path: string; name: string } | null>(null);
+  let renameState = $state<{ path: string; originalName: string } | null>(null);
+  let renameValue = $state('');
+  let renameInput = $state<HTMLInputElement | undefined>();
+
+  $effect(() => {
+    if (renameState && renameInput) {
+      renameInput.focus();
+      renameInput.select();
+    }
+  });
 
   $effect(() => {
     const list = $folders;
@@ -106,7 +117,38 @@
 
   function handleDeleteFolder(e: MouseEvent, entry: { path: string; name: string }) {
     e.stopPropagation();
+    renameState = null;
     confirmDelete = { path: entry.path, name: entry.name };
+  }
+
+  function startRename(path: string, currentName: string, e: Event) {
+    e.stopPropagation();
+    renameState = { path, originalName: currentName };
+    renameValue = currentName;
+  }
+
+  async function handleRename(oldPath: string) {
+    if (!renameState) return;
+    const cleanName = resolveFolderRenameRequest({
+      currentName: renameState.originalName,
+      requestedName: renameValue,
+      isSubmitting: false,
+    });
+    if (!cleanName) {
+      renameState = null;
+      return;
+    }
+    const path = renameState.path;
+    renameState = null;
+    await renameFolder(path, cleanName);
+  }
+
+  function handleRenameKeydown(event: KeyboardEvent, oldPath: string) {
+    if (event.key === 'Enter') {
+      handleRename(oldPath);
+    } else if (event.key === 'Escape') {
+      renameState = null;
+    }
   }
 
   function confirmDeleteFolder() {
@@ -153,7 +195,7 @@
     <button
       class={folderBtnClass(node.path, $selectedFolder === node.path)}
       style="padding-left: {12 + depth * 12}px"
-      onclick={() => selectFolder(node.path)}
+      onclick={() => { if (!renameState) selectFolder(node.path); }}
     >
       {#if node.children.length > 0}
         <span
@@ -173,19 +215,42 @@
       <svg class="h-3.5 w-3.5 shrink-0" viewBox="0 0 16 16" fill="currentColor">
         <path d="M.5 3.5a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3h3.672a2 2 0 0 1 2 2v6.5a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2v-7.5Z"/>
       </svg>
-      <span class="truncate">{node.name}</span>
+      {#if renameState?.path === node.path}
+        <input
+          bind:this={renameInput}
+          type="text"
+          bind:value={renameValue}
+          onkeydown={(e) => handleRenameKeydown(e, node.path)}
+          onblur={() => handleRename(node.path)}
+          onclick={(e) => e.stopPropagation()}
+          class="min-w-0 flex-1 rounded border border-quiet-border bg-quiet-surface px-1.5 py-0.5 text-xs text-quiet-text outline-none transition-colors focus:border-quiet-accent/50"
+        />
+      {:else}
+        <span class="truncate">{node.name}</span>
+      {/if}
     </button>
-    <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 transition-all group-hover:opacity-100">
-      <button
-        class="rounded p-1 text-quiet-faded hover:bg-quiet-hover hover:text-quiet-danger"
-        onclick={(e) => handleDeleteFolder(e, node)}
-        title="Delete folder"
-      >
-        <svg class="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-          <path d="M3 4h10M5 4v10a1 1 0 001 1h4a1 1 0 001-1V4M6.5 4V2.5a.5.5 0 01.5-.5h2a.5.5 0 01.5.5V4" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-    </div>
+    {#if renameState?.path !== node.path}
+      <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 transition-all group-hover:opacity-100">
+        <button
+          class="rounded p-1 text-quiet-faded hover:bg-quiet-hover hover:text-quiet-text"
+          onclick={(e) => startRename(node.path, node.name, e)}
+          title="Rename folder"
+        >
+          <svg class="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25a1.75 1.75 0 0 1 .445-.758l8.61-8.61Z"/>
+          </svg>
+        </button>
+        <button
+          class="rounded p-1 text-quiet-faded hover:bg-quiet-hover hover:text-quiet-danger"
+          onclick={(e) => handleDeleteFolder(e, node)}
+          title="Delete folder"
+        >
+          <svg class="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <path d="M3 4h10M5 4v10a1 1 0 001 1h4a1 1 0 001-1V4M6.5 4V2.5a.5.5 0 01.5-.5h2a.5.5 0 01.5.5V4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+    {/if}
     {#if expandedPaths.has(node.path) && node.children.length > 0}
       {#each node.children as child}
         {@render treeNode(child, depth + 1)}

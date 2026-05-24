@@ -56,6 +56,32 @@ export async function deleteFolder(folderPath: string): Promise<void> {
   }
 }
 
+export async function renameFolder(oldPath: string, newName: string): Promise<void> {
+  try {
+    await invoke('rename_folder', { oldPath, newName });
+
+    const note = get(currentNote);
+    if (note) {
+      const dir = await invoke<string>('get_notes_dir');
+      const baseDir = dir.replace(/\\/g, '/');
+      const oldFolderAbs = normalizeNotePath(`${baseDir}/${oldPath}`);
+      if (normalizeNotePath(note.path).startsWith(oldFolderAbs)) {
+        const parentParts = oldPath.split('/');
+        parentParts.pop();
+        const newRelPath = parentParts.length > 0 ? `${parentParts.join('/')}/${newName}` : newName;
+        const newFolderAbs = `${baseDir}/${newRelPath}`;
+        const pattern = oldFolderAbs.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const newNotePath = note.path.replace(new RegExp(pattern, 'i'), newFolderAbs);
+        currentNote.set({ ...note, path: newNotePath });
+      }
+    }
+
+    await Promise.all([loadFolders(), loadNotes()]);
+  } catch (e) {
+    showError(`Failed to rename folder: ${e}`);
+  }
+}
+
 export async function loadFolders(): Promise<void> {
   try {
     const entries = await invoke<FolderEntry[]>('list_folders');

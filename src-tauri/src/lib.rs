@@ -26,6 +26,7 @@ pub fn run() {
       commands::delete_note,
       commands::search_notes,
       commands::rename_note,
+      commands::rename_folder,
       commands::load_settings,
       commands::save_settings,
       commands::list_user_themes,

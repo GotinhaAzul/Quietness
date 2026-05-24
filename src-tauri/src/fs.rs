@@ -401,6 +401,55 @@ pub fn rename_note(app_handle: &AppHandle, old_path: &str, new_name: &str) -> Re
     Ok(())
 }
 
+// ── Rename folder ──
+
+pub fn rename_folder(app_handle: &AppHandle, old_path: &str, new_name: &str) -> Result<(), String> {
+    if old_path.is_empty() {
+        return Err("Folder path cannot be empty".to_string());
+    }
+    if !is_safe_path(app_handle, old_path) {
+        return Err("Access denied: path traversal detected".to_string());
+    }
+
+    if new_name.is_empty() {
+        return Err("Folder name cannot be empty".to_string());
+    }
+    if new_name.contains('/') || new_name.contains('\\') || new_name.contains("..") {
+        return Err("Invalid folder name".to_string());
+    }
+    if new_name.starts_with('_') {
+        return Err("Folder name cannot start with '_'".to_string());
+    }
+
+    let notes = notes_dir(app_handle);
+    let old_full = notes.join(old_path);
+
+    let empty = PathBuf::from("");
+    let parent = old_full.parent().unwrap_or(&empty);
+    let new_full = parent.join(new_name);
+
+    let new_full_str = new_full.to_string_lossy().to_string();
+    if !is_safe_path(app_handle, &new_full_str) {
+        return Err("Access denied: path traversal detected".to_string());
+    }
+
+    if !old_full.exists() {
+        return Err("Folder not found".to_string());
+    }
+    if !old_full.is_dir() {
+        return Err("Path is not a directory".to_string());
+    }
+
+    if new_full != old_full {
+        if new_full.exists() {
+            return Err("A folder with that name already exists".to_string());
+        }
+    }
+
+    fs::rename(&old_full, &new_full).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 // ── User themes ──
 
 #[derive(Debug, Serialize)]
