@@ -45,9 +45,6 @@
     </div>
 
     <div class="overflow-y-auto">
-      <div class="px-2 pt-3 pb-1">
-        <span class="px-1 text-[10px] font-medium uppercase tracking-wider text-quiet-faded">Folders</span>
-      </div>
       <FolderTree />
 
       <div class="mt-4 px-2 pt-3 pb-1 flex items-center justify-between border-t border-quiet-border/60">

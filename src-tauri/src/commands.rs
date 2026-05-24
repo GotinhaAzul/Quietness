@@ -24,6 +24,11 @@ pub fn write_note(app_handle: AppHandle, path: String, content: String) -> Resul
 }
 
 #[tauri::command]
+pub fn create_folder(app_handle: AppHandle, path: String) -> Result<(), String> {
+    fs::create_folder(&app_handle, &path)
+}
+
+#[tauri::command]
 pub fn list_folders(app_handle: AppHandle) -> Vec<FolderEntry> {
     fs::list_folders(&app_handle)
 }

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { folders, selectedFolder } from '$lib/stores/folders';
+  import { folders, selectedFolder, createFolder } from '$lib/stores/folders';
   import type { FolderEntry } from '$lib/stores/folders';
 
   interface TreeNode {
@@ -10,10 +10,19 @@
 
   let tree = $state<TreeNode[]>([]);
   let expandedPaths = $state<Set<string>>(new Set());
+  let showNewFolderInput = $state(false);
+  let newFolderName = $state('');
+  let newFolderInput: HTMLInputElement | undefined = $state();
 
   $effect(() => {
     const list = $folders;
     tree = buildTree(list);
+  });
+
+  $effect(() => {
+    if (showNewFolderInput && newFolderInput) {
+      newFolderInput.focus();
+    }
   });
 
   function buildTree(list: FolderEntry[]): TreeNode[] {
@@ -67,7 +76,51 @@
     }
     return `${base} text-quiet-muted hover:bg-quiet-hover hover:text-quiet-text`;
   }
+
+  async function handleCreateFolder() {
+    const name = newFolderName.trim();
+    if (!name) return;
+    const parentPath = $selectedFolder ?? undefined;
+    await createFolder(name, parentPath);
+    newFolderName = '';
+    showNewFolderInput = false;
+    if (parentPath) {
+      const next = new Set(expandedPaths);
+      next.add(parentPath);
+      expandedPaths = next;
+    }
+  }
+
+  function handleKeydown(event: KeyboardEvent) {
+    if (event.key === 'Enter') {
+      handleCreateFolder();
+    } else if (event.key === 'Escape') {
+      showNewFolderInput = false;
+      newFolderName = '';
+    }
+  }
 </script>
+
+<div class="flex items-center justify-between px-2 pt-3 pb-1">
+  <span class="px-1 text-[10px] font-medium uppercase tracking-wider text-quiet-faded">Folders</span>
+  <button
+    class="rounded px-1.5 py-0.5 text-xs text-quiet-faded transition-colors hover:bg-quiet-hover hover:text-quiet-text"
+    onclick={() => { showNewFolderInput = true; newFolderName = ''; }}
+  >+</button>
+</div>
+
+{#if showNewFolderInput}
+  <div class="px-3 pb-2">
+    <input
+      bind:this={newFolderInput}
+      type="text"
+      placeholder="Folder name..."
+      bind:value={newFolderName}
+      onkeydown={handleKeydown}
+      class="w-full rounded-md border border-quiet-border bg-quiet-surface px-2.5 py-1.5 text-xs text-quiet-text placeholder-quiet-faded outline-none transition-colors focus:border-quiet-accent/50"
+    />
+  </div>
+{/if}
 
 {#snippet treeNode(node: TreeNode, depth: number = 0)}
   <div>

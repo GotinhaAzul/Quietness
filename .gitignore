@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Build output
+build/
+.svelte-kit/
+
+# Rust / Tauri
+src-tauri/target/
+
+# Tauri generated schemas
+src-tauri/gen/schemas
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+
+# Stray dev artifacts
+quietnessbiggericon.ico
+
+# Dev planning (not for public)
+.fixer/
+AGENTS.md
+intent.md

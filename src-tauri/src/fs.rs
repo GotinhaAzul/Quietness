@@ -118,6 +118,29 @@ pub fn write_note(app_handle: &AppHandle, path: &str, content: &str) -> Result<(
     Ok(())
 }
 
+pub fn create_folder(app_handle: &AppHandle, path: &str) -> Result<(), String> {
+    if path.is_empty() {
+        return Err("Folder name cannot be empty".to_string());
+    }
+    if path.contains("..") || path.starts_with('/') || path.starts_with('\\') {
+        return Err("Invalid folder name".to_string());
+    }
+    for component in path.replace('\\', "/").split('/') {
+        if component.starts_with('_') {
+            return Err("Folder name cannot start with '_'".to_string());
+        }
+    }
+    if !is_safe_path(app_handle, path) {
+        return Err("Access denied: path traversal detected".to_string());
+    }
+    let full_path = notes_dir(app_handle).join(path);
+    if full_path.is_file() {
+        return Err("A file with that name already exists".to_string());
+    }
+    fs::create_dir_all(&full_path).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 pub fn list_folders(app_handle: &AppHandle) -> Vec<FolderEntry> {
     let dir = notes_dir(app_handle);
     let mut folders = Vec::new();
