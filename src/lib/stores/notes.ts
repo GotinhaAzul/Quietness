@@ -139,6 +139,22 @@ export async function deleteNote(path: string): Promise<void> {
   }
 }
 
+export async function moveNote(path: string, destFolder: string): Promise<string | null> {
+  try {
+    const newPath = await invoke<string>('move_note', { path, destFolder });
+    const note = get(currentNote);
+    if (note && isSameNotePath(note.path, path)) {
+      const name = note.name;
+      currentNote.set({ ...note, path: newPath });
+    }
+    await loadNotes();
+    return newPath;
+  } catch (e) {
+    showError(`Failed to move note: ${e}`);
+    return null;
+  }
+}
+
 export async function createNoteFromWikilink(targetName: string): Promise<void> {
   const active = get(currentNote);
   let folder = '';

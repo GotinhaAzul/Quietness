@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { showError } from '$lib/stores/errors';
 import { currentNote, loadNotes } from '$lib/stores/notes';
 import { normalizeNotePath } from '$lib/utils/noteDeletion';
+import { moveTarget } from '$lib/stores/move';
 
 export interface FolderEntry {
   name: string;
@@ -79,6 +80,27 @@ export async function renameFolder(oldPath: string, newName: string): Promise<vo
     await Promise.all([loadFolders(), loadNotes()]);
   } catch (e) {
     showError(`Failed to rename folder: ${e}`);
+  }
+}
+
+export async function moveFolder(path: string, destFolder: string): Promise<void> {
+  try {
+    await invoke('move_folder', { path, destFolder });
+
+    const note = get(currentNote);
+    if (note) {
+      const dir = await invoke<string>('get_notes_dir');
+      const baseDir = dir.replace(/\\/g, '/');
+      const oldFolderAbs = normalizeNotePath(`${baseDir}/${path}`);
+      if (normalizeNotePath(note.path).startsWith(oldFolderAbs)) {
+        currentNote.set(null);
+      }
+    }
+
+    await Promise.all([loadFolders(), loadNotes()]);
+    moveTarget.set(null);
+  } catch (e) {
+    showError(`Failed to move folder: ${e}`);
   }
 }
 

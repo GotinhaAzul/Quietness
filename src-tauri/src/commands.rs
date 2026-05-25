@@ -74,6 +74,16 @@ pub fn rename_folder(app_handle: AppHandle, old_path: String, new_name: String) 
 }
 
 #[tauri::command]
+pub fn move_note(app_handle: AppHandle, path: String, dest_folder: String) -> Result<String, String> {
+    fs::move_note(&app_handle, &path, &dest_folder)
+}
+
+#[tauri::command]
+pub fn move_folder(app_handle: AppHandle, path: String, dest_folder: String) -> Result<String, String> {
+    fs::move_folder(&app_handle, &path, &dest_folder)
+}
+
+#[tauri::command]
 pub fn load_settings(app_handle: AppHandle) -> Settings {
     fs::load_settings(&app_handle)
 }

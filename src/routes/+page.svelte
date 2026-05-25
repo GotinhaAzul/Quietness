@@ -11,10 +11,12 @@ import { viewMode, type ViewMode } from '$lib/stores/editor';
 import { settings } from '$lib/stores/settings';
 import { userThemes } from '$lib/stores/userThemes';
 import { focusSearchInput, showNewNoteInput } from '$lib/stores/ui';
+import { moveTarget } from '$lib/stores/move';
 import { FONT_STACKS } from '$lib/utils/fonts';
 import { runAfterModalDismiss, waitForNextPaint } from '$lib/utils/confirmedAction';
 import ConfirmModal from '$lib/components/ConfirmModal.svelte';
 import FlamePet from '$lib/components/FlamePet.svelte';
+import MoveDialog from '$lib/components/MoveDialog.svelte';
 
   const modes: { value: ViewMode; label: string }[] = [
     { value: 'edit', label: 'Edit' },
@@ -316,3 +318,5 @@ import FlamePet from '$lib/components/FlamePet.svelte';
 />
 
 <FlamePet />
+
+<MoveDialog open={$moveTarget !== null} />

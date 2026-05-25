@@ -450,6 +450,136 @@ pub fn rename_folder(app_handle: &AppHandle, old_path: &str, new_name: &str) -> 
     Ok(())
 }
 
+// ── Move note ──
+
+pub fn move_note(app_handle: &AppHandle, path: &str, dest_folder: &str) -> Result<String, String> {
+    if !is_safe_path(app_handle, path) {
+        return Err("Access denied: path traversal detected".to_string());
+    }
+
+    if !dest_folder.is_empty()
+        && (dest_folder.contains("..") || dest_folder.starts_with('/') || dest_folder.starts_with('\\'))
+    {
+        return Err("Invalid destination folder".to_string());
+    }
+    if !dest_folder.is_empty() && !is_safe_path(app_handle, dest_folder) {
+        return Err("Access denied: path traversal detected".to_string());
+    }
+
+    let old_path = PathBuf::from(path);
+    if !old_path.exists() {
+        return Err("Note not found".to_string());
+    }
+    if !old_path.is_file() {
+        return Err("Path is not a file".to_string());
+    }
+
+    let filename = old_path
+        .file_name()
+        .ok_or_else(|| "Invalid path".to_string())?
+        .to_string_lossy()
+        .to_string();
+
+    let base = notes_dir(app_handle);
+    let dest_dir = if dest_folder.is_empty() {
+        base
+    } else {
+        let d = base.join(dest_folder);
+        if !d.is_dir() {
+            return Err("Destination folder not found".to_string());
+        }
+        d
+    };
+
+    let new_path = dest_dir.join(&filename);
+    let new_path_str = new_path.to_string_lossy().to_string();
+
+    if !is_safe_path(app_handle, &new_path_str) {
+        return Err("Access denied: path traversal detected".to_string());
+    }
+
+    if new_path != old_path {
+        if new_path.exists() {
+            return Err("A note with that name already exists in the destination".to_string());
+        }
+    }
+
+    fs::rename(path, &new_path).map_err(|e| e.to_string())?;
+    Ok(new_path_str)
+}
+
+// ── Move folder ──
+
+pub fn move_folder(app_handle: &AppHandle, path: &str, dest_folder: &str) -> Result<String, String> {
+    if path.is_empty() {
+        return Err("Folder path cannot be empty".to_string());
+    }
+    if path.contains("..") || path.starts_with('/') || path.starts_with('\\') {
+        return Err("Invalid folder path".to_string());
+    }
+    if !is_safe_path(app_handle, path) {
+        return Err("Access denied: path traversal detected".to_string());
+    }
+
+    if !dest_folder.is_empty()
+        && (dest_folder.contains("..") || dest_folder.starts_with('/') || dest_folder.starts_with('\\'))
+    {
+        return Err("Invalid destination folder".to_string());
+    }
+    if !dest_folder.is_empty() && !is_safe_path(app_handle, dest_folder) {
+        return Err("Access denied: path traversal detected".to_string());
+    }
+
+    let base = notes_dir(app_handle);
+    let old_full = base.join(path);
+
+    if !old_full.exists() {
+        return Err("Folder not found".to_string());
+    }
+    if !old_full.is_dir() {
+        return Err("Path is not a directory".to_string());
+    }
+
+    let folder_name = old_full
+        .file_name()
+        .ok_or_else(|| "Invalid path".to_string())?
+        .to_string_lossy()
+        .to_string();
+
+    let dest_dir = if dest_folder.is_empty() {
+        base.clone()
+    } else {
+        let d = base.join(dest_folder);
+        if !d.is_dir() {
+            return Err("Destination folder not found".to_string());
+        }
+        d
+    };
+
+    let new_full = dest_dir.join(&folder_name);
+    let new_full_str = new_full.to_string_lossy().to_string();
+
+    if !is_safe_path(app_handle, &new_full_str) {
+        return Err("Access denied: path traversal detected".to_string());
+    }
+
+    // Prevent moving folder into itself or a subdirectory
+    let canon_source = resolve_canonical(&old_full);
+    let canon_dest = resolve_canonical(&new_full);
+    if canon_dest.starts_with(&canon_source) {
+        return Err("Cannot move a folder into itself or a subdirectory of itself".to_string());
+    }
+
+    if new_full != old_full {
+        if new_full.exists() {
+            return Err("A folder with that name already exists in the destination".to_string());
+        }
+    }
+
+    fs::rename(&old_full, &new_full).map_err(|e| e.to_string())?;
+    Ok(new_full_str)
+}
+
 // ── User themes ──
 
 #[derive(Debug, Serialize)]
