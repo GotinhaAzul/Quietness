@@ -4,6 +4,7 @@
   import type { FolderEntry } from '$lib/stores/folders';
   import { runAfterModalDismiss, waitForNextPaint } from '$lib/utils/confirmedAction';
   import { resolveFolderRenameRequest } from '$lib/utils/renameFolder';
+  import { moveTarget } from '$lib/stores/move';
   import ConfirmModal from './ConfirmModal.svelte';
 
   interface TreeNode {
@@ -167,6 +168,7 @@
       },
     });
   }
+
 </script>
 
 <div class="flex items-center justify-between px-2 pt-3 pb-1">
@@ -238,6 +240,15 @@
         >
           <svg class="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25a1.75 1.75 0 0 1 .445-.758l8.61-8.61Z"/>
+          </svg>
+        </button>
+        <button
+          class="rounded p-1 text-quiet-faded hover:bg-quiet-hover hover:text-quiet-text"
+          onclick={(e) => { e.stopPropagation(); moveTarget.set({ type: 'folder', path: node.path, name: node.name }); }}
+          title="Move folder"
+        >
+          <svg class="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 3h7a2 2 0 0 1 2 2v1M4 3l2-2M4 3l2 2M13 10v1a2 2 0 0 1-2 2H4M13 10l2 2M13 10l-2 2M1 8h7"/>
           </svg>
         </button>
         <button

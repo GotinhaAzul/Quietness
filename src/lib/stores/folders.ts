@@ -97,6 +97,13 @@ export async function moveFolder(path: string, destFolder: string): Promise<void
       }
     }
 
+    selectedFolder.update(cur => {
+      if (cur !== null && (cur === path || cur.startsWith(path + '/'))) {
+        return null;
+      }
+      return cur;
+    });
+
     await Promise.all([loadFolders(), loadNotes()]);
     moveTarget.set(null);
   } catch (e) {
