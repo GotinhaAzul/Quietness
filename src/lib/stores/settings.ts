@@ -33,6 +33,7 @@ export const DEFAULT_SETTINGS: Settings = {
       ember: '#5a00c2',
     },
   },
+  trashRetentionDays: 30,
 };
 
 function createSettingsStore() {

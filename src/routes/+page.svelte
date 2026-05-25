@@ -5,7 +5,8 @@
   import NotePreview from '$lib/components/NotePreview.svelte';
   import SettingsModal from '$lib/components/SettingsModal.svelte';
 import { loadNotes, currentNote, saveCurrentNote, deleteNote } from '$lib/stores/notes';
-import { errorMessage, dismissError } from '$lib/stores/errors';
+import { errorMessage, dismissError, showError } from '$lib/stores/errors';
+import { invoke } from '@tauri-apps/api/core';
 import { loadFolders } from '$lib/stores/folders';
 import { viewMode, type ViewMode } from '$lib/stores/editor';
 import { settings } from '$lib/stores/settings';
@@ -75,6 +76,13 @@ import MoveDialog from '$lib/components/MoveDialog.svelte';
     settings.load().then(async () => {
       await userThemes.load();
       appReady = true;
+      // Check home folder health
+      try {
+        const status = await invoke<{ configuredPath: string; effectivePath: string; isFallback: boolean }>('home_folder_status');
+        if (status.isFallback) {
+          showError(`Home folder is missing or inaccessible. Using default location: ${status.effectivePath}`);
+        }
+      } catch { /* ignore */ }
     });
 
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {

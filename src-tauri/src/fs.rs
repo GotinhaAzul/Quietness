@@ -1,8 +1,9 @@
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 use tauri::Manager;
+use log;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct NoteEntry {
@@ -16,7 +17,110 @@ pub struct FolderEntry {
     pub path: String,
 }
 
+#[derive(Debug, Serialize)]
+pub struct HomeFolderStatus {
+    pub configured_path: String,
+    pub effective_path: String,
+    pub is_fallback: bool,
+}
+
+// ── Home folder config ──
+
+fn quietness_config_path(app_handle: &AppHandle) -> PathBuf {
+    app_handle
+        .path()
+        .app_data_dir()
+        .unwrap_or_else(|_| PathBuf::from("."))
+        .join("quietness_config.json")
+}
+
+fn load_home_folder(app_handle: &AppHandle) -> Option<String> {
+    let path = quietness_config_path(app_handle);
+    fs::read_to_string(path).ok().and_then(|content| {
+        serde_json::from_str::<serde_json::Value>(&content)
+            .ok()
+            .and_then(|v| v.get("homeFolder")?.as_str().map(String::from))
+    })
+}
+
+fn save_home_folder(app_handle: &AppHandle, path: &str) -> Result<(), String> {
+    let config_path = quietness_config_path(app_handle);
+    if let Some(parent) = config_path.parent() {
+        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    let config = serde_json::json!({ "homeFolder": path });
+    let json = serde_json::to_string_pretty(&config).map_err(|e| e.to_string())?;
+    fs::write(&config_path, &json).map_err(|e| e.to_string())
+}
+
+pub fn set_home_folder(app_handle: &AppHandle, path: &str) -> Result<(), String> {
+    if path.is_empty() {
+        return Err("Home folder path cannot be empty".to_string());
+    }
+    let p = PathBuf::from(path);
+    if !p.is_absolute() {
+        return Err("Home folder path must be an absolute path".to_string());
+    }
+    // Reject root directories (e.g., C:\ or /)
+    if p.file_name().is_none() {
+        return Err("Home folder cannot be a root directory".to_string());
+    }
+    let trimmed = p.to_string_lossy().trim_end_matches('\\').trim_end_matches('/').to_string();
+    if trimmed.len() <= 3 && trimmed.ends_with(':') && !trimmed.contains('\\') && !trimmed.contains('/') {
+        return Err("Home folder cannot be a bare drive letter (e.g. C:)".to_string());
+    }
+    if p.exists() && !p.is_dir() {
+        return Err("Path exists but is not a directory".to_string());
+    }
+    fs::create_dir_all(&p).map_err(|e| format!("Cannot access home folder: {}", e))?;
+    // Verify write access
+    let test_file = p.join(".quietness_write_test");
+    fs::write(&test_file, "").map_err(|_| "Home folder is not writable".to_string())?;
+    let _ = fs::remove_file(&test_file);
+    save_home_folder(app_handle, path)
+}
+
+pub fn reset_home_folder(app_handle: &AppHandle) -> Result<(), String> {
+    let config_path = quietness_config_path(app_handle);
+    if config_path.exists() {
+        fs::remove_file(&config_path).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+pub fn get_home_folder(app_handle: &AppHandle) -> String {
+    load_home_folder(app_handle).unwrap_or_default()
+}
+
+pub fn get_home_folder_status(app_handle: &AppHandle) -> HomeFolderStatus {
+    let configured = load_home_folder(app_handle).unwrap_or_default();
+    let effective = notes_dir(app_handle).to_string_lossy().to_string();
+    let is_fallback = if configured.is_empty() {
+        false
+    } else {
+        let cp = PathBuf::from(&configured);
+        !cp.is_dir()
+    };
+    HomeFolderStatus {
+        configured_path: configured,
+        effective_path: effective,
+        is_fallback,
+    }
+}
+
 pub fn notes_dir(app_handle: &AppHandle) -> PathBuf {
+    if let Some(home) = load_home_folder(app_handle) {
+        let dir = PathBuf::from(home);
+        if !dir.exists() || dir.is_dir() {
+            if fs::create_dir_all(&dir).is_ok() && dir.is_dir() {
+                return dir;
+            }
+        }
+        log::warn!(
+            "Configured home folder '{:?}' is invalid; falling back to default",
+            dir
+        );
+    }
     let dir = app_handle
         .path()
         .app_data_dir()
@@ -75,46 +179,45 @@ fn resolve_canonical(path: &std::path::Path) -> std::path::PathBuf {
     }
 }
 
-pub fn is_safe_path(app_handle: &AppHandle, path: &str) -> bool {
-    let base = notes_dir(app_handle);
-    let target = std::path::Path::new(path);
-
+fn resolve_path_under_base(base: &Path, path: &str) -> Result<PathBuf, String> {
+    let target = Path::new(path);
     let abs_target = if target.is_absolute() {
         target.to_path_buf()
     } else {
         base.join(target)
     };
 
-    let canon_base = std::fs::canonicalize(&base).unwrap_or_else(|_| base.clone());
+    let canon_base = resolve_canonical(base);
     let canon_target = resolve_canonical(&abs_target);
 
-    canon_target.starts_with(&canon_base)
+    if canon_target.starts_with(&canon_base) {
+        Ok(abs_target)
+    } else {
+        Err("Access denied: path traversal detected".to_string())
+    }
+}
+
+fn resolve_notes_path(app_handle: &AppHandle, path: &str) -> Result<PathBuf, String> {
+    resolve_path_under_base(&notes_dir(app_handle), path)
 }
 
 pub fn delete_note(app_handle: &AppHandle, path: &str) -> Result<(), String> {
-    if !is_safe_path(app_handle, path) {
-        return Err("Access denied: path traversal detected".to_string());
-    }
-    fs::remove_file(path).map_err(|e| e.to_string())?;
+    let resolved = resolve_notes_path(app_handle, path)?;
+    fs::remove_file(resolved).map_err(|e| e.to_string())?;
     Ok(())
 }
 
 pub fn read_note(app_handle: &AppHandle, path: &str) -> Result<String, String> {
-    if !is_safe_path(app_handle, path) {
-        return Err("Access denied: path traversal detected".to_string());
-    }
-    fs::read_to_string(path).map_err(|e| e.to_string())
+    let resolved = resolve_notes_path(app_handle, path)?;
+    fs::read_to_string(resolved).map_err(|e| e.to_string())
 }
 
 pub fn write_note(app_handle: &AppHandle, path: &str, content: &str) -> Result<(), String> {
-    if !is_safe_path(app_handle, path) {
-        return Err("Access denied: path traversal detected".to_string());
-    }
-    let p = PathBuf::from(path);
-    if let Some(parent) = p.parent() {
+    let resolved = resolve_notes_path(app_handle, path)?;
+    if let Some(parent) = resolved.parent() {
         fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
-    fs::write(path, content).map_err(|e| e.to_string())?;
+    fs::write(resolved, content).map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -130,10 +233,7 @@ pub fn create_folder(app_handle: &AppHandle, path: &str) -> Result<(), String> {
             return Err("Folder name cannot start with '_'".to_string());
         }
     }
-    if !is_safe_path(app_handle, path) {
-        return Err("Access denied: path traversal detected".to_string());
-    }
-    let full_path = notes_dir(app_handle).join(path);
+    let full_path = resolve_notes_path(app_handle, path)?;
     if full_path.is_file() {
         return Err("A file with that name already exists".to_string());
     }
@@ -148,10 +248,7 @@ pub fn delete_folder(app_handle: &AppHandle, path: &str) -> Result<(), String> {
     if path.contains("..") || path.starts_with('/') || path.starts_with('\\') {
         return Err("Invalid folder path".to_string());
     }
-    if !is_safe_path(app_handle, path) {
-        return Err("Access denied: path traversal detected".to_string());
-    }
-    let full_path = notes_dir(app_handle).join(path);
+    let full_path = resolve_notes_path(app_handle, path)?;
     if !full_path.exists() {
         return Err("Folder not found".to_string());
     }
@@ -180,7 +277,7 @@ fn list_folders_recursive(base: &PathBuf, current: &PathBuf, folders: &mut Vec<F
                     .unwrap_or_default()
                     .to_string_lossy()
                     .to_string();
-                if name.starts_with('_') {
+                if name.starts_with('_') || name == ".trash" {
                     continue;
                 }
                 let relative = path
@@ -212,10 +309,10 @@ pub async fn search_notes(
                 Some(p) => p,
                 None => return Vec::new(),
             };
-            if !is_safe_path(app_handle, path) {
-                return Vec::new();
-            }
-            let path_owned = path.to_string();
+            let path_owned = match resolve_notes_path(app_handle, path) {
+                Ok(p) => p.to_string_lossy().to_string(),
+                Err(_) => return Vec::new(),
+            };
             let query_owned = query.to_string();
             let result = tauri::async_runtime::spawn_blocking(move || {
                 if let Ok(content) = fs::read_to_string(&path_owned) {
@@ -241,7 +338,10 @@ pub async fn search_notes(
             let dir = if folder_path.is_empty() {
                 base.clone()
             } else {
-                base.join(folder_path)
+                match resolve_path_under_base(&base, folder_path) {
+                    Ok(path) => path,
+                    Err(_) => return Vec::new(),
+                }
             };
             let dir_owned = dir.to_string_lossy().to_string();
             let query_owned = query.to_string();
@@ -331,7 +431,10 @@ pub fn list_notes_in_folder(app_handle: &AppHandle, folder_path: &str) -> Vec<No
     let dir = if folder_path.is_empty() {
         base.clone()
     } else {
-        base.join(folder_path)
+        match resolve_path_under_base(&base, folder_path) {
+            Ok(path) => path,
+            Err(_) => return Vec::new(),
+        }
     };
     let mut notes = Vec::new();
     if let Ok(entries) = fs::read_dir(&dir) {
@@ -356,9 +459,7 @@ pub fn list_notes_in_folder(app_handle: &AppHandle, folder_path: &str) -> Vec<No
 // ── Rename note ──
 
 pub fn rename_note(app_handle: &AppHandle, old_path: &str, new_name: &str) -> Result<(), String> {
-    if !is_safe_path(app_handle, old_path) {
-        return Err("Access denied: path traversal detected".to_string());
-    }
+    let old_path_buf = resolve_notes_path(app_handle, old_path)?;
 
     if new_name.is_empty()
         || new_name.contains('/')
@@ -374,15 +475,12 @@ pub fn rename_note(app_handle: &AppHandle, old_path: &str, new_name: &str) -> Re
         format!("{}.md", new_name)
     };
 
-    let old_path_buf = PathBuf::from(old_path);
     let empty = PathBuf::from("");
     let parent = old_path_buf.parent().unwrap_or(&empty);
     let new_path = parent.join(&new_filename);
 
     let new_path_str = new_path.to_string_lossy().to_string();
-    if !is_safe_path(app_handle, &new_path_str) {
-        return Err("Access denied: path traversal detected".to_string());
-    }
+    resolve_notes_path(app_handle, &new_path_str)?;
 
     if new_path != old_path_buf {
         if new_path.exists() {
@@ -397,7 +495,7 @@ pub fn rename_note(app_handle: &AppHandle, old_path: &str, new_name: &str) -> Re
         }
     }
 
-    fs::rename(old_path, &new_path).map_err(|e| e.to_string())?;
+    fs::rename(&old_path_buf, &new_path).map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -407,9 +505,7 @@ pub fn rename_folder(app_handle: &AppHandle, old_path: &str, new_name: &str) -> 
     if old_path.is_empty() {
         return Err("Folder path cannot be empty".to_string());
     }
-    if !is_safe_path(app_handle, old_path) {
-        return Err("Access denied: path traversal detected".to_string());
-    }
+    let old_full = resolve_notes_path(app_handle, old_path)?;
 
     if new_name.is_empty() {
         return Err("Folder name cannot be empty".to_string());
@@ -421,17 +517,12 @@ pub fn rename_folder(app_handle: &AppHandle, old_path: &str, new_name: &str) -> 
         return Err("Folder name cannot start with '_'".to_string());
     }
 
-    let notes = notes_dir(app_handle);
-    let old_full = notes.join(old_path);
-
     let empty = PathBuf::from("");
     let parent = old_full.parent().unwrap_or(&empty);
     let new_full = parent.join(new_name);
 
     let new_full_str = new_full.to_string_lossy().to_string();
-    if !is_safe_path(app_handle, &new_full_str) {
-        return Err("Access denied: path traversal detected".to_string());
-    }
+    resolve_notes_path(app_handle, &new_full_str)?;
 
     if !old_full.exists() {
         return Err("Folder not found".to_string());
@@ -453,20 +544,14 @@ pub fn rename_folder(app_handle: &AppHandle, old_path: &str, new_name: &str) -> 
 // ── Move note ──
 
 pub fn move_note(app_handle: &AppHandle, path: &str, dest_folder: &str) -> Result<String, String> {
-    if !is_safe_path(app_handle, path) {
-        return Err("Access denied: path traversal detected".to_string());
-    }
+    let old_path = resolve_notes_path(app_handle, path)?;
 
     if !dest_folder.is_empty()
         && (dest_folder.contains("..") || dest_folder.starts_with('/') || dest_folder.starts_with('\\'))
     {
         return Err("Invalid destination folder".to_string());
     }
-    if !dest_folder.is_empty() && !is_safe_path(app_handle, dest_folder) {
-        return Err("Access denied: path traversal detected".to_string());
-    }
 
-    let old_path = PathBuf::from(path);
     if !old_path.exists() {
         return Err("Note not found".to_string());
     }
@@ -484,7 +569,7 @@ pub fn move_note(app_handle: &AppHandle, path: &str, dest_folder: &str) -> Resul
     let dest_dir = if dest_folder.is_empty() {
         base
     } else {
-        let d = base.join(dest_folder);
+        let d = resolve_path_under_base(&base, dest_folder)?;
         if !d.is_dir() {
             return Err("Destination folder not found".to_string());
         }
@@ -494,9 +579,7 @@ pub fn move_note(app_handle: &AppHandle, path: &str, dest_folder: &str) -> Resul
     let new_path = dest_dir.join(&filename);
     let new_path_str = new_path.to_string_lossy().to_string();
 
-    if !is_safe_path(app_handle, &new_path_str) {
-        return Err("Access denied: path traversal detected".to_string());
-    }
+    resolve_notes_path(app_handle, &new_path_str)?;
 
     if new_path != old_path {
         if new_path.exists() {
@@ -504,7 +587,7 @@ pub fn move_note(app_handle: &AppHandle, path: &str, dest_folder: &str) -> Resul
         }
     }
 
-    fs::rename(path, &new_path).map_err(|e| e.to_string())?;
+    fs::rename(&old_path, &new_path).map_err(|e| e.to_string())?;
     Ok(new_path_str)
 }
 
@@ -517,21 +600,14 @@ pub fn move_folder(app_handle: &AppHandle, path: &str, dest_folder: &str) -> Res
     if path.contains("..") || path.starts_with('/') || path.starts_with('\\') {
         return Err("Invalid folder path".to_string());
     }
-    if !is_safe_path(app_handle, path) {
-        return Err("Access denied: path traversal detected".to_string());
-    }
+    let base = notes_dir(app_handle);
+    let old_full = resolve_path_under_base(&base, path)?;
 
     if !dest_folder.is_empty()
         && (dest_folder.contains("..") || dest_folder.starts_with('/') || dest_folder.starts_with('\\'))
     {
         return Err("Invalid destination folder".to_string());
     }
-    if !dest_folder.is_empty() && !is_safe_path(app_handle, dest_folder) {
-        return Err("Access denied: path traversal detected".to_string());
-    }
-
-    let base = notes_dir(app_handle);
-    let old_full = base.join(path);
 
     if !old_full.exists() {
         return Err("Folder not found".to_string());
@@ -549,7 +625,7 @@ pub fn move_folder(app_handle: &AppHandle, path: &str, dest_folder: &str) -> Res
     let dest_dir = if dest_folder.is_empty() {
         base.clone()
     } else {
-        let d = base.join(dest_folder);
+        let d = resolve_path_under_base(&base, dest_folder)?;
         if !d.is_dir() {
             return Err("Destination folder not found".to_string());
         }
@@ -559,9 +635,7 @@ pub fn move_folder(app_handle: &AppHandle, path: &str, dest_folder: &str) -> Res
     let new_full = dest_dir.join(&folder_name);
     let new_full_str = new_full.to_string_lossy().to_string();
 
-    if !is_safe_path(app_handle, &new_full_str) {
-        return Err("Access denied: path traversal detected".to_string());
-    }
+    resolve_notes_path(app_handle, &new_full_str)?;
 
     // Prevent moving folder into itself or a subdirectory
     let canon_source = resolve_canonical(&old_full);
@@ -677,6 +751,8 @@ pub struct Settings {
     pub sizes: SizeSettings,
     pub editor: EditorSettings,
     pub pet: PetSettings,
+    #[serde(rename = "trashRetentionDays")]
+    pub trash_retention_days: u64,
 }
 
 fn settings_path(app_handle: &AppHandle) -> PathBuf {
@@ -712,6 +788,7 @@ fn default_settings() -> Settings {
                 ember: "#5a00c2".to_string(),
             },
         },
+        trash_retention_days: 30,
     }
 }
 
@@ -727,4 +804,439 @@ pub fn save_settings(app_handle: &AppHandle, settings: &Settings) -> Result<(), 
     let path = settings_path(app_handle);
     let json = serde_json::to_string_pretty(settings).map_err(|e| e.to_string())?;
     fs::write(&path, &json).map_err(|e| e.to_string())
+}
+
+// ── Migration ──
+
+pub fn count_md_files(path: &str) -> u32 {
+    let dir = PathBuf::from(path);
+    if !dir.is_dir() {
+        return 0;
+    }
+    let mut count = 0;
+    if let Ok(entries) = fs::read_dir(&dir) {
+        for entry in entries.flatten() {
+            let p = entry.path();
+            if p.is_dir() {
+                count += count_md_files(&p.to_string_lossy());
+            } else if p.extension().map_or(false, |ext| ext == "md") {
+                count += 1;
+            }
+        }
+    }
+    count
+}
+
+pub fn migrate_content(from: &str, to: &str) -> Result<u32, String> {
+    let from_path = PathBuf::from(from);
+    let to_path = PathBuf::from(to);
+
+    if !from_path.exists() {
+        return Err("Source directory does not exist".to_string());
+    }
+    if !from_path.is_dir() {
+        return Err("Source is not a directory".to_string());
+    }
+
+    if !to_path.exists() {
+        fs::create_dir_all(&to_path).map_err(|e| format!("Cannot create destination: {}", e))?;
+    }
+    if !to_path.is_dir() {
+        return Err("Destination is not a directory".to_string());
+    }
+
+    let canon_from = resolve_canonical(&from_path);
+    let canon_to = resolve_canonical(&to_path);
+
+    if canon_from == canon_to {
+        return Err("Source and destination are the same directory".to_string());
+    }
+
+    if canon_to.starts_with(&canon_from) || canon_from.starts_with(&canon_to) {
+        return Err("Source and destination cannot be nested".to_string());
+    }
+
+    let mut count = 0u32;
+    migrate_dir(&from_path, &to_path, &mut count)?;
+    Ok(count)
+}
+
+fn migrate_dir(from: &Path, to: &Path, count: &mut u32) -> Result<(), String> {
+    if let Ok(entries) = fs::read_dir(from) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let filename = path.file_name().unwrap_or_default();
+            let dest = to.join(filename);
+
+            if path.is_dir() {
+                fs::create_dir_all(&dest).map_err(|e| e.to_string())?;
+                migrate_dir(&path, &dest, count)?;
+            } else if path.extension().map_or(false, |ext| ext == "md") {
+                if dest.exists() {
+                    let stem = path
+                        .file_stem()
+                        .unwrap_or_default()
+                        .to_string_lossy()
+                        .to_string();
+                    let mut counter = 1;
+                    loop {
+                        let alt = to.join(format!("{}-copy({}).md", stem, counter));
+                        if !alt.exists() {
+                            fs::copy(&path, &alt).map_err(|e| e.to_string())?;
+                            break;
+                        }
+                        counter += 1;
+                    }
+                } else {
+                    fs::copy(&path, &dest).map_err(|e| e.to_string())?;
+                }
+                *count += 1;
+            }
+        }
+    }
+    Ok(())
+}
+
+// ── Trash / Lixeira ──
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrashEntry {
+    pub original_name: String,
+    pub original_path: String,
+    pub trashed_at: String,
+    pub is_folder: bool,
+    pub trash_name: String,
+}
+
+fn trash_timestamp() -> String {
+    chrono::Local::now().format("%Y-%m-%dT%H%M%S").to_string()
+}
+
+fn trash_dir(app_handle: &AppHandle) -> PathBuf {
+    notes_dir(app_handle).join(".trash")
+}
+
+fn trash_meta_path(app_handle: &AppHandle) -> PathBuf {
+    trash_dir(app_handle).join("meta.json")
+}
+
+fn load_trash_meta(app_handle: &AppHandle) -> Vec<TrashEntry> {
+    let path = trash_meta_path(app_handle);
+    if !path.exists() {
+        return Vec::new();
+    }
+    fs::read_to_string(&path)
+        .ok()
+        .and_then(|content| serde_json::from_str(&content).ok())
+        .unwrap_or_default()
+}
+
+fn save_trash_meta(app_handle: &AppHandle, entries: &[TrashEntry]) -> Result<(), String> {
+    let dir = trash_dir(app_handle);
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let json = serde_json::to_string_pretty(entries).map_err(|e| e.to_string())?;
+    fs::write(trash_meta_path(app_handle), &json).map_err(|e| e.to_string())
+}
+
+pub fn trash_note(app_handle: &AppHandle, path: &str) -> Result<(), String> {
+    let resolved = resolve_notes_path(app_handle, path)?;
+    if !resolved.exists() {
+        return Err("Note not found".to_string());
+    }
+    if !resolved.is_file() {
+        return Err("Path is not a file".to_string());
+    }
+
+    let notes_base = notes_dir(app_handle);
+    let original_path = resolved
+        .strip_prefix(&notes_base)
+        .unwrap_or(&resolved)
+        .to_string_lossy()
+        .to_string()
+        .replace('\\', "/");
+
+    let filename = resolved
+        .file_name()
+        .ok_or_else(|| "Invalid path".to_string())?
+        .to_string_lossy()
+        .to_string();
+
+    let ts = trash_timestamp();
+    let trash_name = format!("{}_{}", ts, filename);
+
+    let dir = trash_dir(app_handle);
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let dest = dir.join(&trash_name);
+
+    fs::rename(&resolved, &dest).map_err(|e| e.to_string())?;
+
+    let original_name = resolved
+        .file_stem()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
+
+    let mut meta = load_trash_meta(app_handle);
+    meta.push(TrashEntry {
+        original_name,
+        original_path,
+        trashed_at: ts,
+        is_folder: false,
+        trash_name,
+    });
+    save_trash_meta(app_handle, &meta)
+}
+
+pub fn trash_folder(app_handle: &AppHandle, path: &str) -> Result<(), String> {
+    let resolved = resolve_notes_path(app_handle, path)?;
+    if !resolved.exists() {
+        return Err("Folder not found".to_string());
+    }
+    if !resolved.is_dir() {
+        return Err("Path is not a directory".to_string());
+    }
+
+    let notes_base = notes_dir(app_handle);
+    let original_path = resolved
+        .strip_prefix(&notes_base)
+        .unwrap_or(&resolved)
+        .to_string_lossy()
+        .to_string()
+        .replace('\\', "/");
+
+    let folder_name = resolved
+        .file_name()
+        .ok_or_else(|| "Invalid path".to_string())?
+        .to_string_lossy()
+        .to_string();
+
+    let ts = trash_timestamp();
+    let trash_name = format!("{}_{}", ts, folder_name);
+
+    let dir = trash_dir(app_handle);
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let dest = dir.join(&trash_name);
+
+    fs::rename(&resolved, &dest).map_err(|e| e.to_string())?;
+
+    let mut meta = load_trash_meta(app_handle);
+    meta.push(TrashEntry {
+        original_name: folder_name,
+        original_path,
+        trashed_at: ts,
+        is_folder: true,
+        trash_name,
+    });
+    save_trash_meta(app_handle, &meta)
+}
+
+pub fn list_trash(app_handle: &AppHandle) -> Vec<TrashEntry> {
+    load_trash_meta(app_handle)
+}
+
+fn restore_trash_entry_at(
+    base: &Path,
+    entries: &mut Vec<TrashEntry>,
+    trash_name: &str,
+) -> Result<(), String> {
+    let index = entries
+        .iter()
+        .position(|entry| entry.trash_name == trash_name)
+        .ok_or_else(|| "Trash item not found".to_string())?;
+    let entry = entries[index].clone();
+
+    let trash_path = base.join(".trash").join(&entry.trash_name);
+    if !trash_path.exists() {
+        return Err("Trash item is missing from disk".to_string());
+    }
+
+    let restore_path = resolve_path_under_base(base, &entry.original_path)?;
+    if restore_path.exists() {
+        return Err("Original location already contains an item with that name".to_string());
+    }
+    if let Some(parent) = restore_path.parent() {
+        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+
+    fs::rename(&trash_path, &restore_path).map_err(|e| e.to_string())?;
+    entries.remove(index);
+    Ok(())
+}
+
+pub fn restore_trash_entry(app_handle: &AppHandle, trash_name: &str) -> Result<(), String> {
+    let base = notes_dir(app_handle);
+    let mut meta = load_trash_meta(app_handle);
+    restore_trash_entry_at(&base, &mut meta, trash_name)?;
+    save_trash_meta(app_handle, &meta)
+}
+
+fn permanently_delete_trash_entry_at(
+    base: &Path,
+    entries: &mut Vec<TrashEntry>,
+    trash_name: &str,
+) -> Result<(), String> {
+    let index = entries
+        .iter()
+        .position(|entry| entry.trash_name == trash_name)
+        .ok_or_else(|| "Trash item not found".to_string())?;
+    let entry = entries[index].clone();
+
+    let trash_path = base.join(".trash").join(&entry.trash_name);
+    if trash_path.exists() {
+        if entry.is_folder {
+            fs::remove_dir_all(&trash_path).map_err(|e| e.to_string())?;
+        } else {
+            fs::remove_file(&trash_path).map_err(|e| e.to_string())?;
+        }
+    }
+
+    entries.remove(index);
+    Ok(())
+}
+
+pub fn permanently_delete_trash_entry(
+    app_handle: &AppHandle,
+    trash_name: &str,
+) -> Result<(), String> {
+    let base = notes_dir(app_handle);
+    let mut meta = load_trash_meta(app_handle);
+    permanently_delete_trash_entry_at(&base, &mut meta, trash_name)?;
+    save_trash_meta(app_handle, &meta)
+}
+
+pub fn purge_trash(app_handle: &AppHandle, retention_days: u64) -> Result<u32, String> {
+    let dir = trash_dir(app_handle);
+    if !dir.exists() {
+        return Ok(0);
+    }
+
+    let meta = load_trash_meta(app_handle);
+    if meta.is_empty() {
+        return Ok(0);
+    }
+
+    let now = chrono::Local::now().naive_local();
+    let mut remaining = Vec::new();
+    let mut purged = 0u32;
+    for entry in &meta {
+        let trashed = chrono::NaiveDateTime::parse_from_str(
+            &entry.trashed_at,
+            "%Y-%m-%dT%H%M%S",
+        )
+        .ok();
+
+        let should_purge = trashed.map_or(false, |dt| {
+            let age = now.signed_duration_since(dt);
+            age.num_days() >= retention_days as i64
+        });
+
+        if should_purge {
+            let trash_path = dir.join(&entry.trash_name);
+            if trash_path.exists() {
+                if entry.is_folder {
+                    fs::remove_dir_all(&trash_path).map_err(|e| e.to_string())?;
+                } else {
+                    fs::remove_file(&trash_path).map_err(|e| e.to_string())?;
+                }
+                purged += 1;
+            }
+        } else {
+            remaining.push(entry.clone());
+        }
+    }
+
+    save_trash_meta(app_handle, &remaining)?;
+    Ok(purged)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::Path;
+
+    #[test]
+    fn resolves_relative_paths_under_configured_base() {
+        let base = Path::new("C:/Quietness Notes");
+
+        let resolved = resolve_path_under_base(base, "Projects/Plan.md").unwrap();
+
+        assert_eq!(resolved, base.join("Projects/Plan.md"));
+    }
+
+    #[test]
+    fn rejects_absolute_paths_outside_configured_base() {
+        let base = Path::new("C:/Quietness Notes");
+
+        let result = resolve_path_under_base(base, "D:/Other/Plan.md");
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn rejects_relative_traversal_outside_configured_base() {
+        let base = Path::new("C:/Quietness Notes");
+
+        let result = resolve_path_under_base(base, "../Other/Plan.md");
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn restores_trashed_note_to_original_path_and_removes_metadata() {
+        let base = unique_test_dir("restore-note");
+        let trash = base.join(".trash");
+        fs::create_dir_all(&trash).unwrap();
+        fs::create_dir_all(base.join("Projects")).unwrap();
+        fs::write(trash.join("2026-05-25T120000_Plan.md"), "restored body").unwrap();
+
+        let mut entries = vec![TrashEntry {
+            original_name: "Plan".to_string(),
+            original_path: "Projects/Plan.md".to_string(),
+            trashed_at: "2026-05-25T120000".to_string(),
+            is_folder: false,
+            trash_name: "2026-05-25T120000_Plan.md".to_string(),
+        }];
+
+        restore_trash_entry_at(&base, &mut entries, "2026-05-25T120000_Plan.md").unwrap();
+
+        assert_eq!(fs::read_to_string(base.join("Projects/Plan.md")).unwrap(), "restored body");
+        assert!(!trash.join("2026-05-25T120000_Plan.md").exists());
+        assert!(entries.is_empty());
+
+        let _ = fs::remove_dir_all(base);
+    }
+
+    #[test]
+    fn permanently_deletes_trashed_folder_and_removes_metadata() {
+        let base = unique_test_dir("delete-folder");
+        let trash = base.join(".trash").join("2026-05-25T120000_Archive");
+        fs::create_dir_all(&trash).unwrap();
+        fs::write(trash.join("Old.md"), "old body").unwrap();
+
+        let mut entries = vec![TrashEntry {
+            original_name: "Archive".to_string(),
+            original_path: "Archive".to_string(),
+            trashed_at: "2026-05-25T120000".to_string(),
+            is_folder: true,
+            trash_name: "2026-05-25T120000_Archive".to_string(),
+        }];
+
+        permanently_delete_trash_entry_at(&base, &mut entries, "2026-05-25T120000_Archive").unwrap();
+
+        assert!(!trash.exists());
+        assert!(entries.is_empty());
+
+        let _ = fs::remove_dir_all(base);
+    }
+
+    fn unique_test_dir(name: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!(
+            "quietness-trash-test-{}-{}",
+            name,
+            chrono::Local::now().timestamp_nanos_opt().unwrap_or_default()
+        ));
+        fs::create_dir_all(&dir).unwrap();
+        dir
+    }
 }

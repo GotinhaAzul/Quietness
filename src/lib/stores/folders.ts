@@ -50,7 +50,7 @@ export async function deleteFolder(folderPath: string): Promise<void> {
       return cur;
     });
 
-    await invoke('delete_folder', { path: folderPath });
+    await invoke('trash_folder', { path: folderPath });
     await Promise.all([loadFolders(), loadNotes()]);
   } catch (e) {
     showError(`Failed to delete folder: ${e}`);

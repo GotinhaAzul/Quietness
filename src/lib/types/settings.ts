@@ -38,4 +38,5 @@ export interface Settings {
   sizes: SizeSettings;
   editor: EditorSettings;
   pet: PetSettings;
+  trashRetentionDays: number;
 }

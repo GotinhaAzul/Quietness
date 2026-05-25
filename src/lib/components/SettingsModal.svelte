@@ -2,12 +2,25 @@
   import { settings, DEFAULT_SETTINGS } from '$lib/stores/settings';
   import { userThemes } from '$lib/stores/userThemes';
   import { UI_FONTS, EDITOR_FONTS, PREVIEW_FONTS, AVAILABLE_THEMES, FONT_STACKS } from '$lib/utils/fonts';
+  import { invoke } from '@tauri-apps/api/core';
+  import { showError } from '$lib/stores/errors';
+  import { loadNotes } from '$lib/stores/notes';
+  import { loadFolders } from '$lib/stores/folders';
 
   let { open = false, onclose }: { open?: boolean; onclose?: () => void } = $props();
 
-  let activeTab = $state<'theme' | 'fonts' | 'editor' | 'pet'>('theme');
+  let activeTab = $state<'general' | 'theme' | 'fonts' | 'editor' | 'pet'>('general');
   let previousFocus: Element | null = null;
   let closeButtonRef: HTMLButtonElement | undefined = $state();
+  let homeFolderPath = $state('');
+  let initialHomeFolder = $state('');
+  let homeFolderDirty = $state(false);
+  let saving = $state(false);
+  let showMigrationPrompt = $state(false);
+  let migrationCount = $state(0);
+  let migrationFromPath = $state('');
+  let migrationToPath = $state('');
+  let migrating = $state(false);
 
   $effect(() => {
     if (open) {
@@ -16,11 +29,110 @@
       requestAnimationFrame(() => {
         closeButtonRef?.focus();
       });
+      loadHomeFolder();
     } else if (previousFocus) {
       (previousFocus as HTMLElement)?.focus();
       previousFocus = null;
     }
   });
+
+  async function loadHomeFolder() {
+    try {
+      const path = await invoke<string>('get_home_folder');
+      homeFolderPath = path;
+      initialHomeFolder = path;
+      homeFolderDirty = false;
+    } catch (e) {
+      showError(`Failed to load home folder: ${e}`);
+    }
+  }
+
+  function handleHomeFolderInput(e: Event) {
+    const val = (e.target as HTMLInputElement).value;
+    homeFolderPath = val;
+    homeFolderDirty = val !== initialHomeFolder;
+  }
+
+  async function applyHomeFolder() {
+    const oldPath = initialHomeFolder;
+    saving = true;
+    try {
+      if (homeFolderPath === oldPath) return;
+      const newPath = homeFolderPath.trim();
+      if (!newPath) {
+        await invoke('reset_home_folder');
+      } else {
+        await invoke('set_home_folder', { path: newPath });
+      }
+      initialHomeFolder = homeFolderPath;
+      homeFolderDirty = false;
+      await Promise.all([loadNotes(), loadFolders(), settings.load()]);
+
+      // Detect orphaned notes in old folder
+      if (oldPath && oldPath !== newPath) {
+        const count = await invoke<number>('count_md_files', { path: oldPath });
+        if (count > 0) {
+          migrationCount = count;
+          migrationFromPath = oldPath;
+          migrationToPath = newPath || '';
+          showMigrationPrompt = true;
+        }
+      }
+    } catch (e) {
+      showError(`Failed to set home folder: ${e}`);
+      await loadHomeFolder();
+    } finally {
+      saving = false;
+    }
+  }
+
+  async function handleMigrate() {
+    migrating = true;
+    try {
+      const to = migrationToPath || homeFolderPath.trim();
+      const count = await invoke<number>('migrate_content', {
+        from: migrationFromPath,
+        to,
+      });
+      showMigrationPrompt = false;
+      showError(`Migrated ${count} notes to the new home folder.`);
+      await Promise.all([loadNotes(), loadFolders()]);
+    } catch (e) {
+      showError(`Migration failed: ${e}`);
+    } finally {
+      migrating = false;
+    }
+  }
+
+  function handleSkipMigration() {
+    showMigrationPrompt = false;
+  }
+
+  async function resetToDefault() {
+    const oldPath = initialHomeFolder;
+    saving = true;
+    try {
+      await invoke('reset_home_folder');
+      homeFolderPath = '';
+      initialHomeFolder = '';
+      homeFolderDirty = false;
+      await Promise.all([loadNotes(), loadFolders(), settings.load()]);
+
+      if (oldPath) {
+        const count = await invoke<number>('count_md_files', { path: oldPath });
+        if (count > 0) {
+          migrationCount = count;
+          migrationFromPath = oldPath;
+          migrationToPath = '';
+          showMigrationPrompt = true;
+        }
+      }
+    } catch (e) {
+      showError(`Failed to reset home folder: ${e}`);
+    } finally {
+      saving = false;
+    }
+  }
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape') {
@@ -41,7 +153,7 @@
     onkeydown={handleKeydown}
   >
     <div
-      class="mx-4 flex w-[560px] max-w-full flex-col rounded-xl border border-quiet-border bg-[var(--q-bg)] shadow-xl"
+      class="relative mx-4 flex w-[560px] max-w-full flex-col rounded-xl border border-quiet-border bg-[var(--q-bg)] shadow-xl"
       style="max-height: 80vh;"
     >
       <!-- Header -->
@@ -62,6 +174,7 @@
       <!-- Tabs -->
       <div class="flex border-b border-quiet-border/60 px-6">
         {#each ([
+          { id: 'general', label: 'General' },
           { id: 'theme', label: 'Theme' },
           { id: 'fonts', label: 'Fonts' },
           { id: 'editor', label: 'Editor' },
@@ -80,7 +193,38 @@
 
       <!-- Tab content -->
       <div class="flex-1 overflow-y-auto p-6">
-        {#if activeTab === 'theme'}
+        {#if activeTab === 'general'}
+          <div class="space-y-5">
+            <h3 class="text-xs font-medium text-quiet-text">Home Folder</h3>
+            <p class="text-[11px] text-quiet-faded leading-relaxed">
+              All notes and folders are stored inside this directory. Changes take effect immediately.
+            </p>
+            <div class="flex items-center gap-2">
+              <input
+                type="text"
+                class="flex-1 rounded-md border border-quiet-border/70 bg-quiet-surface/60 px-3 py-1.5 text-xs text-quiet-text outline-none transition-colors focus:border-quiet-accent/40 focus:bg-quiet-surface focus:ring-1 focus:ring-quiet-accent/20"
+                placeholder="C:\Users\...\Quietness (leave empty for default)"
+                value={homeFolderPath}
+                oninput={handleHomeFolderInput}
+              />
+              <button
+                class="rounded-md border border-quiet-border/60 px-3 py-1.5 text-xs text-quiet-faded transition-colors hover:border-quiet-border hover:bg-quiet-hover hover:text-quiet-text disabled:opacity-50"
+                onclick={resetToDefault}
+                disabled={!initialHomeFolder || saving}
+              >Reset</button>
+            </div>
+            {#if homeFolderDirty}
+              <button
+                class="w-full rounded-md bg-quiet-accent px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                onclick={applyHomeFolder}
+                disabled={saving}
+              >
+                {saving ? 'Saving…' : 'Apply'}
+              </button>
+            {/if}
+          </div>
+
+        {:else if activeTab === 'theme'}
           <div class="mb-6">
             <h3 class="mb-3 text-[11px] font-medium uppercase tracking-wider text-quiet-faded">Built-in Themes</h3>
             <div class="grid grid-cols-3 gap-3">
@@ -392,6 +536,38 @@
           </div>
         {/if}
       </div>
+
+      <!-- Migration prompt -->
+      {#if showMigrationPrompt}
+        <div class="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-black/20">
+          <div class="mx-4 w-[380px] rounded-xl border border-quiet-border bg-[var(--q-bg)] shadow-xl">
+            <div class="px-5 py-4">
+              <h3 class="text-sm font-semibold text-quiet-text">Migrate notes?</h3>
+              <p class="mt-1.5 text-xs text-quiet-muted leading-relaxed">
+                Your old home folder has {migrationCount} note{migrationCount !== 1 ? 's' : ''}.
+                Would you like to copy them to the new location?
+              </p>
+              <p class="mt-1 text-[11px] text-quiet-faded break-all">
+                {migrationFromPath} &rarr; {migrationToPath}
+              </p>
+            </div>
+            <div class="flex items-center justify-end gap-2 border-t border-quiet-border/60 px-5 py-3">
+              <button
+                class="rounded-md px-3.5 py-1.5 text-xs font-medium text-quiet-faded transition-colors hover:bg-quiet-hover hover:text-quiet-text disabled:opacity-50"
+                onclick={handleSkipMigration}
+                disabled={migrating}
+              >Skip</button>
+              <button
+                class="rounded-md bg-quiet-accent px-3.5 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                onclick={handleMigrate}
+                disabled={migrating}
+              >
+                {migrating ? 'Migrating…' : 'Migrate'}
+              </button>
+            </div>
+          </div>
+        </div>
+      {/if}
 
       <!-- Footer -->
       <div class="flex items-center justify-end border-t border-quiet-border/60 px-6 py-3">

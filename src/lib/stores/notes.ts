@@ -121,9 +121,9 @@ export async function deleteNote(path: string): Promise<void> {
     currentNote.set(null);
   }
 
-  try {
-    await invoke('delete_note', { path });
-    await loadNotes();
+    try {
+      await invoke('trash_note', { path });
+      await loadNotes();
   } catch (e) {
     if (deletedOpenNote) {
       currentNote.set(previousCurrent);

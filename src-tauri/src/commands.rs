@@ -1,5 +1,5 @@
 use tauri::AppHandle;
-use crate::fs::{self, FolderEntry, NoteEntry, Settings, UserThemeEntry};
+use crate::fs::{self, FolderEntry, HomeFolderStatus, NoteEntry, Settings, TrashEntry, UserThemeEntry};
 
 #[tauri::command]
 pub fn list_notes(app_handle: AppHandle) -> Vec<NoteEntry> {
@@ -101,4 +101,69 @@ pub fn list_user_themes(app_handle: AppHandle) -> Vec<UserThemeEntry> {
 #[tauri::command]
 pub fn read_user_theme_css(app_handle: AppHandle, id: String) -> Result<String, String> {
     fs::read_user_theme_css(&app_handle, &id)
+}
+
+#[tauri::command]
+pub fn set_home_folder(app_handle: AppHandle, path: String) -> Result<(), String> {
+    fs::set_home_folder(&app_handle, &path)
+}
+
+#[tauri::command]
+pub fn reset_home_folder(app_handle: AppHandle) -> Result<(), String> {
+    fs::reset_home_folder(&app_handle)
+}
+
+#[tauri::command]
+pub fn get_home_folder(app_handle: AppHandle) -> String {
+    fs::get_home_folder(&app_handle)
+}
+
+#[tauri::command]
+pub fn home_folder_status(app_handle: AppHandle) -> HomeFolderStatus {
+    fs::get_home_folder_status(&app_handle)
+}
+
+#[tauri::command]
+pub fn count_md_files(path: String) -> u32 {
+    fs::count_md_files(&path)
+}
+
+#[tauri::command]
+pub async fn migrate_content(from: String, to: String) -> Result<u32, String> {
+    tauri::async_runtime::spawn_blocking(move || fs::migrate_content(&from, &to))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn trash_note(app_handle: AppHandle, path: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || fs::trash_note(&app_handle, &path))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn trash_folder(app_handle: AppHandle, path: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || fs::trash_folder(&app_handle, &path))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub fn list_trash(app_handle: AppHandle) -> Vec<TrashEntry> {
+    fs::list_trash(&app_handle)
+}
+
+#[tauri::command]
+pub async fn restore_trash_entry(app_handle: AppHandle, trash_name: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || fs::restore_trash_entry(&app_handle, &trash_name))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn permanently_delete_trash_entry(app_handle: AppHandle, trash_name: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || fs::permanently_delete_trash_entry(&app_handle, &trash_name))
+        .await
+        .map_err(|e| e.to_string())?
 }

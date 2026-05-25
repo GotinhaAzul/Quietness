@@ -12,6 +12,29 @@ pub fn run() {
             .build(),
         )?;
       }
+
+      // Startup trash purge
+      let handle = app.handle().clone();
+      match fs::purge_trash(&handle, fs::load_settings(&handle).trash_retention_days) {
+        Ok(count) => {
+          if count > 0 {
+            log::info!("Purged {} expired item(s) from trash", count);
+          }
+        }
+        Err(e) => log::error!("Failed to purge trash on startup: {}", e),
+      }
+
+      // Periodic cleanup every hour
+      std::thread::spawn(move || {
+        loop {
+          std::thread::sleep(std::time::Duration::from_secs(3600));
+          let settings = fs::load_settings(&handle);
+          if let Err(e) = fs::purge_trash(&handle, settings.trash_retention_days) {
+            log::error!("Failed to purge trash: {}", e);
+          }
+        }
+      });
+
       Ok(())
     })
     .invoke_handler(tauri::generate_handler![
@@ -33,6 +56,17 @@ pub fn run() {
       commands::save_settings,
       commands::list_user_themes,
       commands::read_user_theme_css,
+      commands::set_home_folder,
+      commands::reset_home_folder,
+      commands::get_home_folder,
+      commands::home_folder_status,
+      commands::count_md_files,
+      commands::migrate_content,
+      commands::trash_note,
+      commands::trash_folder,
+      commands::list_trash,
+      commands::restore_trash_entry,
+      commands::permanently_delete_trash_entry,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
