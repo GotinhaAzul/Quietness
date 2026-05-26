@@ -57,6 +57,31 @@ export async function deleteFolder(folderPath: string): Promise<void> {
   }
 }
 
+export async function permanentlyDeleteFolder(folderPath: string): Promise<void> {
+  try {
+    const dir = await invoke<string>('get_notes_dir');
+    const baseDir = normalizeNotePath(dir);
+    const absFolder = normalizeNotePath(`${baseDir}/${folderPath}`);
+
+    const openNote = get(currentNote);
+    if (openNote && normalizeNotePath(openNote.path).startsWith(absFolder)) {
+      currentNote.set(null);
+    }
+
+    selectedFolder.update(cur => {
+      if (cur !== null && normalizeNotePath(cur).startsWith(normalizeNotePath(folderPath))) {
+        return null;
+      }
+      return cur;
+    });
+
+    await invoke('delete_folder', { path: folderPath });
+    await Promise.all([loadFolders(), loadNotes()]);
+  } catch (e) {
+    showError(`Failed to permanently delete folder: ${e}`);
+  }
+}
+
 export async function renameFolder(oldPath: string, newName: string): Promise<void> {
   try {
     await invoke('rename_folder', { oldPath, newName });

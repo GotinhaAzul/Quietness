@@ -4,7 +4,7 @@
   import NoteEditor from '$lib/components/NoteEditor.svelte';
   import NotePreview from '$lib/components/NotePreview.svelte';
   import SettingsModal from '$lib/components/SettingsModal.svelte';
-import { loadNotes, currentNote, saveCurrentNote, deleteNote } from '$lib/stores/notes';
+import { loadNotes, currentNote, saveCurrentNote, deleteNote, permanentlyDeleteNote } from '$lib/stores/notes';
 import { errorMessage, dismissError, showError } from '$lib/stores/errors';
 import { invoke } from '@tauri-apps/api/core';
 import { loadFolders } from '$lib/stores/folders';
@@ -28,6 +28,7 @@ import MoveDialog from '$lib/components/MoveDialog.svelte';
   let saveTimeout: any = null;
   let showSettings = $state(false);
   let confirmDelete = $state(false);
+  let confirmPermanentDelete = $state(false);
   let appReady = $state(false);
   let unsavedChanges = $state(false);
   let saveStatus = $state<'saved' | 'saving' | 'unsaved'>('saved');
@@ -62,6 +63,9 @@ import MoveDialog from '$lib/components/MoveDialog.svelte';
       } else if (e.key === 'D' && e.shiftKey) {
         e.preventDefault();
         handleDelete();
+      } else if (e.key === 'Delete' && e.shiftKey) {
+        e.preventDefault();
+        handlePermanentDelete();
       }
     }
     window.addEventListener('keydown', handleKeydown);
@@ -189,6 +193,31 @@ import MoveDialog from '$lib/components/MoveDialog.svelte';
           clearTimeout(saveTimeout);
         }
         await deleteNote(path);
+      },
+    });
+  }
+
+  function handlePermanentDelete() {
+    if (!$currentNote) return;
+    confirmPermanentDelete = true;
+  }
+
+  function confirmPermanentDeleteNote() {
+    if (!$currentNote) return;
+    const path = $currentNote.path;
+    void runAfterModalDismiss({
+      close: () => {
+        confirmPermanentDelete = false;
+      },
+      waitForDismissal: async () => {
+        await tick();
+        await waitForNextPaint();
+      },
+      action: async () => {
+        if (saveTimeout) {
+          clearTimeout(saveTimeout);
+        }
+        await permanentlyDeleteNote(path);
       },
     });
   }
@@ -323,6 +352,15 @@ import MoveDialog from '$lib/components/MoveDialog.svelte';
   confirmLabel="Delete"
   onconfirm={confirmDeleteNote}
   oncancel={() => (confirmDelete = false)}
+/>
+
+<ConfirmModal
+  open={confirmPermanentDelete && $currentNote !== null}
+  title="Delete permanently"
+  message={$currentNote ? `Permanently delete "${$currentNote.name}"? This cannot be undone.` : ''}
+  confirmLabel="Delete forever"
+  onconfirm={confirmPermanentDeleteNote}
+  oncancel={() => (confirmPermanentDelete = false)}
 />
 
 <FlamePet />

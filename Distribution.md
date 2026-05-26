@@ -55,3 +55,7 @@ Quick wins, componentes isolados, puramente visual.
 | Deepseek | 8 | T01, T02, T04, T05, T06, T08, T11, T13 |
 | Antigravity | 2 | T14, T15 |
 | **Total** | **15** | |
+
+
+
+Ideia futura: Fazer o quietness CLI com integração.

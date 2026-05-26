@@ -139,6 +139,35 @@ export async function deleteNote(path: string): Promise<void> {
   }
 }
 
+export async function permanentlyDeleteNote(path: string): Promise<void> {
+  if ([...get(deletingNotePaths)].some(deletingPath => isSameNotePath(deletingPath, path))) return;
+
+  const previousCurrent = get(currentNote);
+  const deletedOpenNote = previousCurrent ? isSameNotePath(previousCurrent.path, path) : false;
+
+  deletingNotePaths.update(paths => new Set(paths).add(path));
+  if (deletedOpenNote) {
+    currentNote.set(null);
+  }
+
+  try {
+    await invoke('delete_note', { path });
+    await loadNotes();
+  } catch (e) {
+    if (deletedOpenNote) {
+      currentNote.set(previousCurrent);
+    }
+    await loadNotes();
+    showError(`Failed to permanently delete note: ${e}`);
+  } finally {
+    deletingNotePaths.update(paths => {
+      const next = new Set(paths);
+      next.delete(path);
+      return next;
+    });
+  }
+}
+
 export async function moveNote(path: string, destFolder: string): Promise<string | null> {
   try {
     const newPath = await invoke<string>('move_note', { path, destFolder });
