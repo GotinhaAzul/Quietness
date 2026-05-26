@@ -201,10 +201,32 @@ fn resolve_notes_path(app_handle: &AppHandle, path: &str) -> Result<PathBuf, Str
     resolve_path_under_base(&notes_dir(app_handle), path)
 }
 
-pub fn delete_note(app_handle: &AppHandle, path: &str) -> Result<(), String> {
-    let resolved = resolve_notes_path(app_handle, path)?;
+fn delete_note_at(base: &Path, path: &str) -> Result<(), String> {
+    let resolved = resolve_path_under_base(base, path)?;
+    if !resolved.exists() {
+        return Err("Note not found".to_string());
+    }
+    if !resolved.is_file() {
+        return Err("Path is not a file".to_string());
+    }
     fs::remove_file(resolved).map_err(|e| e.to_string())?;
     Ok(())
+}
+
+fn write_note_at(base: &Path, path: &str, content: &str) -> Result<(), String> {
+    let resolved = resolve_path_under_base(base, path)?;
+    if let Some(parent) = resolved.parent() {
+        if parent.exists() && !parent.is_dir() {
+            return Err("Cannot save note because a parent path is not a folder".to_string());
+        }
+        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    fs::write(resolved, content).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+pub fn delete_note(app_handle: &AppHandle, path: &str) -> Result<(), String> {
+    delete_note_at(&notes_dir(app_handle), path)
 }
 
 pub fn read_note(app_handle: &AppHandle, path: &str) -> Result<String, String> {
@@ -213,12 +235,7 @@ pub fn read_note(app_handle: &AppHandle, path: &str) -> Result<String, String> {
 }
 
 pub fn write_note(app_handle: &AppHandle, path: &str, content: &str) -> Result<(), String> {
-    let resolved = resolve_notes_path(app_handle, path)?;
-    if let Some(parent) = resolved.parent() {
-        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-    }
-    fs::write(resolved, content).map_err(|e| e.to_string())?;
-    Ok(())
+    write_note_at(&notes_dir(app_handle), path, content)
 }
 
 pub fn create_folder(app_handle: &AppHandle, path: &str) -> Result<(), String> {
@@ -939,8 +956,29 @@ fn save_trash_meta(app_handle: &AppHandle, entries: &[TrashEntry]) -> Result<(),
     fs::write(trash_meta_path(app_handle), &json).map_err(|e| e.to_string())
 }
 
-pub fn trash_note(app_handle: &AppHandle, path: &str) -> Result<(), String> {
-    let resolved = resolve_notes_path(app_handle, path)?;
+fn unique_trash_name(dir: &Path, ts: &str, name: &str) -> String {
+    let first = format!("{}_{}", ts, name);
+    if !dir.join(&first).exists() {
+        return first;
+    }
+
+    for index in 2.. {
+        let candidate = format!("{}_{}_{}", ts, index, name);
+        if !dir.join(&candidate).exists() {
+            return candidate;
+        }
+    }
+
+    unreachable!("unbounded integer range should always produce a trash name")
+}
+
+fn trash_note_at(
+    base: &Path,
+    meta: &mut Vec<TrashEntry>,
+    path: &str,
+    ts: &str,
+) -> Result<(), String> {
+    let resolved = resolve_path_under_base(base, path)?;
     if !resolved.exists() {
         return Err("Note not found".to_string());
     }
@@ -948,9 +986,8 @@ pub fn trash_note(app_handle: &AppHandle, path: &str) -> Result<(), String> {
         return Err("Path is not a file".to_string());
     }
 
-    let notes_base = notes_dir(app_handle);
     let original_path = resolved
-        .strip_prefix(&notes_base)
+        .strip_prefix(base)
         .unwrap_or(&resolved)
         .to_string_lossy()
         .to_string()
@@ -962,11 +999,9 @@ pub fn trash_note(app_handle: &AppHandle, path: &str) -> Result<(), String> {
         .to_string_lossy()
         .to_string();
 
-    let ts = trash_timestamp();
-    let trash_name = format!("{}_{}", ts, filename);
-
-    let dir = trash_dir(app_handle);
+    let dir = base.join(".trash");
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let trash_name = unique_trash_name(&dir, ts, &filename);
     let dest = dir.join(&trash_name);
 
     fs::rename(&resolved, &dest).map_err(|e| e.to_string())?;
@@ -977,19 +1012,31 @@ pub fn trash_note(app_handle: &AppHandle, path: &str) -> Result<(), String> {
         .to_string_lossy()
         .to_string();
 
-    let mut meta = load_trash_meta(app_handle);
     meta.push(TrashEntry {
         original_name,
         original_path,
-        trashed_at: ts,
+        trashed_at: ts.to_string(),
         is_folder: false,
         trash_name,
     });
+    Ok(())
+}
+
+pub fn trash_note(app_handle: &AppHandle, path: &str) -> Result<(), String> {
+    let mut meta = load_trash_meta(app_handle);
+    let base = notes_dir(app_handle);
+    let ts = trash_timestamp();
+    trash_note_at(&base, &mut meta, path, &ts)?;
     save_trash_meta(app_handle, &meta)
 }
 
-pub fn trash_folder(app_handle: &AppHandle, path: &str) -> Result<(), String> {
-    let resolved = resolve_notes_path(app_handle, path)?;
+fn trash_folder_at(
+    base: &Path,
+    meta: &mut Vec<TrashEntry>,
+    path: &str,
+    ts: &str,
+) -> Result<(), String> {
+    let resolved = resolve_path_under_base(base, path)?;
     if !resolved.exists() {
         return Err("Folder not found".to_string());
     }
@@ -997,9 +1044,8 @@ pub fn trash_folder(app_handle: &AppHandle, path: &str) -> Result<(), String> {
         return Err("Path is not a directory".to_string());
     }
 
-    let notes_base = notes_dir(app_handle);
     let original_path = resolved
-        .strip_prefix(&notes_base)
+        .strip_prefix(base)
         .unwrap_or(&resolved)
         .to_string_lossy()
         .to_string()
@@ -1011,23 +1057,28 @@ pub fn trash_folder(app_handle: &AppHandle, path: &str) -> Result<(), String> {
         .to_string_lossy()
         .to_string();
 
-    let ts = trash_timestamp();
-    let trash_name = format!("{}_{}", ts, folder_name);
-
-    let dir = trash_dir(app_handle);
+    let dir = base.join(".trash");
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let trash_name = unique_trash_name(&dir, ts, &folder_name);
     let dest = dir.join(&trash_name);
 
     fs::rename(&resolved, &dest).map_err(|e| e.to_string())?;
 
-    let mut meta = load_trash_meta(app_handle);
     meta.push(TrashEntry {
         original_name: folder_name,
         original_path,
-        trashed_at: ts,
+        trashed_at: ts.to_string(),
         is_folder: true,
         trash_name,
     });
+    Ok(())
+}
+
+pub fn trash_folder(app_handle: &AppHandle, path: &str) -> Result<(), String> {
+    let mut meta = load_trash_meta(app_handle);
+    let base = notes_dir(app_handle);
+    let ts = trash_timestamp();
+    trash_folder_at(&base, &mut meta, path, &ts)?;
     save_trash_meta(app_handle, &meta)
 }
 
@@ -1226,6 +1277,54 @@ mod tests {
 
         assert!(!trash.exists());
         assert!(entries.is_empty());
+
+        let _ = fs::remove_dir_all(base);
+    }
+
+    #[test]
+    fn delete_note_at_reports_missing_note_as_recoverable_state() {
+        let base = unique_test_dir("delete-missing-note");
+
+        let result = delete_note_at(&base, "Missing.md");
+
+        assert_eq!(result.unwrap_err(), "Note not found");
+
+        let _ = fs::remove_dir_all(base);
+    }
+
+    #[test]
+    fn write_note_at_reports_blocked_parent_path_clearly() {
+        let base = unique_test_dir("write-blocked-parent");
+        fs::write(base.join("Projects"), "not a directory").unwrap();
+
+        let result = write_note_at(&base, "Projects/Plan.md", "body");
+
+        assert_eq!(
+            result.unwrap_err(),
+            "Cannot save note because a parent path is not a folder"
+        );
+
+        let _ = fs::remove_dir_all(base);
+    }
+
+    #[test]
+    fn trash_note_at_uses_unique_names_for_same_second_collisions() {
+        let base = unique_test_dir("trash-name-collision");
+        fs::create_dir_all(base.join("A")).unwrap();
+        fs::create_dir_all(base.join("B")).unwrap();
+        fs::write(base.join("A").join("Plan.md"), "first").unwrap();
+        fs::write(base.join("B").join("Plan.md"), "second").unwrap();
+
+        let ts = "2026-05-26T120000";
+        let mut entries = Vec::new();
+
+        trash_note_at(&base, &mut entries, "A/Plan.md", ts).unwrap();
+        trash_note_at(&base, &mut entries, "B/Plan.md", ts).unwrap();
+
+        assert_eq!(entries.len(), 2);
+        assert_ne!(entries[0].trash_name, entries[1].trash_name);
+        assert!(base.join(".trash").join(&entries[0].trash_name).exists());
+        assert!(base.join(".trash").join(&entries[1].trash_name).exists());
 
         let _ = fs::remove_dir_all(base);
     }

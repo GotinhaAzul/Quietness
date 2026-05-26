@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { showError } from '$lib/stores/errors';
 import { currentNote, loadNotes } from '$lib/stores/notes';
 import { normalizeNotePath } from '$lib/utils/noteDeletion';
+import { isPathInsideFolder, restoreFailedFolderMutation } from '$lib/utils/folderCrudRecovery';
 import { moveTarget } from '$lib/stores/move';
 
 export interface FolderEntry {
@@ -33,18 +34,22 @@ export async function createFolder(name: string, parentPath?: string): Promise<v
 }
 
 export async function deleteFolder(folderPath: string): Promise<void> {
+  let currentWasCleared = false;
+  let selectedWasCleared = false;
+  const previousCurrent = get(currentNote);
+  const previousSelected = get(selectedFolder);
+
   try {
     const dir = await invoke<string>('get_notes_dir');
-    const baseDir = normalizeNotePath(dir);
-    const absFolder = normalizeNotePath(`${baseDir}/${folderPath}`);
 
-    const openNote = get(currentNote);
-    if (openNote && normalizeNotePath(openNote.path).startsWith(absFolder)) {
+    if (previousCurrent && isPathInsideFolder(previousCurrent.path, dir, folderPath)) {
       currentNote.set(null);
+      currentWasCleared = true;
     }
 
     selectedFolder.update(cur => {
-      if (cur !== null && normalizeNotePath(cur).startsWith(normalizeNotePath(folderPath))) {
+      if (cur !== null && (normalizeNotePath(cur) === normalizeNotePath(folderPath) || normalizeNotePath(cur).startsWith(`${normalizeNotePath(folderPath)}/`))) {
+        selectedWasCleared = true;
         return null;
       }
       return cur;
@@ -53,23 +58,36 @@ export async function deleteFolder(folderPath: string): Promise<void> {
     await invoke('trash_folder', { path: folderPath });
     await Promise.all([loadFolders(), loadNotes()]);
   } catch (e) {
+    const restored = restoreFailedFolderMutation(
+      previousCurrent,
+      currentWasCleared,
+      previousSelected,
+      selectedWasCleared,
+    );
+    if (restored.currentNote) currentNote.set(restored.currentNote);
+    if (restored.selectedFolder) selectedFolder.set(restored.selectedFolder);
+    await Promise.all([loadFolders(), loadNotes()]);
     showError(`Failed to delete folder: ${e}`);
   }
 }
 
 export async function permanentlyDeleteFolder(folderPath: string): Promise<void> {
+  let currentWasCleared = false;
+  let selectedWasCleared = false;
+  const previousCurrent = get(currentNote);
+  const previousSelected = get(selectedFolder);
+
   try {
     const dir = await invoke<string>('get_notes_dir');
-    const baseDir = normalizeNotePath(dir);
-    const absFolder = normalizeNotePath(`${baseDir}/${folderPath}`);
 
-    const openNote = get(currentNote);
-    if (openNote && normalizeNotePath(openNote.path).startsWith(absFolder)) {
+    if (previousCurrent && isPathInsideFolder(previousCurrent.path, dir, folderPath)) {
       currentNote.set(null);
+      currentWasCleared = true;
     }
 
     selectedFolder.update(cur => {
-      if (cur !== null && normalizeNotePath(cur).startsWith(normalizeNotePath(folderPath))) {
+      if (cur !== null && (normalizeNotePath(cur) === normalizeNotePath(folderPath) || normalizeNotePath(cur).startsWith(`${normalizeNotePath(folderPath)}/`))) {
+        selectedWasCleared = true;
         return null;
       }
       return cur;
@@ -78,6 +96,15 @@ export async function permanentlyDeleteFolder(folderPath: string): Promise<void>
     await invoke('delete_folder', { path: folderPath });
     await Promise.all([loadFolders(), loadNotes()]);
   } catch (e) {
+    const restored = restoreFailedFolderMutation(
+      previousCurrent,
+      currentWasCleared,
+      previousSelected,
+      selectedWasCleared,
+    );
+    if (restored.currentNote) currentNote.set(restored.currentNote);
+    if (restored.selectedFolder) selectedFolder.set(restored.selectedFolder);
+    await Promise.all([loadFolders(), loadNotes()]);
     showError(`Failed to permanently delete folder: ${e}`);
   }
 }
@@ -90,12 +117,12 @@ export async function renameFolder(oldPath: string, newName: string): Promise<vo
     if (note) {
       const dir = await invoke<string>('get_notes_dir');
       const baseDir = dir.replace(/\\/g, '/');
-      const oldFolderAbs = normalizeNotePath(`${baseDir}/${oldPath}`);
-      if (normalizeNotePath(note.path).startsWith(oldFolderAbs)) {
+      if (isPathInsideFolder(note.path, baseDir, oldPath)) {
         const parentParts = oldPath.split('/');
         parentParts.pop();
         const newRelPath = parentParts.length > 0 ? `${parentParts.join('/')}/${newName}` : newName;
         const newFolderAbs = `${baseDir}/${newRelPath}`;
+        const oldFolderAbs = normalizeNotePath(`${baseDir}/${oldPath}`);
         const pattern = oldFolderAbs.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const newNotePath = note.path.replace(new RegExp(pattern, 'i'), newFolderAbs);
         currentNote.set({ ...note, path: newNotePath });
@@ -115,9 +142,7 @@ export async function moveFolder(path: string, destFolder: string): Promise<void
     const note = get(currentNote);
     if (note) {
       const dir = await invoke<string>('get_notes_dir');
-      const baseDir = dir.replace(/\\/g, '/');
-      const oldFolderAbs = normalizeNotePath(`${baseDir}/${path}`);
-      if (normalizeNotePath(note.path).startsWith(oldFolderAbs)) {
+      if (isPathInsideFolder(note.path, dir, path)) {
         currentNote.set(null);
       }
     }

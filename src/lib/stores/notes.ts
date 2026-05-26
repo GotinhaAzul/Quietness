@@ -1,6 +1,7 @@
 import { writable, get, type Writable } from 'svelte/store';
 import { invoke } from '@tauri-apps/api/core';
 import { isSameNotePath } from '$lib/utils/noteDeletion';
+import { shouldRestoreNoteAfterDeleteFailure } from '$lib/utils/noteCrudRecovery';
 import { showError } from '$lib/stores/errors';
 
 export interface NoteEntry {
@@ -39,6 +40,7 @@ export async function loadNote(path: string): Promise<void> {
     const name = path.replace(/\\/g, '/').split('/').pop()?.replace('.md', '') || 'Untitled';
     currentNote.set({ name, path, content });
   } catch (e) {
+    await loadNotes();
     showError(`Failed to load note: ${e}`);
   }
 }
@@ -125,7 +127,7 @@ export async function deleteNote(path: string): Promise<void> {
       await invoke('trash_note', { path });
       await loadNotes();
   } catch (e) {
-    if (deletedOpenNote) {
+    if (deletedOpenNote && shouldRestoreNoteAfterDeleteFailure(e)) {
       currentNote.set(previousCurrent);
     }
     await loadNotes();
@@ -154,7 +156,7 @@ export async function permanentlyDeleteNote(path: string): Promise<void> {
     await invoke('delete_note', { path });
     await loadNotes();
   } catch (e) {
-    if (deletedOpenNote) {
+    if (deletedOpenNote && shouldRestoreNoteAfterDeleteFailure(e)) {
       currentNote.set(previousCurrent);
     }
     await loadNotes();
