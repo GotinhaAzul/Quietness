@@ -52,17 +52,19 @@ export async function loadNote(path: string): Promise<void> {
   }
 }
 
-export async function saveCurrentNote(): Promise<void> {
+export async function saveCurrentNote(): Promise<boolean> {
   const note = get(currentNote);
-  if (!note) return;
+  if (!note) return true;
   try {
     await invoke('write_note', { path: note.path, content: note.content });
+    return true;
   } catch (e) {
     const msg = String(e).toLowerCase();
     if (msg.includes('no such file') || msg.includes('not found') || msg.includes('cannot find')) {
       await reconcileIntegrity('save-failed');
     }
     showError(`Failed to save note: ${e}`);
+    return false;
   }
 }
 

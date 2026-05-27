@@ -1,9 +1,11 @@
 mod commands;
 mod fs;
+use tokio::time::{sleep, Duration};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .manage(fs::HomeFolderState::default())
         .setup(|app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(
@@ -25,11 +27,13 @@ pub fn run() {
             }
 
             // Periodic cleanup every hour
-            std::thread::spawn(move || loop {
-                std::thread::sleep(std::time::Duration::from_secs(3600));
-                let settings = fs::load_settings(&handle);
-                if let Err(e) = fs::purge_trash(&handle, settings.trash_retention_days) {
-                    log::error!("Failed to purge trash: {}", e);
+            tauri::async_runtime::spawn(async move {
+                loop {
+                    sleep(Duration::from_secs(3600)).await;
+                    let settings = fs::load_settings(&handle);
+                    if let Err(e) = fs::purge_trash(&handle, settings.trash_retention_days) {
+                        log::error!("Failed to purge trash: {}", e);
+                    }
                 }
             });
 

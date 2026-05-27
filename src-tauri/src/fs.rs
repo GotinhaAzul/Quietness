@@ -2,6 +2,7 @@ use log;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::RwLock;
 use tauri::AppHandle;
 use tauri::Manager;
 
@@ -31,6 +32,11 @@ pub struct HomeFolderStatus {
     pub is_fallback: bool,
 }
 
+#[derive(Default)]
+pub struct HomeFolderState {
+    cached_home_folder: RwLock<Option<Option<String>>>,
+}
+
 // ── Home folder config ──
 
 fn quietness_config_path(app_handle: &AppHandle) -> PathBuf {
@@ -41,13 +47,35 @@ fn quietness_config_path(app_handle: &AppHandle) -> PathBuf {
         .join("quietness_config.json")
 }
 
-fn load_home_folder(app_handle: &AppHandle) -> Option<String> {
+fn load_home_folder_from_disk(app_handle: &AppHandle) -> Option<String> {
     let path = quietness_config_path(app_handle);
     fs::read_to_string(path).ok().and_then(|content| {
         serde_json::from_str::<serde_json::Value>(&content)
             .ok()
             .and_then(|v| v.get("homeFolder")?.as_str().map(String::from))
     })
+}
+
+fn load_home_folder(app_handle: &AppHandle) -> Option<String> {
+    let state = app_handle.state::<HomeFolderState>();
+    if let Ok(cache) = state.cached_home_folder.read() {
+        if let Some(cached) = cache.clone() {
+            return cached;
+        }
+    }
+
+    let loaded = load_home_folder_from_disk(app_handle);
+    if let Ok(mut cache) = state.cached_home_folder.write() {
+        *cache = Some(loaded.clone());
+    }
+    loaded
+}
+
+fn invalidate_home_folder_cache(app_handle: &AppHandle) {
+    let state = app_handle.state::<HomeFolderState>();
+    if let Ok(mut cache) = state.cached_home_folder.write() {
+        *cache = None;
+    };
 }
 
 fn save_home_folder(app_handle: &AppHandle, path: &str) -> Result<(), String> {
@@ -100,7 +128,9 @@ pub fn set_home_folder(app_handle: &AppHandle, path: &str) -> Result<(), String>
     let test_file = p.join(".quietness_write_test");
     fs::write(&test_file, "").map_err(|_| "Home folder is not writable".to_string())?;
     let _ = fs::remove_file(&test_file);
-    save_home_folder(app_handle, path)
+    save_home_folder(app_handle, path)?;
+    invalidate_home_folder_cache(app_handle);
+    Ok(())
 }
 
 pub fn reset_home_folder(app_handle: &AppHandle) -> Result<(), String> {
@@ -114,6 +144,7 @@ pub fn reset_home_folder(app_handle: &AppHandle) -> Result<(), String> {
             )
         })?;
     }
+    invalidate_home_folder_cache(app_handle);
     Ok(())
 }
 
@@ -171,6 +202,10 @@ pub fn list_notes(app_handle: &AppHandle) -> Vec<NoteEntry> {
     notes
 }
 
+fn should_skip_directory_name(name: &str) -> bool {
+    name.starts_with('_') || name == ".trash"
+}
+
 fn list_notes_recursive(dir: &PathBuf, notes: &mut Vec<NoteEntry>) {
     if let Ok(entries) = fs::read_dir(dir) {
         for entry in entries.flatten() {
@@ -181,7 +216,7 @@ fn list_notes_recursive(dir: &PathBuf, notes: &mut Vec<NoteEntry>) {
                     .unwrap_or_default()
                     .to_string_lossy()
                     .to_string();
-                if name.starts_with('_') || name == ".trash" {
+                if should_skip_directory_name(&name) {
                     continue;
                 }
                 list_notes_recursive(&path, notes);
@@ -360,14 +395,15 @@ fn list_folders_recursive(base: &PathBuf, current: &PathBuf, folders: &mut Vec<F
                     .unwrap_or_default()
                     .to_string_lossy()
                     .to_string();
-                if name.starts_with('_') || name == ".trash" {
+                if should_skip_directory_name(&name) {
                     continue;
                 }
                 let relative = path
                     .strip_prefix(base)
                     .unwrap_or(&path)
                     .to_string_lossy()
-                    .to_string();
+                    .to_string()
+                    .replace('\\', "/");
                 folders.push(FolderEntry {
                     name,
                     path: relative,
@@ -388,14 +424,15 @@ fn collect_library_snapshot_recursive(base: &Path, current: &Path, snapshot: &mu
                     .unwrap_or_default()
                     .to_string_lossy()
                     .to_string();
-                if name.starts_with('_') || name == ".trash" {
+                if should_skip_directory_name(&name) {
                     continue;
                 }
                 let relative = path
                     .strip_prefix(base)
                     .unwrap_or(&path)
                     .to_string_lossy()
-                    .to_string();
+                    .to_string()
+                    .replace('\\', "/");
                 snapshot.folders.push(FolderEntry {
                     name,
                     path: relative,
@@ -433,10 +470,10 @@ pub async fn search_notes(
                 Ok(p) => p.to_string_lossy().to_string(),
                 Err(_) => return Vec::new(),
             };
-            let query_owned = query.to_string();
+            let query_for_content = query_lower.clone();
             let result = tauri::async_runtime::spawn_blocking(move || {
                 if let Ok(content) = fs::read_to_string(&path_owned) {
-                    if content.to_lowercase().contains(&query_owned.to_lowercase()) {
+                    if content.to_lowercase().contains(&query_for_content) {
                         let path_buf = PathBuf::from(&path_owned);
                         let name = path_buf
                             .file_stem()
@@ -467,11 +504,10 @@ pub async fn search_notes(
                 }
             };
             let dir_owned = dir.to_string_lossy().to_string();
-            let query_owned = query.to_string();
+            let query_for_content = query_lower.clone();
 
             tauri::async_runtime::spawn_blocking(move || {
                 let mut results = Vec::new();
-                let query_lower = query_owned.to_lowercase();
                 let dir_path = PathBuf::from(&dir_owned);
 
                 if let Ok(entries) = fs::read_dir(&dir_path) {
@@ -494,7 +530,7 @@ pub async fn search_notes(
                             }
 
                             if let Ok(content) = fs::read_to_string(&path) {
-                                if content.to_lowercase().contains(&query_lower) {
+                                if content.to_lowercase().contains(&query_for_content) {
                                     results.push(NoteEntry {
                                         name,
                                         path: path_str,
@@ -512,28 +548,26 @@ pub async fn search_notes(
             .unwrap_or_default()
         }
         _ => {
-            let query_owned = query.to_string();
-            let entries = list_notes(app_handle);
-
-            let mut results: Vec<NoteEntry> = entries
-                .iter()
-                .filter(|e| e.name.to_lowercase().contains(&query_lower))
-                .cloned()
-                .collect();
-
-            let candidates: Vec<NoteEntry> = entries
-                .into_iter()
-                .filter(|e| !e.name.to_lowercase().contains(&query_lower))
-                .collect();
+            let mut results: Vec<NoteEntry> = Vec::new();
+            let mut candidates: Vec<NoteEntry> = Vec::new();
+            for entry in list_notes(app_handle) {
+                let name_lower = entry.name.to_lowercase();
+                if name_lower.contains(&query_lower) {
+                    results.push(entry);
+                } else {
+                    candidates.push(entry);
+                }
+            }
 
             if !candidates.is_empty() {
+                let query_for_content = query_lower.clone();
                 let content_matches = tauri::async_runtime::spawn_blocking(move || {
                     candidates
                         .into_iter()
                         .filter(|e| {
-                            fs::read_to_string(&e.path).ok().map_or(false, |c| {
-                                c.to_lowercase().contains(&query_owned.to_lowercase())
-                            })
+                            fs::read_to_string(&e.path)
+                                .ok()
+                                .map_or(false, |c| c.to_lowercase().contains(&query_for_content))
                         })
                         .collect::<Vec<NoteEntry>>()
                 })
@@ -597,8 +631,9 @@ pub fn rename_note(app_handle: &AppHandle, old_path: &str, new_name: &str) -> Re
         format!("{}.md", new_name)
     };
 
-    let empty = PathBuf::from("");
-    let parent = old_path_buf.parent().unwrap_or(&empty);
+    let parent = old_path_buf
+        .parent()
+        .ok_or_else(|| "Invalid note path".to_string())?;
     let new_path = parent.join(&new_filename);
 
     let new_path_str = new_path.to_string_lossy().to_string();
@@ -646,8 +681,9 @@ pub fn rename_folder(app_handle: &AppHandle, old_path: &str, new_name: &str) -> 
         return Err("Folder name cannot start with '_'".to_string());
     }
 
-    let empty = PathBuf::from("");
-    let parent = old_full.parent().unwrap_or(&empty);
+    let parent = old_full
+        .parent()
+        .ok_or_else(|| "Invalid folder path".to_string())?;
     let new_full = parent.join(new_name);
 
     let new_full_str = new_full.to_string_lossy().to_string();
@@ -915,7 +951,6 @@ pub struct Settings {
     pub sizes: SizeSettings,
     pub editor: EditorSettings,
     pub pet: PetSettings,
-    #[serde(rename = "trashRetentionDays")]
     pub trash_retention_days: u64,
 }
 
@@ -1136,19 +1171,18 @@ fn save_trash_meta(app_handle: &AppHandle, entries: &[TrashEntry]) -> Result<(),
 }
 
 fn unique_trash_name(dir: &Path, ts: &str, name: &str) -> String {
-    let first = format!("{}_{}", ts, name);
-    if !dir.join(&first).exists() {
-        return first;
-    }
-
-    for index in 2.. {
-        let candidate = format!("{}_{}_{}", ts, index, name);
+    let mut index = 1usize;
+    loop {
+        let candidate = if index == 1 {
+            format!("{}_{}", ts, name)
+        } else {
+            format!("{}_{}_{}", ts, index, name)
+        };
         if !dir.join(&candidate).exists() {
             return candidate;
         }
+        index += 1;
     }
-
-    unreachable!("unbounded integer range should always produce a trash name")
 }
 
 fn trash_note_at(
@@ -1390,7 +1424,7 @@ pub fn purge_trash(app_handle: &AppHandle, retention_days: u64) -> Result<u32, S
     let now = chrono::Local::now().naive_local();
     let mut remaining = Vec::new();
     let mut purged = 0u32;
-    for entry in &meta {
+    for entry in meta {
         let trashed =
             chrono::NaiveDateTime::parse_from_str(&entry.trashed_at, "%Y-%m-%dT%H%M%S").ok();
 
@@ -1418,7 +1452,7 @@ pub fn purge_trash(app_handle: &AppHandle, retention_days: u64) -> Result<u32, S
                 purged += 1;
             }
         } else {
-            remaining.push(entry.clone());
+            remaining.push(entry);
         }
     }
 

@@ -19,12 +19,12 @@
   <div
     class="pointer-events-none fixed inset-0 z-50 flex items-center justify-center"
   >
-    <!-- svelte-ignore a11y_interactive_supports_focus -->
-    <div
+    <button
+      type="button"
       class="pointer-events-auto absolute inset-0 bg-black/30"
-      role="presentation"
+      aria-label="Cancel"
       onclick={oncancel}
-    ></div>
+    ></button>
     <div
       class="pointer-events-auto relative mx-4 flex w-[320px] max-w-full flex-col rounded-xl border border-quiet-border bg-[var(--q-bg)] shadow-xl"
       role="dialog"

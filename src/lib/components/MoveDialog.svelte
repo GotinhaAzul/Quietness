@@ -1,14 +1,12 @@
 <script lang="ts">
   import { invoke } from '@tauri-apps/api/core';
-  import { tick } from 'svelte';
   import { moveTarget, type MoveTarget } from '$lib/stores/move';
   import { moveNote } from '$lib/stores/notes';
-  import { folders, moveFolder, renameFolder } from '$lib/stores/folders';
+  import { folders, moveFolder } from '$lib/stores/folders';
   import { showError } from '$lib/stores/errors';
 
   let { open = false }: { open?: boolean } = $props();
 
-  let notesDir = $state('');
   let selectedDest = $state<string | null>(null);
   let moving = $state(false);
   let target = $state<MoveTarget | null>(null);
@@ -29,7 +27,6 @@
     try {
       const dir = await invoke<string>('get_notes_dir');
       const baseDir = dir.replace(/\\/g, '/');
-      notesDir = baseDir;
 
       if (t.type === 'note') {
         const rel = t.path.replace(/\\/g, '/').slice(baseDir.length).replace(/^\//, '');

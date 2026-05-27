@@ -15,14 +15,15 @@ const errorTimeouts = new Map<number, ReturnType<typeof setTimeout>>();
 const MAX_TOASTS = 5;
 
 function showToast(message: string, type: ToastType) {
+  const id = ++errorIdCounter;
   errorMessage.update(errors => {
-    const next = [...errors, { id: ++errorIdCounter, message, type }];
+    const next = [...errors, { id, message, type }];
     return next.slice(-MAX_TOASTS);
   });
   const timeout = setTimeout(() => {
-    dismissError(errorIdCounter);
+    dismissError(id);
   }, 4000);
-  errorTimeouts.set(errorIdCounter, timeout);
+  errorTimeouts.set(id, timeout);
 }
 
 export function showError(message: string) {

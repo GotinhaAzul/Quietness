@@ -78,6 +78,8 @@
 
   let mouseLookActive = false;
   let targetAngle = 0;
+  let previewPanelEl: HTMLElement | null = null;
+  let isPageHidden = false;
 
   const MOUSE_LOOK_RADIUS = 80;
   const PUFF_RADIUS = 4;
@@ -86,6 +88,7 @@
   $effect(() => {
     if (currentMode !== prevMode) {
       prevMode = currentMode;
+      refreshPreviewPanelCache();
 
       burstFramesRemaining = 0;
       animState = 'idle';
@@ -106,7 +109,10 @@
   });
 
   function updateBigFlamePosition() {
-    const preview = document.getElementById('preview-panel');
+    if (!previewPanelEl || !previewPanelEl.isConnected) {
+      refreshPreviewPanelCache();
+    }
+    const preview = previewPanelEl;
     if (preview && (currentMode === 'split' || currentMode === 'preview') && bigFlameEnabled) {
       const rect = preview.getBoundingClientRect();
       bfX = rect.right - 50;
@@ -121,7 +127,12 @@
     if (!canvasEl) return;
     canvasEl.width = window.innerWidth;
     canvasEl.height = window.innerHeight;
+    refreshPreviewPanelCache();
     updateBigFlamePosition();
+  }
+
+  function refreshPreviewPanelCache() {
+    previewPanelEl = document.getElementById('preview-panel');
   }
 
   function initSparks() {
@@ -525,25 +536,41 @@
     mouseY = null;
   }
 
+  function handleVisibilityChange() {
+    isPageHidden = document.visibilityState !== 'visible';
+    if (isPageHidden) {
+      stopLoop();
+      return;
+    }
+    const anyEnabled = bigFlameEnabled || smallParticleEnabled || ambientParticlesEnabled;
+    if (anyEnabled && canvasEl && !rafId) {
+      startLoop();
+    }
+  }
+
   onMount(() => {
+    refreshPreviewPanelCache();
     window.addEventListener('resize', resize);
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseleave', handleMouseLeave);
-    if ((bigFlameEnabled || smallParticleEnabled || ambientParticlesEnabled) && canvasEl) {
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    isPageHidden = document.visibilityState !== 'visible';
+    if (!isPageHidden && (bigFlameEnabled || smallParticleEnabled || ambientParticlesEnabled) && canvasEl) {
       startLoop();
     }
   });
 
   onDestroy(() => {
-    if (rafId) cancelAnimationFrame(rafId);
+    stopLoop();
     window.removeEventListener('resize', resize);
     window.removeEventListener('mousemove', handleMouseMove);
     window.removeEventListener('mouseleave', handleMouseLeave);
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
   });
 
   $effect(() => {
     const anyEnabled = bigFlameEnabled || smallParticleEnabled || ambientParticlesEnabled;
-    if (anyEnabled) {
+    if (anyEnabled && !isPageHidden) {
       if (canvasEl && !rafId) {
         startLoop();
       }

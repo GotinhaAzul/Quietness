@@ -1,14 +1,15 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { tick } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { selectedFolder } from '$lib/stores/folders';
   import { searchQuery, searchResultCount, searchResults, searchScope } from '$lib/stores/ui';
   import { notes, currentNote, loadNote, deleteNote, type NoteEntry } from '$lib/stores/notes';
-import { showError } from '$lib/stores/errors';
-import { runAfterModalDismiss, waitForNextPaint } from '$lib/utils/confirmedAction';
-import { buildRenamedNotePath, resolveRenameRequest } from '$lib/utils/noteRename';
-import { moveTarget } from '$lib/stores/move';
-import ConfirmModal from './ConfirmModal.svelte';
+  import { showError } from '$lib/stores/errors';
+  import { runAfterModalDismiss, waitForNextPaint } from '$lib/utils/confirmedAction';
+  import { buildRenamedNotePath, resolveRenameRequest } from '$lib/utils/noteRename';
+  import { moveTarget } from '$lib/stores/move';
+  import ConfirmModal from './ConfirmModal.svelte';
 
   let noteEntries = $state<NoteEntry[]>([]);
   let requestId = 0;
@@ -17,6 +18,12 @@ import ConfirmModal from './ConfirmModal.svelte';
   let renameInput = $state<HTMLInputElement | undefined>();
   let renamePending = $state(false);
   let confirmDelete = $state<{ path: string; name: string } | null>(null);
+  let notesDir = $state('');
+  let notesDirResolved = $state(false);
+
+  onMount(() => {
+    void resolveNotesDir();
+  });
 
   $effect(() => {
     $selectedFolder;
@@ -44,8 +51,11 @@ import ConfirmModal from './ConfirmModal.svelte';
         searchResultCount.set(entries.length);
         searchResults.set(entries);
       } else {
-        const folderPath = $selectedFolder ?? '';
-        const entries = await invoke<NoteEntry[]>('list_notes_in_folder', { folderPath });
+        if (!notesDir && !notesDirResolved) {
+          await resolveNotesDir();
+          if (currentRequest !== requestId) return;
+        }
+        const entries = getLocalFolderEntries();
         if (currentRequest !== requestId) return;
         noteEntries = entries;
         searchResultCount.set(0);
@@ -54,6 +64,38 @@ import ConfirmModal from './ConfirmModal.svelte';
     } catch (e) {
       showError(`Failed to load notes: ${e}`);
     }
+  }
+
+  async function resolveNotesDir() {
+    try {
+      const dir = await invoke<string>('get_notes_dir');
+      notesDir = normalizePath(dir).replace(/\/+$/, '');
+      notesDirResolved = true;
+    } catch (e) {
+      notesDirResolved = true;
+      showError(`Failed to resolve notes directory: ${e}`);
+    }
+  }
+
+  function normalizePath(path: string): string {
+    return path.replace(/\\/g, '/').toLowerCase();
+  }
+
+  function getLocalFolderEntries(): NoteEntry[] {
+    const folder = normalizePath($selectedFolder ?? '').replace(/^\/+|\/+$/g, '');
+
+    const entries = $notes.filter((entry) => {
+      const notePath = normalizePath(entry.path);
+      if (notesDir && notePath.startsWith(`${notesDir}/`)) {
+        const relative = notePath.slice(notesDir.length + 1);
+        const slashIndex = relative.lastIndexOf('/');
+        const parent = slashIndex === -1 ? '' : relative.slice(0, slashIndex);
+        return parent === folder;
+      }
+      return false;
+    });
+
+    return [...entries].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
   }
 
   async function openNote(path: string) {

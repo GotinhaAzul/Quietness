@@ -87,6 +87,22 @@
     }
   }
 
+  async function flushPendingSave(): Promise<void> {
+    if (saveTimeout) {
+      clearTimeout(saveTimeout);
+      saveTimeout = null;
+    }
+    if (!unsavedChanges) return;
+    saveStatus = 'saving';
+    const saved = await saveCurrentNote();
+    if (saved) {
+      unsavedChanges = false;
+      saveStatus = 'saved';
+    } else {
+      saveStatus = 'unsaved';
+    }
+  }
+
   onMount(() => {
     const perf = createPerfTimer('startup');
 
@@ -104,18 +120,32 @@
       perf.end('app ready');
     })();
 
+    const flushBestEffort = () => {
+      void flushPendingSave();
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        flushBestEffort();
+      }
+    };
+    const handlePageHide = () => {
+      flushBestEffort();
+    };
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       if (unsavedChanges) {
         event.preventDefault();
+        event.returnValue = '';
       }
-      if (saveTimeout) {
-        clearTimeout(saveTimeout);
-      }
-      saveCurrentNote();
+      flushBestEffort();
     };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pagehide', handlePageHide);
     window.addEventListener('beforeunload', handleBeforeUnload);
 
     return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pagehide', handlePageHide);
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   });
@@ -171,20 +201,30 @@
     }
     saveTimeout = setTimeout(async () => {
       saveStatus = 'saving';
-      await saveCurrentNote();
-      unsavedChanges = false;
-      saveStatus = 'saved';
+      saveTimeout = null;
+      const saved = await saveCurrentNote();
+      if (saved) {
+        unsavedChanges = false;
+        saveStatus = 'saved';
+      } else {
+        saveStatus = 'unsaved';
+      }
     }, 800);
   }
 
   async function handleSave() {
     if (saveTimeout) {
       clearTimeout(saveTimeout);
+      saveTimeout = null;
     }
     saveStatus = 'saving';
-    await saveCurrentNote();
-    unsavedChanges = false;
-    saveStatus = 'saved';
+    const saved = await saveCurrentNote();
+    if (saved) {
+      unsavedChanges = false;
+      saveStatus = 'saved';
+    } else {
+      saveStatus = 'unsaved';
+    }
   }
 
   function handleDelete() {
