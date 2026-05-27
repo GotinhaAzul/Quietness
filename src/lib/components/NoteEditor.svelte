@@ -1,17 +1,27 @@
 <script lang="ts">
-  import { EditorView, basicSetup } from 'codemirror';
+  import { EditorView } from 'codemirror';
   import { Compartment, EditorState } from '@codemirror/state';
   import { markdown } from '@codemirror/lang-markdown';
-  import { drawSelection, keymap } from '@codemirror/view';
+  import {
+    lineNumbers,
+    highlightActiveLineGutter,
+    highlightSpecialChars,
+    drawSelection,
+    rectangularSelection,
+    highlightActiveLine,
+    keymap,
+  } from '@codemirror/view';
+  import { indentOnInput, syntaxHighlighting, defaultHighlightStyle, bracketMatching } from '@codemirror/language';
+  import { history, defaultKeymap, historyKeymap, indentWithTab } from '@codemirror/commands';
   import { closeBrackets } from '@codemirror/autocomplete';
   import { onMount } from 'svelte';
   import { settings } from '$lib/stores/settings';
-  import { currentNote, notes } from '$lib/stores/notes';
+  import { currentNote, notes, bumpNotesRevision } from '$lib/stores/notes';
   import { showError } from '$lib/stores/errors';
   import { invoke } from '@tauri-apps/api/core';
-  import { indentWithTab } from '@codemirror/commands';
   import { buildRenamedNotePath, resolveRenameRequest } from '$lib/utils/noteRename';
   import { petCursorCoords, petLastTypingTime } from '$lib/stores/pet';
+  import { createPerfTimer, incrementCounter, logNoteStatesSize } from '$lib/utils/perf';
 
   function getSingleDiff(oldStr: string, newStr: string) {
     if (oldStr === newStr) return null;
@@ -51,8 +61,25 @@
   const dimInactiveComp = new Compartment();
   const smoothCaretComp = new Compartment();
 
+  const LRU_MAX = 15;
   const noteStates = new Map<string, EditorState>();
   let prevPath = '';
+
+  function touchNoteState(path: string, state: EditorState) {
+    if (noteStates.has(path)) {
+      noteStates.delete(path);
+    }
+    noteStates.set(path, state);
+  }
+
+  function trimNoteStates() {
+    if (noteStates.size <= LRU_MAX) return;
+    const excess = noteStates.size - LRU_MAX;
+    const keys = [...noteStates.keys()];
+    for (let i = 0; i < excess; i++) {
+      noteStates.delete(keys[i]);
+    }
+  }
 
   $effect(() => {
     const currentPaths = new Set($notes.map(n => n.path));
@@ -146,16 +173,26 @@
     smoothCaret: $settings.editor.smoothCaret,
   });
 
+  let lastCfg: typeof editorCfg | null = null;
+
   let noteName = $derived($currentNote?.name ?? '');
 
-  let wordCount = $derived(
-    content
-      ? content.trim() === ''
-        ? 0
-        : content.trim().split(/\s+/).length
-      : 0
-  );
+  let wordCount = $state(0);
+  let wordCountTimer: ReturnType<typeof setTimeout> | undefined;
   let charCount = $derived(content ? content.length : 0);
+
+  $effect(() => {
+    const src = content;
+    clearTimeout(wordCountTimer);
+    wordCountTimer = setTimeout(() => {
+      wordCount = src
+        ? src.trim() === ''
+          ? 0
+          : src.trim().split(/\s+/).length
+        : 0;
+    }, 200);
+    return () => clearTimeout(wordCountTimer);
+  });
 
   function getGuttersExt(show: boolean) {
     return show
@@ -164,12 +201,22 @@
   }
 
   onMount(() => {
+    const timer = createPerfTimer('editor-mount');
     const s = $settings;
     view = new EditorView({
       doc: content,
       extensions: [
-        basicSetup,
+        lineNumbers(),
+        highlightActiveLineGutter(),
+        highlightSpecialChars(),
+        history(),
         drawSelection(),
+        EditorState.allowMultipleSelections.of(true),
+        indentOnInput(),
+        syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+        bracketMatching(),
+        rectangularSelection(),
+        highlightActiveLine(),
         quietThemeExt,
         guttersComp.of(getGuttersExt(s.editor.lineNumbers)),
         wordWrapComp.of(s.editor.wordWrap ? EditorView.lineWrapping : []),
@@ -178,7 +225,7 @@
         smoothCaretComp.of(s.editor.smoothCaret ? smoothCaretExt() : []),
         closeBrackets(),
         backtickAutoClose,
-        keymap.of([indentWithTab]),
+        keymap.of([indentWithTab, ...defaultKeymap, ...historyKeymap]),
         markdown(),
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
@@ -197,6 +244,7 @@
       ],
       parent: editorRef,
     });
+    timer.end();
 
     return () => {
       view.destroy();
@@ -206,15 +254,29 @@
   $effect(() => {
     if (!view) return;
     const cfg = editorCfg;
-    view.dispatch({
-      effects: [
-        guttersComp.reconfigure(getGuttersExt(cfg.lineNumbers)),
-        wordWrapComp.reconfigure(cfg.wordWrap ? EditorView.lineWrapping : []),
-        tabSizeComp.reconfigure(EditorState.tabSize.of(cfg.tabSize)),
-        dimInactiveComp.reconfigure(cfg.dimInactiveLines ? dimInactiveExt() : []),
-        smoothCaretComp.reconfigure(cfg.smoothCaret ? smoothCaretExt() : []),
-      ],
-    });
+    const prev = lastCfg;
+    lastCfg = { ...cfg };
+
+    const effects: Array<any> = [];
+    if (!prev || cfg.lineNumbers !== prev.lineNumbers) {
+      effects.push(guttersComp.reconfigure(getGuttersExt(cfg.lineNumbers)));
+    }
+    if (!prev || cfg.wordWrap !== prev.wordWrap) {
+      effects.push(wordWrapComp.reconfigure(cfg.wordWrap ? EditorView.lineWrapping : []));
+    }
+    if (!prev || cfg.tabSize !== prev.tabSize) {
+      effects.push(tabSizeComp.reconfigure(EditorState.tabSize.of(cfg.tabSize)));
+    }
+    if (!prev || cfg.dimInactiveLines !== prev.dimInactiveLines) {
+      effects.push(dimInactiveComp.reconfigure(cfg.dimInactiveLines ? dimInactiveExt() : []));
+    }
+    if (!prev || cfg.smoothCaret !== prev.smoothCaret) {
+      effects.push(smoothCaretComp.reconfigure(cfg.smoothCaret ? smoothCaretExt() : []));
+    }
+    incrementCounter('compartment-reconfigure');
+    if (effects.length > 0) {
+      view.dispatch({ effects });
+    }
   });
 
   $effect(() => {
@@ -226,21 +288,26 @@
     const newPath = note?.path ?? '';
 
     if (prevPath && prevPath !== newPath) {
-      noteStates.set(prevPath, view.state);
+      touchNoteState(prevPath, view.state);
+      trimNoteStates();
     }
 
     if (prevPath !== newPath) {
+      const hotTimer = createPerfTimer('hot-path-note-switch');
       prevPath = newPath;
       ignoreContentUpdate = false;
       const newContent = note?.content ?? '';
       const saved = noteStates.get(newPath);
+      logNoteStatesSize(noteStates.size);
       if (saved && saved.doc.toString() === newContent) {
         view.setState(saved);
+        hotTimer.end('restore-state');
         return;
       }
       view.dispatch({
         changes: { from: 0, to: view.state.doc.length, insert: newContent },
       });
+      hotTimer.end('dispatch-content');
       return;
     }
 
@@ -296,6 +363,7 @@
       }
       currentNote.update(n => n ? { ...n, name: cleanName, path: newPath } : n);
       notes.update(list => list.map(n => n.path === note.path ? { ...n, name: cleanName, path: newPath } : n));
+      bumpNotesRevision();
     } catch (e) {
       showError(`Failed to rename note: ${e}`);
     } finally {

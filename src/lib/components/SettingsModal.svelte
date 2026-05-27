@@ -495,6 +495,20 @@
               </button>
             </div>
 
+            <!-- Ambient Particles Toggle -->
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-quiet-text">Ambient particles</span>
+              <button
+                aria-label="Toggle ambient particles"
+                class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors {$settings.pet.ambientParticlesEnabled ? 'bg-quiet-accent' : 'bg-quiet-border'}"
+                onclick={() => settings.update(s => ({ ...s, pet: { ...s.pet, ambientParticlesEnabled: !s.pet.ambientParticlesEnabled } }))}
+                role="switch"
+                aria-checked={$settings.pet.ambientParticlesEnabled}
+              >
+                <span class="inline-block h-3.5 w-3.5 translate-x-0.5 transform rounded-full bg-white shadow-sm transition-transform {$settings.pet.ambientParticlesEnabled ? 'translate-x-[18px]' : ''}"></span>
+              </button>
+            </div>
+
             <hr class="border-quiet-border/60" />
 
             <h3 class="text-xs font-medium text-quiet-text">Flame Colors</h3>

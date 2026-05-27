@@ -14,20 +14,25 @@ md.use(tasklistsPlugin);
 
 export default md;
 
-const cache = new Map<string, string>();
-const CACHE_MAX = 50;
+import { incrementCounter } from './perf';
 
-export function renderMarkdown(src: string, existingNotes?: Set<string>): string {
-  const noteNames = existingNotes
-    ? Array.from(existingNotes).sort().join('\u0000')
-    : '';
-  const key = JSON.stringify([src, noteNames]);
+const cache = new Map<string, string>();
+const CACHE_MAX = 100;
+
+export function renderMarkdown(src: string, existingNotes?: Set<string>, revision?: number): string {
+  const key = revision !== undefined
+    ? JSON.stringify([src, revision])
+    : (existingNotes
+        ? JSON.stringify([src, Array.from(existingNotes).sort().join('\u0000')])
+        : JSON.stringify([src, '']));
   const cached = cache.get(key);
   if (cached !== undefined) {
     cache.delete(key);
     cache.set(key, cached);
+    incrementCounter('markdown-cache-hit');
     return cached;
   }
+  incrementCounter('markdown-cache-miss');
   if (cache.size >= CACHE_MAX) {
     const first = cache.keys().next().value;
     if (first !== undefined) cache.delete(first);

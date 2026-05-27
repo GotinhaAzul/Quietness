@@ -20,12 +20,18 @@ export const notes: Writable<NoteEntry[]> = writable<NoteEntry[]>([]);
 export const currentNote: Writable<Note | null> = writable<Note | null>(null);
 export const loading: Writable<boolean> = writable<boolean>(false);
 export const deletingNotePaths: Writable<Set<string>> = writable(new Set());
+export const notesRevision = writable(0);
+
+export function bumpNotesRevision(): void {
+  notesRevision.update(r => r + 1);
+}
 
 export async function loadNotes(): Promise<void> {
   loading.set(true);
   try {
     const entries = await invoke<NoteEntry[]>('list_notes');
     notes.set(entries);
+    notesRevision.update(r => r + 1);
   } catch (e) {
     showError(`Failed to load notes listing: ${e}`);
   } finally {

@@ -25,6 +25,7 @@ export const DEFAULT_SETTINGS: Settings = {
   pet: {
     bigFlameEnabled: true,
     smallParticleEnabled: true,
+    ambientParticlesEnabled: true,
     colors: {
       core: '#ffffff',
       inner: '#c98aff',

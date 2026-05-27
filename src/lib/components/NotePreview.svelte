@@ -1,54 +1,21 @@
 <script lang="ts">
   import { renderMarkdown } from '$lib/utils/markdown';
-  import { notes, loadNote, createNoteFromWikilink, currentNote } from '$lib/stores/notes';
+  import { notes, loadNote, createNoteFromWikilink, currentNote, notesRevision } from '$lib/stores/notes';
   import { toggleMarkdownCheckbox } from '$lib/utils/tasklists';
+  import { incrementCounter } from '$lib/utils/perf';
 
   let { content = '' }: { content?: string } = $props();
 
   let existingNoteNames = $derived(new Set($notes.map(n => n.name.toLowerCase())));
-  let noteIndex = $derived(
-    $notes.reduce<Record<string, (typeof $notes)[number]>>((idx, n) => {
-      idx[n.name.toLowerCase()] = n;
-      return idx;
-    }, {})
-  );
 
   let renderedHTML = $state('');
-  let lastRender = 0;
-  let pendingContent: string | null = null;
-  let pendingNames: Set<string> | null = null;
-  let rafId: number | undefined;
 
   $effect(() => {
     const src = content;
     const names = existingNoteNames;
-
-    const now = performance.now();
-    if (now - lastRender >= 2) {
-      lastRender = now;
-      renderedHTML = renderMarkdown(src, names);
-    } else {
-      pendingContent = src;
-      pendingNames = names;
-      if (!rafId) {
-        rafId = requestAnimationFrame(() => {
-          rafId = undefined;
-          if (pendingContent !== null && pendingNames !== null) {
-            lastRender = performance.now();
-            renderedHTML = renderMarkdown(pendingContent, pendingNames);
-            pendingContent = null;
-            pendingNames = null;
-          }
-        });
-      }
-    }
-
-    return () => {
-      if (rafId) {
-        cancelAnimationFrame(rafId);
-        rafId = undefined;
-      }
-    };
+    const rev = $notesRevision;
+    incrementCounter('preview-render');
+    renderedHTML = renderMarkdown(src, names, rev);
   });
 
   function handleClick(event: Event) {
@@ -79,7 +46,7 @@
     const linkTarget = link.getAttribute('data-wikilink');
     if (!linkTarget) return;
 
-    const noteEntry = noteIndex[linkTarget.toLowerCase()];
+    const noteEntry = $notes.find(n => n.name.toLowerCase() === linkTarget.toLowerCase());
     if (noteEntry) {
       event.preventDefault();
       loadNote(noteEntry.path);

@@ -61,3 +61,7 @@ export const ANIMATION_PRESETS: Record<AnimState, {
 
 export const PIXEL = 4;
 export const SMALL_PIXEL = 3;
+
+export const BREATH_AMPLITUDE = 2;
+export const BREATH_SPEED = 0.02;
+

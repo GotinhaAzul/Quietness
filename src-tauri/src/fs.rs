@@ -903,6 +903,7 @@ pub struct PetColorPalette {
 pub struct PetSettings {
     pub big_flame_enabled: bool,
     pub small_particle_enabled: bool,
+    pub ambient_particles_enabled: bool,
     pub colors: PetColorPalette,
 }
 
@@ -943,6 +944,7 @@ fn default_settings() -> Settings {
         pet: PetSettings {
             big_flame_enabled: true,
             small_particle_enabled: true,
+            ambient_particles_enabled: true,
             colors: PetColorPalette {
                 core: "#ffffff".to_string(),
                 inner: "#c98aff".to_string(),
