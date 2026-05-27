@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store';
 import { invoke } from '@tauri-apps/api/core';
-import { showError } from '$lib/stores/errors';
+import { showError, showWarning } from '$lib/stores/errors';
 
 export interface UserThemeMeta {
   id: string;
@@ -34,7 +34,7 @@ function createUserThemesStore() {
           try {
             map[entry.id] = await invoke<string>('read_user_theme_css', { id: entry.id });
           } catch (e) {
-            console.error(`Failed to read user theme "${entry.id}":`, e);
+            showWarning(`Failed to read user theme "${entry.id}": ${e}`);
           }
         }
         set({ list: entries, cssMap: map });

@@ -1,16 +1,19 @@
+use crate::fs::{
+    self, FolderEntry, HomeFolderStatus, IntegrityRepairReport, LibrarySnapshot, NoteEntry,
+    Settings, TrashEntry, UserThemeEntry,
+};
 use tauri::AppHandle;
-use crate::fs::{self, FolderEntry, HomeFolderStatus, IntegrityRepairReport, NoteEntry, Settings, TrashEntry, UserThemeEntry};
 
 #[tauri::command]
-pub fn list_notes(app_handle: AppHandle) -> Vec<NoteEntry> {
-    fs::list_notes(&app_handle)
+pub async fn list_notes(app_handle: AppHandle) -> Result<Vec<NoteEntry>, String> {
+    tauri::async_runtime::spawn_blocking(move || fs::list_notes(&app_handle))
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub fn get_notes_dir(app_handle: AppHandle) -> String {
-    fs::get_notes_dir(&app_handle)
-        .to_string_lossy()
-        .to_string()
+    fs::get_notes_dir(&app_handle).to_string_lossy().to_string()
 }
 
 #[tauri::command]
@@ -36,13 +39,29 @@ pub async fn delete_folder(app_handle: AppHandle, path: String) -> Result<(), St
 }
 
 #[tauri::command]
-pub fn list_folders(app_handle: AppHandle) -> Vec<FolderEntry> {
-    fs::list_folders(&app_handle)
+pub async fn list_folders(app_handle: AppHandle) -> Result<Vec<FolderEntry>, String> {
+    tauri::async_runtime::spawn_blocking(move || fs::list_folders(&app_handle))
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub fn list_notes_in_folder(app_handle: AppHandle, folder_path: String) -> Vec<NoteEntry> {
-    fs::list_notes_in_folder(&app_handle, &folder_path)
+pub async fn list_notes_in_folder(
+    app_handle: AppHandle,
+    folder_path: String,
+) -> Result<Vec<NoteEntry>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        fs::list_notes_in_folder(&app_handle, &folder_path)
+    })
+    .await
+    .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn list_library_snapshot(app_handle: AppHandle) -> Result<LibrarySnapshot, String> {
+    tauri::async_runtime::spawn_blocking(move || fs::list_library_snapshot(&app_handle))
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -64,22 +83,38 @@ pub async fn search_notes(
 }
 
 #[tauri::command]
-pub fn rename_note(app_handle: AppHandle, old_path: String, new_name: String) -> Result<(), String> {
+pub fn rename_note(
+    app_handle: AppHandle,
+    old_path: String,
+    new_name: String,
+) -> Result<(), String> {
     fs::rename_note(&app_handle, &old_path, &new_name)
 }
 
 #[tauri::command]
-pub fn rename_folder(app_handle: AppHandle, old_path: String, new_name: String) -> Result<(), String> {
+pub fn rename_folder(
+    app_handle: AppHandle,
+    old_path: String,
+    new_name: String,
+) -> Result<(), String> {
     fs::rename_folder(&app_handle, &old_path, &new_name)
 }
 
 #[tauri::command]
-pub fn move_note(app_handle: AppHandle, path: String, dest_folder: String) -> Result<String, String> {
+pub fn move_note(
+    app_handle: AppHandle,
+    path: String,
+    dest_folder: String,
+) -> Result<String, String> {
     fs::move_note(&app_handle, &path, &dest_folder)
 }
 
 #[tauri::command]
-pub fn move_folder(app_handle: AppHandle, path: String, dest_folder: String) -> Result<String, String> {
+pub fn move_folder(
+    app_handle: AppHandle,
+    path: String,
+    dest_folder: String,
+) -> Result<String, String> {
     fs::move_folder(&app_handle, &path, &dest_folder)
 }
 
@@ -162,15 +197,20 @@ pub async fn restore_trash_entry(app_handle: AppHandle, trash_name: String) -> R
 }
 
 #[tauri::command]
-pub async fn permanently_delete_trash_entry(app_handle: AppHandle, trash_name: String) -> Result<(), String> {
-    tauri::async_runtime::spawn_blocking(move || fs::permanently_delete_trash_entry(&app_handle, &trash_name))
-        .await
-        .map_err(|e| e.to_string())?
+pub async fn permanently_delete_trash_entry(
+    app_handle: AppHandle,
+    trash_name: String,
+) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        fs::permanently_delete_trash_entry(&app_handle, &trash_name)
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
-pub async fn repair_integrity(app_handle: AppHandle) -> IntegrityRepairReport {
+pub async fn repair_integrity(app_handle: AppHandle) -> Result<IntegrityRepairReport, String> {
     tauri::async_runtime::spawn_blocking(move || fs::repair_integrity(&app_handle))
         .await
-        .unwrap_or(IntegrityRepairReport { removed_trash_metadata: 0 })
+        .map_err(|e| e.to_string())
 }

@@ -3,9 +3,8 @@
   import { userThemes } from '$lib/stores/userThemes';
   import { UI_FONTS, EDITOR_FONTS, PREVIEW_FONTS, AVAILABLE_THEMES, FONT_STACKS } from '$lib/utils/fonts';
   import { invoke } from '@tauri-apps/api/core';
-  import { showError } from '$lib/stores/errors';
-  import { loadNotes } from '$lib/stores/notes';
-  import { loadFolders } from '$lib/stores/folders';
+  import { showError, showSuccess } from '$lib/stores/errors';
+  import { loadLibrarySnapshot } from '$lib/stores/library';
 
   let { open = false, onclose }: { open?: boolean; onclose?: () => void } = $props();
 
@@ -66,7 +65,7 @@
       }
       initialHomeFolder = homeFolderPath;
       homeFolderDirty = false;
-      await Promise.all([loadNotes(), loadFolders(), settings.load()]);
+      await Promise.all([loadLibrarySnapshot(), settings.load()]);
 
       // Detect orphaned notes in old folder
       if (oldPath && oldPath !== newPath) {
@@ -95,8 +94,8 @@
         to,
       });
       showMigrationPrompt = false;
-      showError(`Migrated ${count} notes to the new home folder.`);
-      await Promise.all([loadNotes(), loadFolders()]);
+      showSuccess(`Migrated ${count} notes to the new home folder.`);
+      await loadLibrarySnapshot();
     } catch (e) {
       showError(`Migration failed: ${e}`);
     } finally {
@@ -116,7 +115,7 @@
       homeFolderPath = '';
       initialHomeFolder = '';
       homeFolderDirty = false;
-      await Promise.all([loadNotes(), loadFolders(), settings.load()]);
+      await Promise.all([loadLibrarySnapshot(), settings.load()]);
 
       if (oldPath) {
         const count = await invoke<number>('count_md_files', { path: oldPath });

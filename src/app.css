@@ -23,6 +23,10 @@
   --q-active: #e0dad1;
   --q-danger: #bf4a4a;
   --q-danger-bg: #fcf1f1;
+  --q-warning: #b88a2e;
+  --q-warning-bg: #fef9ef;
+  --q-success: #3a8a5c;
+  --q-success-bg: #f0f9f2;
   --q-selection-bg: rgba(107, 97, 90, 0.32);
   --q-selection-bg-inactive: rgba(107, 97, 90, 0.18);
 }
@@ -41,6 +45,10 @@
   --color-quiet-active: var(--q-active);
   --color-quiet-danger: var(--q-danger);
   --color-quiet-danger-bg: var(--q-danger-bg);
+  --color-quiet-warning: var(--q-warning);
+  --color-quiet-warning-bg: var(--q-warning-bg);
+  --color-quiet-success: var(--q-success);
+  --color-quiet-success-bg: var(--q-success-bg);
   --color-quiet-selection: var(--q-selection-bg);
   --color-quiet-selection-inactive: var(--q-selection-bg-inactive);
 }

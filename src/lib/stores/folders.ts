@@ -155,9 +155,10 @@ export async function moveFolder(path: string, destFolder: string): Promise<void
     });
 
     await Promise.all([loadFolders(), loadNotes()]);
-    moveTarget.set(null);
   } catch (e) {
     showError(`Failed to move folder: ${e}`);
+  } finally {
+    moveTarget.set(null);
   }
 }
 

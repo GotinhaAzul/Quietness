@@ -4,21 +4,22 @@
   import NoteEditor from '$lib/components/NoteEditor.svelte';
   import NotePreview from '$lib/components/NotePreview.svelte';
   import SettingsModal from '$lib/components/SettingsModal.svelte';
-import { loadNotes, currentNote, saveCurrentNote, deleteNote, permanentlyDeleteNote } from '$lib/stores/notes';
-import { errorMessage, dismissError, showError } from '$lib/stores/errors';
-import { invoke } from '@tauri-apps/api/core';
-import { loadFolders } from '$lib/stores/folders';
-import { viewMode, type ViewMode } from '$lib/stores/editor';
-import { settings } from '$lib/stores/settings';
-import { userThemes } from '$lib/stores/userThemes';
-import { focusSearchInput, showNewNoteInput } from '$lib/stores/ui';
-import { moveTarget } from '$lib/stores/move';
-import { reconcileIntegrity } from '$lib/stores/integrity';
-import { FONT_STACKS } from '$lib/utils/fonts';
-import { runAfterModalDismiss, waitForNextPaint } from '$lib/utils/confirmedAction';
-import ConfirmModal from '$lib/components/ConfirmModal.svelte';
-import FlamePet from '$lib/components/FlamePet.svelte';
-import MoveDialog from '$lib/components/MoveDialog.svelte';
+  import { currentNote, saveCurrentNote, deleteNote, permanentlyDeleteNote } from '$lib/stores/notes';
+  import { errorMessage, dismissError, showError } from '$lib/stores/errors';
+  import { invoke } from '@tauri-apps/api/core';
+  import { viewMode, type ViewMode } from '$lib/stores/editor';
+  import { settings } from '$lib/stores/settings';
+  import { userThemes } from '$lib/stores/userThemes';
+  import { focusSearchInput, showNewNoteInput } from '$lib/stores/ui';
+  import { moveTarget } from '$lib/stores/move';
+  import { reconcileIntegrity } from '$lib/stores/integrity';
+  import { loadLibrarySnapshot } from '$lib/stores/library';
+  import { FONT_STACKS } from '$lib/utils/fonts';
+  import { runAfterModalDismiss, waitForNextPaint } from '$lib/utils/confirmedAction';
+  import { createPerfTimer } from '$lib/utils/perf';
+  import ConfirmModal from '$lib/components/ConfirmModal.svelte';
+  import FlamePet from '$lib/components/FlamePet.svelte';
+  import MoveDialog from '$lib/components/MoveDialog.svelte';
 
   const modes: { value: ViewMode; label: string }[] = [
     { value: 'edit', label: 'Edit' },
@@ -75,23 +76,33 @@ import MoveDialog from '$lib/components/MoveDialog.svelte';
     };
   });
 
+  async function checkHomeFolderHealth(): Promise<void> {
+    try {
+      const status = await invoke<{ configuredPath: string; effectivePath: string; isFallback: boolean }>('home_folder_status');
+      if (status.isFallback) {
+        showError(`Home folder is missing or inaccessible. Using default location: ${status.effectivePath}`);
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   onMount(() => {
-    loadNotes();
-    loadFolders();
-    settings.load().then(async () => {
-      await userThemes.load();
+    const perf = createPerfTimer('startup');
 
-      // Check home folder health
-      try {
-        const status = await invoke<{ configuredPath: string; effectivePath: string; isFallback: boolean }>('home_folder_status');
-        if (status.isFallback) {
-          showError(`Home folder is missing or inaccessible. Using default location: ${status.effectivePath}`);
-        }
-      } catch { /* ignore */ }
+    void (async () => {
+      await loadLibrarySnapshot();
+      perf.step('library snapshot loaded');
 
-      await reconcileIntegrity('startup');
+      await Promise.all([settings.load(), userThemes.load(), checkHomeFolderHealth()]);
+      perf.step('settings, themes, and home-folder status loaded');
+
+      await reconcileIntegrity('startup', { refreshLibrary: false });
+      perf.step('integrity repair complete');
+
       appReady = true;
-    });
+      perf.end('app ready');
+    })();
 
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       if (unsavedChanges) {
@@ -327,15 +338,29 @@ import MoveDialog from '$lib/components/MoveDialog.svelte';
   {#if $errorMessage.length > 0}
     <div class="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
       {#each $errorMessage as error (error.id)}
-        <div class="flex max-w-sm items-center gap-3 rounded-lg border border-quiet-danger/20 bg-quiet-danger-bg/95 px-4 py-3 shadow-sm backdrop-blur-sm transition-all duration-300 ease-in-out">
-          <svg class="h-4 w-4 shrink-0 text-quiet-danger" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-          </svg>
-          <div class="flex-1 text-xs font-medium text-quiet-danger">{error.message}</div>
+        <div
+          class={"flex max-w-sm items-center gap-3 rounded-lg border px-4 py-3 shadow-sm backdrop-blur-sm transition-all duration-300 ease-in-out" + (error.type === 'error' ? ' border-quiet-danger/20 bg-quiet-danger-bg/95' : '') + (error.type === 'warning' ? ' border-quiet-warning/20 bg-quiet-warning-bg/95' : '') + (error.type === 'success' ? ' border-quiet-success/20 bg-quiet-success-bg/95' : '')}
+        >
+          {#if error.type === 'error'}
+            <svg class="h-4 w-4 shrink-0 text-quiet-danger" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+            </svg>
+          {:else if error.type === 'warning'}
+            <svg class="h-4 w-4 shrink-0 text-quiet-warning" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+            </svg>
+          {:else}
+            <svg class="h-4 w-4 shrink-0 text-quiet-success" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+            </svg>
+          {/if}
+          <div
+            class={"flex-1 text-xs font-medium" + (error.type === 'error' ? ' text-quiet-danger' : '') + (error.type === 'warning' ? ' text-quiet-warning' : '') + (error.type === 'success' ? ' text-quiet-success' : '')}
+          >{error.message}</div>
           <button
-            class="shrink-0 rounded p-0.5 text-quiet-danger/60 transition-colors hover:text-quiet-danger"
+            class={"shrink-0 rounded p-0.5 transition-colors" + (error.type === 'error' ? ' text-quiet-danger/60' : '') + (error.type === 'warning' ? ' text-quiet-warning/60' : '') + (error.type === 'success' ? ' text-quiet-success/60' : '')}
             onclick={() => dismissError(error.id)}
-            aria-label="Dismiss error"
+            aria-label="Dismiss"
           >
             <svg class="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
               <path d="M4 4l8 8M12 4l-8 8" />

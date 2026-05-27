@@ -58,4 +58,4 @@ Quick wins, componentes isolados, puramente visual.
 
 
 
-Ideia futura: Fazer o quietness CLI com integração.
+Ideia futura: Fazer o quietness CLI com integração ao App, inspirando nisso aqui: (https://github.com/Axorax/inkless)

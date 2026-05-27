@@ -1,9 +1,9 @@
+use log;
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
-use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 use tauri::Manager;
-use log;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct NoteEntry {
@@ -18,6 +18,13 @@ pub struct FolderEntry {
 }
 
 #[derive(Debug, Serialize)]
+pub struct LibrarySnapshot {
+    pub notes: Vec<NoteEntry>,
+    pub folders: Vec<FolderEntry>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct HomeFolderStatus {
     pub configured_path: String,
     pub effective_path: String,
@@ -46,11 +53,19 @@ fn load_home_folder(app_handle: &AppHandle) -> Option<String> {
 fn save_home_folder(app_handle: &AppHandle, path: &str) -> Result<(), String> {
     let config_path = quietness_config_path(app_handle);
     if let Some(parent) = config_path.parent() {
-        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+        fs::create_dir_all(parent).map_err(|e| {
+            format!(
+                "Failed to create config directory {}: {}",
+                parent.display(),
+                e
+            )
+        })?;
     }
     let config = serde_json::json!({ "homeFolder": path });
-    let json = serde_json::to_string_pretty(&config).map_err(|e| e.to_string())?;
-    fs::write(&config_path, &json).map_err(|e| e.to_string())
+    let json = serde_json::to_string_pretty(&config)
+        .map_err(|e| format!("Failed to serialize config: {}", e))?;
+    fs::write(&config_path, &json)
+        .map_err(|e| format!("Failed to write config at {}: {}", config_path.display(), e))
 }
 
 pub fn set_home_folder(app_handle: &AppHandle, path: &str) -> Result<(), String> {
@@ -65,8 +80,16 @@ pub fn set_home_folder(app_handle: &AppHandle, path: &str) -> Result<(), String>
     if p.file_name().is_none() {
         return Err("Home folder cannot be a root directory".to_string());
     }
-    let trimmed = p.to_string_lossy().trim_end_matches('\\').trim_end_matches('/').to_string();
-    if trimmed.len() <= 3 && trimmed.ends_with(':') && !trimmed.contains('\\') && !trimmed.contains('/') {
+    let trimmed = p
+        .to_string_lossy()
+        .trim_end_matches('\\')
+        .trim_end_matches('/')
+        .to_string();
+    if trimmed.len() <= 3
+        && trimmed.ends_with(':')
+        && !trimmed.contains('\\')
+        && !trimmed.contains('/')
+    {
         return Err("Home folder cannot be a bare drive letter (e.g. C:)".to_string());
     }
     if p.exists() && !p.is_dir() {
@@ -83,7 +106,13 @@ pub fn set_home_folder(app_handle: &AppHandle, path: &str) -> Result<(), String>
 pub fn reset_home_folder(app_handle: &AppHandle) -> Result<(), String> {
     let config_path = quietness_config_path(app_handle);
     if config_path.exists() {
-        fs::remove_file(&config_path).map_err(|e| e.to_string())?;
+        fs::remove_file(&config_path).map_err(|e| {
+            format!(
+                "Failed to remove config at {}: {}",
+                config_path.display(),
+                e
+            )
+        })?;
     }
     Ok(())
 }
@@ -217,7 +246,8 @@ fn delete_note_at(base: &Path, path: &str) -> Result<(), String> {
     if !resolved.is_file() {
         return Err("Path is not a file".to_string());
     }
-    fs::remove_file(resolved).map_err(|e| e.to_string())?;
+    fs::remove_file(&resolved)
+        .map_err(|e| format!("Failed to delete {}: {}", resolved.display(), e))?;
     Ok(())
 }
 
@@ -227,9 +257,16 @@ fn write_note_at(base: &Path, path: &str, content: &str) -> Result<(), String> {
         if parent.exists() && !parent.is_dir() {
             return Err("Cannot save note because a parent path is not a folder".to_string());
         }
-        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+        fs::create_dir_all(parent).map_err(|e| {
+            format!(
+                "Failed to create parent directory {}: {}",
+                parent.display(),
+                e
+            )
+        })?;
     }
-    fs::write(resolved, content).map_err(|e| e.to_string())?;
+    fs::write(&resolved, content)
+        .map_err(|e| format!("Failed to write {}: {}", resolved.display(), e))?;
     Ok(())
 }
 
@@ -239,7 +276,8 @@ pub fn delete_note(app_handle: &AppHandle, path: &str) -> Result<(), String> {
 
 pub fn read_note(app_handle: &AppHandle, path: &str) -> Result<String, String> {
     let resolved = resolve_notes_path(app_handle, path)?;
-    fs::read_to_string(resolved).map_err(|e| e.to_string())
+    fs::read_to_string(&resolved)
+        .map_err(|e| format!("Failed to read {}: {}", resolved.display(), e))
 }
 
 pub fn write_note(app_handle: &AppHandle, path: &str, content: &str) -> Result<(), String> {
@@ -262,7 +300,8 @@ pub fn create_folder(app_handle: &AppHandle, path: &str) -> Result<(), String> {
     if full_path.is_file() {
         return Err("A file with that name already exists".to_string());
     }
-    fs::create_dir_all(&full_path).map_err(|e| e.to_string())?;
+    fs::create_dir_all(&full_path)
+        .map_err(|e| format!("Failed to create folder {}: {}", full_path.display(), e))?;
     Ok(())
 }
 
@@ -280,7 +319,8 @@ pub fn delete_folder(app_handle: &AppHandle, path: &str) -> Result<(), String> {
     if !full_path.is_dir() {
         return Err("Path is not a directory".to_string());
     }
-    fs::remove_dir_all(&full_path).map_err(|e| e.to_string())?;
+    fs::remove_dir_all(&full_path)
+        .map_err(|e| format!("Failed to remove folder {}: {}", full_path.display(), e))?;
     Ok(())
 }
 
@@ -290,6 +330,24 @@ pub fn list_folders(app_handle: &AppHandle) -> Vec<FolderEntry> {
     list_folders_recursive(&dir, &dir, &mut folders);
     folders.sort_by_cached_key(|a| a.name.to_lowercase());
     folders
+}
+
+pub fn list_library_snapshot(app_handle: &AppHandle) -> LibrarySnapshot {
+    let dir = notes_dir(app_handle);
+    list_library_snapshot_at(&dir)
+}
+
+fn list_library_snapshot_at(base: &Path) -> LibrarySnapshot {
+    let mut snapshot = LibrarySnapshot {
+        notes: Vec::new(),
+        folders: Vec::new(),
+    };
+    collect_library_snapshot_recursive(base, base, &mut snapshot);
+    snapshot.notes.sort_by_cached_key(|a| a.name.to_lowercase());
+    snapshot
+        .folders
+        .sort_by_cached_key(|a| a.name.to_lowercase());
+    snapshot
 }
 
 fn list_folders_recursive(base: &PathBuf, current: &PathBuf, folders: &mut Vec<FolderEntry>) {
@@ -315,6 +373,43 @@ fn list_folders_recursive(base: &PathBuf, current: &PathBuf, folders: &mut Vec<F
                     path: relative,
                 });
                 list_folders_recursive(base, &path, folders);
+            }
+        }
+    }
+}
+
+fn collect_library_snapshot_recursive(base: &Path, current: &Path, snapshot: &mut LibrarySnapshot) {
+    if let Ok(entries) = fs::read_dir(current) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                let name = path
+                    .file_name()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .to_string();
+                if name.starts_with('_') || name == ".trash" {
+                    continue;
+                }
+                let relative = path
+                    .strip_prefix(base)
+                    .unwrap_or(&path)
+                    .to_string_lossy()
+                    .to_string();
+                snapshot.folders.push(FolderEntry {
+                    name,
+                    path: relative,
+                });
+                collect_library_snapshot_recursive(base, &path, snapshot);
+            } else if path.extension().map_or(false, |ext| ext == "md") {
+                snapshot.notes.push(NoteEntry {
+                    name: path
+                        .file_stem()
+                        .unwrap_or_default()
+                        .to_string_lossy()
+                        .to_string(),
+                    path: path.to_string_lossy().to_string(),
+                });
             }
         }
     }
@@ -348,7 +443,10 @@ pub async fn search_notes(
                             .unwrap_or_default()
                             .to_string_lossy()
                             .to_string();
-                        return Some(NoteEntry { name, path: path_owned });
+                        return Some(NoteEntry {
+                            name,
+                            path: path_owned,
+                        });
                     }
                 }
                 None
@@ -379,8 +477,7 @@ pub async fn search_notes(
                 if let Ok(entries) = fs::read_dir(&dir_path) {
                     for entry in entries.flatten() {
                         let path = entry.path();
-                        if path.is_file() && path.extension().map_or(false, |ext| ext == "md")
-                        {
+                        if path.is_file() && path.extension().map_or(false, |ext| ext == "md") {
                             let name = path
                                 .file_stem()
                                 .unwrap_or_default()
@@ -520,7 +617,14 @@ pub fn rename_note(app_handle: &AppHandle, old_path: &str, new_name: &str) -> Re
         }
     }
 
-    fs::rename(&old_path_buf, &new_path).map_err(|e| e.to_string())?;
+    fs::rename(&old_path_buf, &new_path).map_err(|e| {
+        format!(
+            "Failed to rename note from {} to {}: {}",
+            old_path_buf.display(),
+            new_path.display(),
+            e
+        )
+    })?;
     Ok(())
 }
 
@@ -562,7 +666,14 @@ pub fn rename_folder(app_handle: &AppHandle, old_path: &str, new_name: &str) -> 
         }
     }
 
-    fs::rename(&old_full, &new_full).map_err(|e| e.to_string())?;
+    fs::rename(&old_full, &new_full).map_err(|e| {
+        format!(
+            "Failed to rename folder from {} to {}: {}",
+            old_full.display(),
+            new_full.display(),
+            e
+        )
+    })?;
     Ok(())
 }
 
@@ -572,7 +683,9 @@ pub fn move_note(app_handle: &AppHandle, path: &str, dest_folder: &str) -> Resul
     let old_path = resolve_notes_path(app_handle, path)?;
 
     if !dest_folder.is_empty()
-        && (dest_folder.contains("..") || dest_folder.starts_with('/') || dest_folder.starts_with('\\'))
+        && (dest_folder.contains("..")
+            || dest_folder.starts_with('/')
+            || dest_folder.starts_with('\\'))
     {
         return Err("Invalid destination folder".to_string());
     }
@@ -612,13 +725,24 @@ pub fn move_note(app_handle: &AppHandle, path: &str, dest_folder: &str) -> Resul
         }
     }
 
-    fs::rename(&old_path, &new_path).map_err(|e| e.to_string())?;
+    fs::rename(&old_path, &new_path).map_err(|e| {
+        format!(
+            "Failed to move note from {} to {}: {}",
+            old_path.display(),
+            new_path.display(),
+            e
+        )
+    })?;
     Ok(new_path_str)
 }
 
 // ── Move folder ──
 
-pub fn move_folder(app_handle: &AppHandle, path: &str, dest_folder: &str) -> Result<String, String> {
+pub fn move_folder(
+    app_handle: &AppHandle,
+    path: &str,
+    dest_folder: &str,
+) -> Result<String, String> {
     if path.is_empty() {
         return Err("Folder path cannot be empty".to_string());
     }
@@ -629,7 +753,9 @@ pub fn move_folder(app_handle: &AppHandle, path: &str, dest_folder: &str) -> Res
     let old_full = resolve_path_under_base(&base, path)?;
 
     if !dest_folder.is_empty()
-        && (dest_folder.contains("..") || dest_folder.starts_with('/') || dest_folder.starts_with('\\'))
+        && (dest_folder.contains("..")
+            || dest_folder.starts_with('/')
+            || dest_folder.starts_with('\\'))
     {
         return Err("Invalid destination folder".to_string());
     }
@@ -675,7 +801,14 @@ pub fn move_folder(app_handle: &AppHandle, path: &str, dest_folder: &str) -> Res
         }
     }
 
-    fs::rename(&old_full, &new_full).map_err(|e| e.to_string())?;
+    fs::rename(&old_full, &new_full).map_err(|e| {
+        format!(
+            "Failed to move folder from {} to {}: {}",
+            old_full.display(),
+            new_full.display(),
+            e
+        )
+    })?;
     Ok(new_full_str)
 }
 
@@ -700,7 +833,11 @@ pub fn list_user_themes(app_handle: &AppHandle) -> Vec<UserThemeEntry> {
         for entry in entries.flatten() {
             let path = entry.path();
             if path.is_file() && path.extension().map_or(false, |ext| ext == "css") {
-                let stem = path.file_stem().unwrap_or_default().to_string_lossy().to_string();
+                let stem = path
+                    .file_stem()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .to_string();
                 themes.push(UserThemeEntry {
                     id: format!("user-{}", stem),
                     name: stem.replace('-', " ").replace('_', " "),
@@ -721,7 +858,8 @@ pub fn read_user_theme_css(app_handle: &AppHandle, id: &str) -> Result<String, S
     if !canon_path.starts_with(&canon_dir) {
         return Err("Access denied".to_string());
     }
-    fs::read_to_string(path).map_err(|e| e.to_string())
+    fs::read_to_string(&path)
+        .map_err(|e| format!("Failed to read user theme at {}: {}", path.display(), e))
 }
 
 // ── Settings ──
@@ -827,8 +965,10 @@ pub fn load_settings(app_handle: &AppHandle) -> Settings {
 
 pub fn save_settings(app_handle: &AppHandle, settings: &Settings) -> Result<(), String> {
     let path = settings_path(app_handle);
-    let json = serde_json::to_string_pretty(settings).map_err(|e| e.to_string())?;
-    fs::write(&path, &json).map_err(|e| e.to_string())
+    let json = serde_json::to_string_pretty(settings)
+        .map_err(|e| format!("Failed to serialize settings: {}", e))?;
+    fs::write(&path, &json)
+        .map_err(|e| format!("Failed to write settings at {}: {}", path.display(), e))
 }
 
 // ── Migration ──
@@ -894,7 +1034,13 @@ fn migrate_dir(from: &Path, to: &Path, count: &mut u32) -> Result<(), String> {
             let dest = to.join(filename);
 
             if path.is_dir() {
-                fs::create_dir_all(&dest).map_err(|e| e.to_string())?;
+                fs::create_dir_all(&dest).map_err(|e| {
+                    format!(
+                        "Failed to create migration directory {}: {}",
+                        dest.display(),
+                        e
+                    )
+                })?;
                 migrate_dir(&path, &dest, count)?;
             } else if path.extension().map_or(false, |ext| ext == "md") {
                 if dest.exists() {
@@ -907,13 +1053,27 @@ fn migrate_dir(from: &Path, to: &Path, count: &mut u32) -> Result<(), String> {
                     loop {
                         let alt = to.join(format!("{}-copy({}).md", stem, counter));
                         if !alt.exists() {
-                            fs::copy(&path, &alt).map_err(|e| e.to_string())?;
+                            fs::copy(&path, &alt).map_err(|e| {
+                                format!(
+                                    "Failed to copy {} to {}: {}",
+                                    path.display(),
+                                    alt.display(),
+                                    e
+                                )
+                            })?;
                             break;
                         }
                         counter += 1;
                     }
                 } else {
-                    fs::copy(&path, &dest).map_err(|e| e.to_string())?;
+                    fs::copy(&path, &dest).map_err(|e| {
+                        format!(
+                            "Failed to copy {} to {}: {}",
+                            path.display(),
+                            dest.display(),
+                            e
+                        )
+                    })?;
                 }
                 *count += 1;
             }
@@ -959,9 +1119,18 @@ fn load_trash_meta(app_handle: &AppHandle) -> Vec<TrashEntry> {
 
 fn save_trash_meta(app_handle: &AppHandle, entries: &[TrashEntry]) -> Result<(), String> {
     let dir = trash_dir(app_handle);
-    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    let json = serde_json::to_string_pretty(entries).map_err(|e| e.to_string())?;
-    fs::write(trash_meta_path(app_handle), &json).map_err(|e| e.to_string())
+    let meta_path = trash_meta_path(app_handle);
+    fs::create_dir_all(&dir)
+        .map_err(|e| format!("Failed to create trash directory {}: {}", dir.display(), e))?;
+    let json = serde_json::to_string_pretty(entries)
+        .map_err(|e| format!("Failed to serialize trash metadata: {}", e))?;
+    fs::write(&meta_path, &json).map_err(|e| {
+        format!(
+            "Failed to write trash metadata at {}: {}",
+            meta_path.display(),
+            e
+        )
+    })
 }
 
 fn unique_trash_name(dir: &Path, ts: &str, name: &str) -> String {
@@ -1008,11 +1177,19 @@ fn trash_note_at(
         .to_string();
 
     let dir = base.join(".trash");
-    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    fs::create_dir_all(&dir)
+        .map_err(|e| format!("Failed to create trash directory {}: {}", dir.display(), e))?;
     let trash_name = unique_trash_name(&dir, ts, &filename);
     let dest = dir.join(&trash_name);
 
-    fs::rename(&resolved, &dest).map_err(|e| e.to_string())?;
+    fs::rename(&resolved, &dest).map_err(|e| {
+        format!(
+            "Failed to trash note from {} to {}: {}",
+            resolved.display(),
+            dest.display(),
+            e
+        )
+    })?;
 
     let original_name = resolved
         .file_stem()
@@ -1066,11 +1243,19 @@ fn trash_folder_at(
         .to_string();
 
     let dir = base.join(".trash");
-    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    fs::create_dir_all(&dir)
+        .map_err(|e| format!("Failed to create trash directory {}: {}", dir.display(), e))?;
     let trash_name = unique_trash_name(&dir, ts, &folder_name);
     let dest = dir.join(&trash_name);
 
-    fs::rename(&resolved, &dest).map_err(|e| e.to_string())?;
+    fs::rename(&resolved, &dest).map_err(|e| {
+        format!(
+            "Failed to trash folder from {} to {}: {}",
+            resolved.display(),
+            dest.display(),
+            e
+        )
+    })?;
 
     meta.push(TrashEntry {
         original_name: folder_name,
@@ -1115,10 +1300,23 @@ fn restore_trash_entry_at(
         return Err("Original location already contains an item with that name".to_string());
     }
     if let Some(parent) = restore_path.parent() {
-        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+        fs::create_dir_all(parent).map_err(|e| {
+            format!(
+                "Failed to create parent directory {}: {}",
+                parent.display(),
+                e
+            )
+        })?;
     }
 
-    fs::rename(&trash_path, &restore_path).map_err(|e| e.to_string())?;
+    fs::rename(&trash_path, &restore_path).map_err(|e| {
+        format!(
+            "Failed to restore trash entry from {} to {}: {}",
+            trash_path.display(),
+            restore_path.display(),
+            e
+        )
+    })?;
     entries.remove(index);
     Ok(())
 }
@@ -1144,9 +1342,21 @@ fn permanently_delete_trash_entry_at(
     let trash_path = base.join(".trash").join(&entry.trash_name);
     if trash_path.exists() {
         if entry.is_folder {
-            fs::remove_dir_all(&trash_path).map_err(|e| e.to_string())?;
+            fs::remove_dir_all(&trash_path).map_err(|e| {
+                format!(
+                    "Failed to remove trash directory {}: {}",
+                    trash_path.display(),
+                    e
+                )
+            })?;
         } else {
-            fs::remove_file(&trash_path).map_err(|e| e.to_string())?;
+            fs::remove_file(&trash_path).map_err(|e| {
+                format!(
+                    "Failed to remove trash file {}: {}",
+                    trash_path.display(),
+                    e
+                )
+            })?;
         }
     }
 
@@ -1179,11 +1389,8 @@ pub fn purge_trash(app_handle: &AppHandle, retention_days: u64) -> Result<u32, S
     let mut remaining = Vec::new();
     let mut purged = 0u32;
     for entry in &meta {
-        let trashed = chrono::NaiveDateTime::parse_from_str(
-            &entry.trashed_at,
-            "%Y-%m-%dT%H%M%S",
-        )
-        .ok();
+        let trashed =
+            chrono::NaiveDateTime::parse_from_str(&entry.trashed_at, "%Y-%m-%dT%H%M%S").ok();
 
         let should_purge = trashed.map_or(false, |dt| {
             let age = now.signed_duration_since(dt);
@@ -1194,9 +1401,17 @@ pub fn purge_trash(app_handle: &AppHandle, retention_days: u64) -> Result<u32, S
             let trash_path = dir.join(&entry.trash_name);
             if trash_path.exists() {
                 if entry.is_folder {
-                    fs::remove_dir_all(&trash_path).map_err(|e| e.to_string())?;
+                    fs::remove_dir_all(&trash_path).map_err(|e| {
+                        format!(
+                            "Failed to purge trash directory {}: {}",
+                            trash_path.display(),
+                            e
+                        )
+                    })?;
                 } else {
-                    fs::remove_file(&trash_path).map_err(|e| e.to_string())?;
+                    fs::remove_file(&trash_path).map_err(|e| {
+                        format!("Failed to purge trash file {}: {}", trash_path.display(), e)
+                    })?;
                 }
                 purged += 1;
             }
@@ -1299,7 +1514,10 @@ mod tests {
 
         restore_trash_entry_at(&base, &mut entries, "2026-05-25T120000_Plan.md").unwrap();
 
-        assert_eq!(fs::read_to_string(base.join("Projects/Plan.md")).unwrap(), "restored body");
+        assert_eq!(
+            fs::read_to_string(base.join("Projects/Plan.md")).unwrap(),
+            "restored body"
+        );
         assert!(!trash.join("2026-05-25T120000_Plan.md").exists());
         assert!(entries.is_empty());
 
@@ -1321,7 +1539,8 @@ mod tests {
             trash_name: "2026-05-25T120000_Archive".to_string(),
         }];
 
-        permanently_delete_trash_entry_at(&base, &mut entries, "2026-05-25T120000_Archive").unwrap();
+        permanently_delete_trash_entry_at(&base, &mut entries, "2026-05-25T120000_Archive")
+            .unwrap();
 
         assert!(!trash.exists());
         assert!(entries.is_empty());
@@ -1411,6 +1630,86 @@ mod tests {
     }
 
     #[test]
+    fn snapshot_collects_root_and_nested_markdown_notes() {
+        let base = unique_test_dir("snapshot-notes");
+        fs::create_dir_all(base.join("Projects").join("Nested")).unwrap();
+        fs::write(base.join("Root.md"), "root").unwrap();
+        fs::write(base.join("Projects").join("Plan.md"), "plan").unwrap();
+        fs::write(base.join("Projects").join("Nested").join("Deep.md"), "deep").unwrap();
+
+        let snapshot = list_library_snapshot_at(&base);
+        let mut names: Vec<String> = snapshot.notes.into_iter().map(|n| n.name).collect();
+        names.sort();
+
+        assert_eq!(names, vec!["Deep", "Plan", "Root"]);
+        let _ = fs::remove_dir_all(base);
+    }
+
+    #[test]
+    fn snapshot_collects_folder_entries() {
+        let base = unique_test_dir("snapshot-folders");
+        fs::create_dir_all(base.join("Projects").join("Nested")).unwrap();
+        fs::create_dir_all(base.join("Area")).unwrap();
+
+        let snapshot = list_library_snapshot_at(&base);
+        let mut paths: Vec<String> = snapshot.folders.into_iter().map(|f| f.path).collect();
+        paths.sort();
+
+        assert_eq!(paths, vec!["Area", "Projects", "Projects/Nested"]);
+        let _ = fs::remove_dir_all(base);
+    }
+
+    #[test]
+    fn snapshot_excludes_trash_folder() {
+        let base = unique_test_dir("snapshot-excludes-trash");
+        fs::create_dir_all(base.join(".trash")).unwrap();
+        fs::write(base.join(".trash").join("Deleted.md"), "deleted").unwrap();
+        fs::write(base.join("Visible.md"), "visible").unwrap();
+
+        let snapshot = list_library_snapshot_at(&base);
+        let note_names: Vec<String> = snapshot.notes.into_iter().map(|n| n.name).collect();
+
+        assert_eq!(note_names, vec!["Visible"]);
+        assert!(snapshot.folders.is_empty());
+        let _ = fs::remove_dir_all(base);
+    }
+
+    #[test]
+    fn snapshot_excludes_underscore_prefixed_folders() {
+        let base = unique_test_dir("snapshot-excludes-underscore");
+        fs::create_dir_all(base.join("_themes")).unwrap();
+        fs::create_dir_all(base.join("Projects")).unwrap();
+        fs::write(base.join("_themes").join("Hidden.md"), "hidden").unwrap();
+        fs::write(base.join("Projects").join("Visible.md"), "visible").unwrap();
+
+        let snapshot = list_library_snapshot_at(&base);
+        let note_names: Vec<String> = snapshot.notes.into_iter().map(|n| n.name).collect();
+        let folder_paths: Vec<String> = snapshot.folders.into_iter().map(|f| f.path).collect();
+
+        assert_eq!(note_names, vec!["Visible"]);
+        assert_eq!(folder_paths, vec!["Projects"]);
+        let _ = fs::remove_dir_all(base);
+    }
+
+    #[test]
+    fn home_folder_status_serializes_for_frontend_contract() {
+        let status = HomeFolderStatus {
+            configured_path: "/configured".to_string(),
+            effective_path: "/effective".to_string(),
+            is_fallback: true,
+        };
+
+        let value = serde_json::to_value(status).unwrap();
+
+        assert_eq!(value["configuredPath"], "/configured");
+        assert_eq!(value["effectivePath"], "/effective");
+        assert_eq!(value["isFallback"], true);
+        assert!(value.get("configured_path").is_none());
+        assert!(value.get("effective_path").is_none());
+        assert!(value.get("is_fallback").is_none());
+    }
+
+    #[test]
     fn repair_trash_metadata_removes_stale_entries() {
         let base = unique_test_dir("repair-stale");
         let trash = base.join(".trash");
@@ -1494,7 +1793,9 @@ mod tests {
         let dir = std::env::temp_dir().join(format!(
             "quietness-trash-test-{}-{}",
             name,
-            chrono::Local::now().timestamp_nanos_opt().unwrap_or_default()
+            chrono::Local::now()
+                .timestamp_nanos_opt()
+                .unwrap_or_default()
         ));
         fs::create_dir_all(&dir).unwrap();
         dir
