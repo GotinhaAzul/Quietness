@@ -1,13 +1,13 @@
 <script lang="ts">
   import ConfirmModal from './ConfirmModal.svelte';
   import {
-    loadTrash,
     permanentlyDeleteTrashEntry,
     restoreTrashEntry,
     trashEntries,
     trashLoading,
     type TrashEntry,
   } from '$lib/stores/trash';
+  import { reconcileIntegrity } from '$lib/stores/integrity';
 
   let { open = false, onclose }: { open?: boolean; onclose?: () => void } = $props();
 
@@ -16,7 +16,7 @@
 
   $effect(() => {
     if (open) {
-      void loadTrash();
+      void reconcileIntegrity('trash-opened');
     } else {
       pendingDelete = null;
       busyTrashName = null;

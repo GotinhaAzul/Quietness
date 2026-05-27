@@ -1,5 +1,5 @@
 use tauri::AppHandle;
-use crate::fs::{self, FolderEntry, HomeFolderStatus, NoteEntry, Settings, TrashEntry, UserThemeEntry};
+use crate::fs::{self, FolderEntry, HomeFolderStatus, IntegrityRepairReport, NoteEntry, Settings, TrashEntry, UserThemeEntry};
 
 #[tauri::command]
 pub fn list_notes(app_handle: AppHandle) -> Vec<NoteEntry> {
@@ -166,4 +166,11 @@ pub async fn permanently_delete_trash_entry(app_handle: AppHandle, trash_name: S
     tauri::async_runtime::spawn_blocking(move || fs::permanently_delete_trash_entry(&app_handle, &trash_name))
         .await
         .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn repair_integrity(app_handle: AppHandle) -> IntegrityRepairReport {
+    tauri::async_runtime::spawn_blocking(move || fs::repair_integrity(&app_handle))
+        .await
+        .unwrap_or(IntegrityRepairReport { removed_trash_metadata: 0 })
 }

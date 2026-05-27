@@ -147,6 +147,14 @@ fn list_notes_recursive(dir: &PathBuf, notes: &mut Vec<NoteEntry>) {
         for entry in entries.flatten() {
             let path = entry.path();
             if path.is_dir() {
+                let name = path
+                    .file_name()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .to_string();
+                if name.starts_with('_') || name == ".trash" {
+                    continue;
+                }
                 list_notes_recursive(&path, notes);
             } else if path.extension().map_or(false, |ext| ext == "md") {
                 notes.push(NoteEntry {
@@ -1201,6 +1209,46 @@ pub fn purge_trash(app_handle: &AppHandle, retention_days: u64) -> Result<u32, S
     Ok(purged)
 }
 
+// ── Integrity repair ──
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IntegrityRepairReport {
+    pub removed_trash_metadata: u32,
+}
+
+pub fn repair_trash_metadata_at(base: &Path, entries: &[TrashEntry]) -> Vec<TrashEntry> {
+    let trash_dir = base.join(".trash");
+    let mut remaining = Vec::new();
+    for entry in entries {
+        if entry.trash_name.contains('/')
+            || entry.trash_name.contains('\\')
+            || entry.trash_name.contains("..")
+        {
+            continue;
+        }
+        let target = trash_dir.join(&entry.trash_name);
+        if target.exists() {
+            remaining.push(entry.clone());
+        }
+    }
+    remaining
+}
+
+pub fn repair_integrity(app_handle: &AppHandle) -> IntegrityRepairReport {
+    let base = notes_dir(app_handle);
+    let meta = load_trash_meta(app_handle);
+    let original_count = meta.len() as u32;
+    let repaired = repair_trash_metadata_at(&base, &meta);
+    let removed = original_count.saturating_sub(repaired.len() as u32);
+    if removed > 0 {
+        let _ = save_trash_meta(app_handle, &repaired);
+    }
+    IntegrityRepairReport {
+        removed_trash_metadata: removed,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1325,6 +1373,119 @@ mod tests {
         assert_ne!(entries[0].trash_name, entries[1].trash_name);
         assert!(base.join(".trash").join(&entries[0].trash_name).exists());
         assert!(base.join(".trash").join(&entries[1].trash_name).exists());
+
+        let _ = fs::remove_dir_all(base);
+    }
+
+    #[test]
+    fn active_note_listing_excludes_files_inside_trash() {
+        let base = unique_test_dir("listing-excludes-trash");
+        fs::create_dir_all(base.join(".trash")).unwrap();
+        fs::create_dir_all(base.join("Projects")).unwrap();
+        fs::write(base.join("Projects").join("Active.md"), "active").unwrap();
+        fs::write(base.join(".trash").join("Deleted.md"), "deleted").unwrap();
+
+        let mut notes = Vec::new();
+        list_notes_recursive(&base, &mut notes);
+
+        assert_eq!(notes.len(), 1);
+        assert_eq!(notes[0].name, "Active");
+
+        let _ = fs::remove_dir_all(base);
+    }
+
+    #[test]
+    fn active_note_listing_excludes_underscore_prefix_folders() {
+        let base = unique_test_dir("listing-excludes-underscore");
+        fs::create_dir_all(base.join("_themes")).unwrap();
+        fs::write(base.join("_themes").join("Secret.md"), "hidden").unwrap();
+        fs::write(base.join("Visible.md"), "visible").unwrap();
+
+        let mut notes = Vec::new();
+        list_notes_recursive(&base, &mut notes);
+
+        assert_eq!(notes.len(), 1);
+        assert_eq!(notes[0].name, "Visible");
+
+        let _ = fs::remove_dir_all(base);
+    }
+
+    #[test]
+    fn repair_trash_metadata_removes_stale_entries() {
+        let base = unique_test_dir("repair-stale");
+        let trash = base.join(".trash");
+        fs::create_dir_all(&trash).unwrap();
+        // Create only one of the two trash files
+        fs::write(trash.join("existing.md"), "body").unwrap();
+
+        let entries = vec![
+            TrashEntry {
+                original_name: "Existing".to_string(),
+                original_path: "Existing.md".to_string(),
+                trashed_at: "2026-05-25T120000".to_string(),
+                is_folder: false,
+                trash_name: "existing.md".to_string(),
+            },
+            TrashEntry {
+                original_name: "Stale".to_string(),
+                original_path: "Stale.md".to_string(),
+                trashed_at: "2026-05-25T120000".to_string(),
+                is_folder: false,
+                trash_name: "stale.md".to_string(),
+            },
+        ];
+
+        let remaining = repair_trash_metadata_at(&base, &entries);
+
+        assert_eq!(remaining.len(), 1);
+        assert_eq!(remaining[0].trash_name, "existing.md");
+
+        let _ = fs::remove_dir_all(base);
+    }
+
+    #[test]
+    fn repair_trash_metadata_drops_unsafe_trash_names() {
+        let base = unique_test_dir("repair-unsafe");
+        let trash = base.join(".trash");
+        fs::create_dir_all(&trash).unwrap();
+        // Create files for all entries
+        fs::write(trash.join("safe.md"), "body").unwrap();
+
+        let entries = vec![
+            TrashEntry {
+                original_name: "Safe".to_string(),
+                original_path: "Safe.md".to_string(),
+                trashed_at: "2026-05-25T120000".to_string(),
+                is_folder: false,
+                trash_name: "safe.md".to_string(),
+            },
+            TrashEntry {
+                original_name: "HasSlash".to_string(),
+                original_path: "HasSlash.md".to_string(),
+                trashed_at: "2026-05-25T120000".to_string(),
+                is_folder: false,
+                trash_name: "../escape.md".to_string(),
+            },
+            TrashEntry {
+                original_name: "HasBackslash".to_string(),
+                original_path: "HasBackslash.md".to_string(),
+                trashed_at: "2026-05-25T120000".to_string(),
+                is_folder: false,
+                trash_name: "sub\\bad.md".to_string(),
+            },
+            TrashEntry {
+                original_name: "HasDotDot".to_string(),
+                original_path: "HasDotDot.md".to_string(),
+                trashed_at: "2026-05-25T120000".to_string(),
+                is_folder: false,
+                trash_name: "sub/../bad.md".to_string(),
+            },
+        ];
+
+        let remaining = repair_trash_metadata_at(&base, &entries);
+
+        assert_eq!(remaining.len(), 1);
+        assert_eq!(remaining[0].trash_name, "safe.md");
 
         let _ = fs::remove_dir_all(base);
     }

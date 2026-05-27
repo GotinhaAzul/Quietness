@@ -13,6 +13,7 @@ import { settings } from '$lib/stores/settings';
 import { userThemes } from '$lib/stores/userThemes';
 import { focusSearchInput, showNewNoteInput } from '$lib/stores/ui';
 import { moveTarget } from '$lib/stores/move';
+import { reconcileIntegrity } from '$lib/stores/integrity';
 import { FONT_STACKS } from '$lib/utils/fonts';
 import { runAfterModalDismiss, waitForNextPaint } from '$lib/utils/confirmedAction';
 import ConfirmModal from '$lib/components/ConfirmModal.svelte';
@@ -79,7 +80,7 @@ import MoveDialog from '$lib/components/MoveDialog.svelte';
     loadFolders();
     settings.load().then(async () => {
       await userThemes.load();
-      appReady = true;
+
       // Check home folder health
       try {
         const status = await invoke<{ configuredPath: string; effectivePath: string; isFallback: boolean }>('home_folder_status');
@@ -87,6 +88,9 @@ import MoveDialog from '$lib/components/MoveDialog.svelte';
           showError(`Home folder is missing or inaccessible. Using default location: ${status.effectivePath}`);
         }
       } catch { /* ignore */ }
+
+      await reconcileIntegrity('startup');
+      appReady = true;
     });
 
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {

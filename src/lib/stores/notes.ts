@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { isSameNotePath } from '$lib/utils/noteDeletion';
 import { shouldRestoreNoteAfterDeleteFailure } from '$lib/utils/noteCrudRecovery';
 import { showError } from '$lib/stores/errors';
+import { reconcileIntegrity } from '$lib/stores/integrity';
 
 export interface NoteEntry {
   name: string;
@@ -40,7 +41,7 @@ export async function loadNote(path: string): Promise<void> {
     const name = path.replace(/\\/g, '/').split('/').pop()?.replace('.md', '') || 'Untitled';
     currentNote.set({ name, path, content });
   } catch (e) {
-    await loadNotes();
+    await reconcileIntegrity('load-note-failed');
     showError(`Failed to load note: ${e}`);
   }
 }
@@ -51,6 +52,10 @@ export async function saveCurrentNote(): Promise<void> {
   try {
     await invoke('write_note', { path: note.path, content: note.content });
   } catch (e) {
+    const msg = String(e).toLowerCase();
+    if (msg.includes('no such file') || msg.includes('not found') || msg.includes('cannot find')) {
+      await reconcileIntegrity('save-failed');
+    }
     showError(`Failed to save note: ${e}`);
   }
 }
@@ -60,6 +65,10 @@ export async function saveNote(path: string, content: string): Promise<void> {
     await invoke('write_note', { path, content });
     currentNote.update(n => (n && n.path === path) ? { ...n, content } : n);
   } catch (e) {
+    const msg = String(e).toLowerCase();
+    if (msg.includes('no such file') || msg.includes('not found') || msg.includes('cannot find')) {
+      await reconcileIntegrity('save-failed');
+    }
     showError(`Failed to save note: ${e}`);
   }
 }
