@@ -461,7 +461,7 @@ pub async fn search_notes(
     let query_lower = query.to_lowercase();
 
     match scope {
-        "current_note" => {
+        "current-note" => {
             let path = match scope_path {
                 Some(p) => p,
                 None => return Vec::new(),
@@ -492,7 +492,7 @@ pub async fn search_notes(
             .unwrap_or(None);
             result.into_iter().collect()
         }
-        "current_folder" => {
+        "current-folder" => {
             let folder_path = scope_path.unwrap_or("");
             let base = notes_dir(app_handle);
             let dir = if folder_path.is_empty() {

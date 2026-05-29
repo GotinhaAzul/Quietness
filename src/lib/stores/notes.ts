@@ -4,6 +4,7 @@ import { isSameNotePath } from '$lib/utils/noteDeletion';
 import { shouldRestoreNoteAfterDeleteFailure } from '$lib/utils/noteCrudRecovery';
 import { showError } from '$lib/stores/errors';
 import { reconcileIntegrity } from '$lib/stores/integrity';
+import { loadFolders } from '$lib/stores/folders';
 
 export interface NoteEntry {
   name: string;
@@ -118,7 +119,7 @@ export async function createNote(name: string, folder: string = '', content: str
 
     try {
       await invoke('write_note', { path, content });
-      await loadNotes();
+      await Promise.all([loadNotes(), loadFolders()]);
     } catch (e) {
       notes.update(list => list.filter(n => n.path !== path));
       currentNote.update(n => n?.path === path ? null : n);

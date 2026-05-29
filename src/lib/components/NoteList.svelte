@@ -45,7 +45,7 @@
     try {
       const query = $searchQuery;
       if (query) {
-        const entries = await invoke<NoteEntry[]>('search_notes', { query, scope: $searchScope });
+        const entries = await invoke<NoteEntry[]>('search_notes', { query, scope: $searchScope, scope_path: $selectedFolder });
         if (currentRequest !== requestId) return;
         noteEntries = entries;
         searchResultCount.set(entries.length);

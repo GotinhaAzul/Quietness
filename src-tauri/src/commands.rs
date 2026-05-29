@@ -78,7 +78,7 @@ pub async fn search_notes(
     scope: Option<String>,
     scope_path: Option<String>,
 ) -> Vec<NoteEntry> {
-    let scope = scope.unwrap_or_else(|| "all_notes".to_string());
+    let scope = scope.unwrap_or_else(|| "all".to_string());
     fs::search_notes(&app_handle, &query, &scope, scope_path.as_deref()).await
 }
 
