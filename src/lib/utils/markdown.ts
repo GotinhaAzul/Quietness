@@ -1,6 +1,8 @@
 import MarkdownIt from 'markdown-it';
 import wikilinksPlugin from './wikilinks';
 import tasklistsPlugin from './tasklists';
+import markPlugin from 'markdown-it-mark';
+import strikethroughPlugin from './strikethrough';
 
 const md = new MarkdownIt({
   html: false,
@@ -11,6 +13,8 @@ const md = new MarkdownIt({
 
 md.use(wikilinksPlugin);
 md.use(tasklistsPlugin);
+md.use(markPlugin);
+md.use(strikethroughPlugin);
 
 export default md;
 

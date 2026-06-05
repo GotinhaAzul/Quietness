@@ -71,6 +71,10 @@ pub fn run() {
             commands::restore_trash_entry,
             commands::permanently_delete_trash_entry,
             commands::repair_integrity,
+            commands::list_templates,
+            commands::read_template,
+            commands::create_template,
+            commands::delete_template,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -199,6 +199,18 @@ a.wikilink.broken:hover {
   font-style: italic;
 }
 
+.preview-content mark {
+  background: var(--q-warning-bg);
+  color: var(--q-warning);
+  padding: 0.1em 0.2em;
+  border-radius: 3px;
+}
+
+.preview-content del {
+  color: var(--q-faded);
+  text-decoration: line-through;
+}
+
 /* ── Lists ── */
 .preview-content ul,
 .preview-content ol {

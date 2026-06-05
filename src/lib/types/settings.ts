@@ -40,4 +40,5 @@ export interface Settings {
   editor: EditorSettings;
   pet: PetSettings;
   trashRetentionDays: number;
+  templatesEnabled: boolean;
 }

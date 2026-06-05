@@ -35,6 +35,7 @@ export const DEFAULT_SETTINGS: Settings = {
     },
   },
   trashRetentionDays: 30,
+  templatesEnabled: true,
 };
 
 function createSettingsStore() {

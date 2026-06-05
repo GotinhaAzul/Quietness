@@ -898,6 +898,105 @@ pub fn read_user_theme_css(app_handle: &AppHandle, id: &str) -> Result<String, S
         .map_err(|e| format!("Failed to read user theme at {}: {}", path.display(), e))
 }
 
+// ── Note Templates ──
+
+#[derive(Debug, Clone, Serialize)]
+pub struct TemplateEntry {
+    pub name: String,
+}
+
+fn templates_dir(app_handle: &AppHandle) -> PathBuf {
+    let dir = notes_dir(app_handle).join("_templates");
+    let _ = fs::create_dir_all(&dir);
+    dir
+}
+
+fn validate_template_name(name: &str) -> Result<(), String> {
+    if name.is_empty() {
+        return Err("Template name cannot be empty".to_string());
+    }
+    if name.contains('/') || name.contains('\\') || name.contains("..") {
+        return Err("Invalid template name".to_string());
+    }
+    Ok(())
+}
+
+fn list_templates_at(dir: &Path) -> Vec<TemplateEntry> {
+    let mut templates = Vec::new();
+    if let Ok(entries) = fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_file() && path.extension().map_or(false, |ext| ext == "md") {
+                let name = path
+                    .file_stem()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .to_string();
+                templates.push(TemplateEntry { name });
+            }
+        }
+    }
+    templates.sort_by_cached_key(|t| t.name.to_lowercase());
+    templates
+}
+
+fn read_template_at(dir: &Path, name: &str) -> Result<String, String> {
+    validate_template_name(name)?;
+    let path = dir.join(format!("{}.md", name));
+    let canon_dir = std::fs::canonicalize(dir).unwrap_or_else(|_| dir.to_path_buf());
+    let canon_path = resolve_canonical(&path);
+    if !canon_path.starts_with(&canon_dir) {
+        return Err("Access denied".to_string());
+    }
+    fs::read_to_string(&path)
+        .map_err(|e| format!("Failed to read template at {}: {}", path.display(), e))
+}
+
+fn create_template_at(dir: &Path, name: &str, content: &str) -> Result<(), String> {
+    validate_template_name(name)?;
+    let path = dir.join(format!("{}.md", name));
+    if path.exists() {
+        return Err(format!("A template named '{}' already exists", name));
+    }
+    fs::write(&path, content)
+        .map_err(|e| format!("Failed to create template at {}: {}", path.display(), e))
+}
+
+fn delete_template_at(dir: &Path, name: &str) -> Result<(), String> {
+    validate_template_name(name)?;
+    let path = dir.join(format!("{}.md", name));
+    let canon_dir = std::fs::canonicalize(dir).unwrap_or_else(|_| dir.to_path_buf());
+    let canon_path = resolve_canonical(&path);
+    if !canon_path.starts_with(&canon_dir) {
+        return Err("Access denied".to_string());
+    }
+    if !path.exists() {
+        return Err(format!("Template '{}' not found", name));
+    }
+    fs::remove_file(&path)
+        .map_err(|e| format!("Failed to delete template at {}: {}", path.display(), e))
+}
+
+pub fn list_templates(app_handle: &AppHandle) -> Vec<TemplateEntry> {
+    let dir = templates_dir(app_handle);
+    list_templates_at(&dir)
+}
+
+pub fn read_template(app_handle: &AppHandle, name: &str) -> Result<String, String> {
+    let dir = templates_dir(app_handle);
+    read_template_at(&dir, name)
+}
+
+pub fn create_template(app_handle: &AppHandle, name: &str, content: &str) -> Result<(), String> {
+    let dir = templates_dir(app_handle);
+    create_template_at(&dir, name, content)
+}
+
+pub fn delete_template(app_handle: &AppHandle, name: &str) -> Result<(), String> {
+    let dir = templates_dir(app_handle);
+    delete_template_at(&dir, name)
+}
+
 // ── Settings ──
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -952,6 +1051,7 @@ pub struct Settings {
     pub editor: EditorSettings,
     pub pet: PetSettings,
     pub trash_retention_days: u64,
+    pub templates_enabled: bool,
 }
 
 fn settings_path(app_handle: &AppHandle) -> PathBuf {
@@ -989,6 +1089,7 @@ fn default_settings() -> Settings {
             },
         },
         trash_retention_days: 30,
+        templates_enabled: true,
     }
 }
 
@@ -1835,5 +1936,118 @@ mod tests {
         ));
         fs::create_dir_all(&dir).unwrap();
         dir
+    }
+
+    // ── Template tests ──
+
+    #[test]
+    fn template_list_returns_empty_when_no_templates() {
+        let dir = unique_test_dir("templates-empty");
+        let result = list_templates_at(&dir);
+        assert!(result.is_empty());
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn template_list_returns_sorted_templates() {
+        let dir = unique_test_dir("templates-list");
+        fs::write(dir.join("z_last.md"), "z").unwrap();
+        fs::write(dir.join("a_first.md"), "a").unwrap();
+        fs::write(dir.join("M_mid.md"), "m").unwrap();
+
+        let result = list_templates_at(&dir);
+
+        assert_eq!(result.len(), 3);
+        assert_eq!(result[0].name, "a_first");
+        assert_eq!(result[1].name, "M_mid");
+        assert_eq!(result[2].name, "z_last");
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn template_list_ignores_non_md_files() {
+        let dir = unique_test_dir("templates-ignore-nonmd");
+        fs::write(dir.join("note.md"), "content").unwrap();
+        fs::write(dir.join("readme.txt"), "text").unwrap();
+        fs::write(dir.join("script.js"), "code").unwrap();
+
+        let result = list_templates_at(&dir);
+
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].name, "note");
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn template_create_writes_file_and_allows_listing() {
+        let dir = unique_test_dir("templates-create");
+        create_template_at(&dir, "daily", "# Daily Notes\n\n- [ ] ").unwrap();
+
+        assert!(dir.join("daily.md").exists());
+        assert_eq!(
+            fs::read_to_string(dir.join("daily.md")).unwrap(),
+            "# Daily Notes\n\n- [ ] "
+        );
+
+        let list = list_templates_at(&dir);
+        assert_eq!(list.len(), 1);
+        assert_eq!(list[0].name, "daily");
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn template_create_rejects_duplicate_name() {
+        let dir = unique_test_dir("templates-dup");
+        fs::write(dir.join("existing.md"), "content").unwrap();
+
+        let err = create_template_at(&dir, "existing", "new content").unwrap_err();
+        assert!(err.contains("already exists"));
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn template_create_rejects_invalid_name() {
+        let dir = unique_test_dir("templates-invalid-name");
+        let err = create_template_at(&dir, "../escape", "x").unwrap_err();
+        assert!(err.contains("Invalid"));
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn template_delete_removes_file_and_updates_list() {
+        let dir = unique_test_dir("templates-delete");
+        fs::write(dir.join("obsolete.md"), "old content").unwrap();
+
+        delete_template_at(&dir, "obsolete").unwrap();
+
+        assert!(!dir.join("obsolete.md").exists());
+        assert!(list_templates_at(&dir).is_empty());
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn template_delete_reports_missing_template() {
+        let dir = unique_test_dir("templates-delete-missing");
+        let err = delete_template_at(&dir, "nonexistent").unwrap_err();
+        assert!(err.contains("not found"));
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn template_read_returns_content() {
+        let dir = unique_test_dir("templates-read");
+        fs::write(dir.join("greeting.md"), "Hello, **World**!").unwrap();
+
+        let content = read_template_at(&dir, "greeting").unwrap();
+        assert_eq!(content, "Hello, **World**!");
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn template_read_rejects_traversal() {
+        let dir = unique_test_dir("templates-read-traversal");
+        let err = read_template_at(&dir, "../etc/passwd").unwrap_err();
+        assert!(err.contains("Invalid") || err.contains("Access denied"));
+        let _ = fs::remove_dir_all(&dir);
     }
 }

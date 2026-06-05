@@ -193,7 +193,7 @@
 {/if}
 
 {#snippet treeNode(node: TreeNode, depth: number = 0)}
-  <div class="group relative">
+  <div class="group relative flex items-center">
     <button
       class={folderBtnClass(node.path, $selectedFolder === node.path)}
       style="padding-left: {12 + depth * 12}px"
@@ -228,7 +228,7 @@
           class="min-w-0 flex-1 rounded border border-quiet-border bg-quiet-surface px-1.5 py-0.5 text-xs text-quiet-text outline-none transition-colors focus:border-quiet-accent/50"
         />
       {:else}
-        <span class="truncate">{node.name}</span>
+        <span class="truncate pr-14">{node.name}</span>
       {/if}
     </button>
     {#if renameState?.path !== node.path}
@@ -262,12 +262,12 @@
         </button>
       </div>
     {/if}
-    {#if expandedPaths.has(node.path) && node.children.length > 0}
-      {#each node.children as child}
-        {@render treeNode(child, depth + 1)}
-      {/each}
-    {/if}
   </div>
+  {#if expandedPaths.has(node.path) && node.children.length > 0}
+    {#each node.children as child}
+      {@render treeNode(child, depth + 1)}
+    {/each}
+  {/if}
 {/snippet}
 
 {#if tree.length === 0}

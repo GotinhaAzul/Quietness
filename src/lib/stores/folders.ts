@@ -129,6 +129,26 @@ export async function renameFolder(oldPath: string, newName: string): Promise<vo
       }
     }
 
+    selectedFolder.update(cur => {
+      if (cur === null) return null;
+      const nc = normalizeNotePath(cur);
+      const no = normalizeNotePath(oldPath);
+      if (nc === no) {
+        const parts = oldPath.split('/');
+        parts[parts.length - 1] = newName;
+        return parts.join('/');
+      }
+      if (nc.startsWith(no + '/')) {
+        const parentParts = oldPath.split('/');
+        parentParts.pop();
+        const newParent = parentParts.length > 0
+          ? `${parentParts.join('/')}/${newName}`
+          : newName;
+        return newParent + cur.slice(oldPath.length);
+      }
+      return cur;
+    });
+
     await Promise.all([loadFolders(), loadNotes()]);
   } catch (e) {
     showError(`Failed to rename folder: ${e}`);

@@ -1,6 +1,6 @@
 use crate::fs::{
     self, FolderEntry, HomeFolderStatus, IntegrityRepairReport, LibrarySnapshot, NoteEntry,
-    Settings, TrashEntry, UserThemeEntry,
+    Settings, TemplateEntry, TrashEntry, UserThemeEntry,
 };
 use tauri::AppHandle;
 
@@ -213,4 +213,26 @@ pub async fn repair_integrity(app_handle: AppHandle) -> Result<IntegrityRepairRe
     tauri::async_runtime::spawn_blocking(move || fs::repair_integrity(&app_handle))
         .await
         .map_err(|e| e.to_string())
+}
+
+// ── Template commands ──
+
+#[tauri::command]
+pub fn list_templates(app_handle: AppHandle) -> Vec<TemplateEntry> {
+    fs::list_templates(&app_handle)
+}
+
+#[tauri::command]
+pub fn read_template(app_handle: AppHandle, name: String) -> Result<String, String> {
+    fs::read_template(&app_handle, &name)
+}
+
+#[tauri::command]
+pub fn create_template(app_handle: AppHandle, name: String, content: String) -> Result<(), String> {
+    fs::create_template(&app_handle, &name, &content)
+}
+
+#[tauri::command]
+pub fn delete_template(app_handle: AppHandle, name: String) -> Result<(), String> {
+    fs::delete_template(&app_handle, &name)
 }
