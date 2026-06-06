@@ -1046,6 +1046,10 @@ pub struct PetSettings {
 #[serde(rename_all = "camelCase")]
 pub struct Settings {
     pub theme: String,
+    #[serde(default = "default_sidebar_accent")]
+    pub sidebar_accent: String,
+    #[serde(default = "default_chrome_opacity")]
+    pub chrome_opacity: f32,
     pub fonts: FontSettings,
     pub sizes: SizeSettings,
     pub editor: EditorSettings,
@@ -1058,9 +1062,19 @@ fn settings_path(app_handle: &AppHandle) -> PathBuf {
     notes_dir(app_handle).join("settings.json")
 }
 
+fn default_sidebar_accent() -> String {
+    "#6b615a".to_string()
+}
+
+fn default_chrome_opacity() -> f32 {
+    0.65
+}
+
 fn default_settings() -> Settings {
     Settings {
         theme: "quiet".to_string(),
+        sidebar_accent: default_sidebar_accent(),
+        chrome_opacity: default_chrome_opacity(),
         fonts: FontSettings {
             ui: "Inter".to_string(),
             editor: "JetBrains Mono".to_string(),

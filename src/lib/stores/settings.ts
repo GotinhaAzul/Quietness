@@ -5,6 +5,8 @@ import { showError } from '$lib/stores/errors';
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: 'quiet',
+  sidebarAccent: '#6b615a',
+  chromeOpacity: 0.65,
   fonts: {
     ui: 'Inter',
     editor: 'JetBrains Mono',

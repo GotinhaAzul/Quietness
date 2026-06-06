@@ -35,6 +35,8 @@ export interface PetSettings {
 
 export interface Settings {
   theme: string;
+  sidebarAccent: string;
+  chromeOpacity: number;
   fonts: FontSettings;
   sizes: SizeSettings;
   editor: EditorSettings;

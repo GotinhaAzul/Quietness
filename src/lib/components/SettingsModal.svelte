@@ -297,6 +297,58 @@
             </div>
           {/if}
 
+          <div class="mt-6 space-y-5 rounded-lg border border-quiet-border/60 p-4">
+            <div>
+              <h3 class="text-xs font-medium text-quiet-text">Sidebar</h3>
+              <p class="mt-1 text-[11px] leading-relaxed text-quiet-faded">
+                Icon shapes follow the selected theme. Accent and chrome opacity are personal overrides.
+              </p>
+            </div>
+
+            <div class="flex items-center justify-between gap-4">
+              <span class="text-xs text-quiet-text">Accent color</span>
+              <input
+                type="color"
+                value={$settings.sidebarAccent}
+                oninput={(e) => {
+                  const val = (e.target as HTMLInputElement).value;
+                  settings.update(s => ({ ...s, sidebarAccent: val }));
+                }}
+                class="h-7 w-10 cursor-pointer rounded border border-quiet-border/70 bg-transparent p-0.5"
+              />
+            </div>
+
+            <div>
+              <div class="mb-2 flex items-center justify-between gap-4">
+                <span class="text-xs text-quiet-text">Chrome opacity</span>
+                <span class="text-xs text-quiet-muted tabular-nums">{Math.round($settings.chromeOpacity * 100)}%</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                class="quiet-range w-full"
+                value={$settings.chromeOpacity}
+                oninput={(e) => {
+                  const val = Number((e.target as HTMLInputElement).value);
+                  settings.update(s => ({ ...s, chromeOpacity: val }));
+                }}
+              />
+            </div>
+
+            <button
+              class="w-full rounded-md border border-quiet-border/60 px-3 py-1.5 text-xs text-quiet-faded transition-colors hover:border-quiet-border hover:bg-quiet-hover hover:text-quiet-text"
+              onclick={() => settings.update(s => ({
+                ...s,
+                sidebarAccent: DEFAULT_SETTINGS.sidebarAccent,
+                chromeOpacity: DEFAULT_SETTINGS.chromeOpacity,
+              }))}
+            >
+              Reset sidebar customization
+            </button>
+          </div>
+
         {:else if activeTab === 'fonts'}
           <div class="space-y-6">
             <!-- UI Font -->

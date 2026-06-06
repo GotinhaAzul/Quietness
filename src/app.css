@@ -32,10 +32,15 @@
   --q-sidebar-bg: #f2eee8;
   --q-sidebar-item-hover: #eae5dd;
   --q-sidebar-item-active: #e0dad1;
+  --q-sidebar-accent: #6b615a;
+  --q-chrome-opacity: 0.65;
+  --q-chrome-border: color-mix(in srgb, var(--q-border) calc(var(--q-chrome-opacity) * 100%), transparent);
   --q-icon: #a69e96;
   --q-icon-hover: #2a2724;
   --q-scrollbar-thumb: #e5dfd6;
   --q-scrollbar-track: transparent;
+  --q-folder-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='black' d='M.5 3.5a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3h3.672a2 2 0 0 1 2 2v6.5a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2v-7.5Z'/%3E%3C/svg%3E");
+  --q-note-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='black' d='M2 1.75C2 .784 2.784 0 3.75 0h5.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 12.25 16h-8.5A1.75 1.75 0 0 1 2 14.25V1.75Z'/%3E%3C/svg%3E");
 }
 
 /* ── Tailwind v4 theme mapping ── */
@@ -61,6 +66,8 @@
   --color-quiet-sidebar-bg: var(--q-sidebar-bg);
   --color-quiet-sidebar-item-hover: var(--q-sidebar-item-hover);
   --color-quiet-sidebar-item-active: var(--q-sidebar-item-active);
+  --color-quiet-sidebar-accent: var(--q-sidebar-accent);
+  --color-quiet-chrome: var(--q-chrome-border);
   --color-quiet-icon: var(--q-icon);
   --color-quiet-icon-hover: var(--q-icon-hover);
   --color-quiet-scrollbar-thumb: var(--q-scrollbar-thumb);
@@ -75,6 +82,37 @@
   --q-size-ui: 14px;
   --q-size-editor: 14px;
   --q-size-preview: 16px;
+}
+
+/* Sidebar customization */
+.quiet-sidebar-row {
+  color: var(--q-muted);
+}
+
+.quiet-sidebar-row:hover {
+  background: color-mix(in srgb, var(--q-sidebar-accent) 14%, var(--q-sidebar-item-hover));
+  color: var(--q-text);
+}
+
+.quiet-sidebar-row-active {
+  background: color-mix(in srgb, var(--q-sidebar-accent) 24%, var(--q-sidebar-item-active));
+  color: var(--q-text);
+  box-shadow: inset 2px 0 0 var(--q-sidebar-accent);
+}
+
+.quiet-sidebar-icon {
+  display: inline-block;
+  width: 0.875rem;
+  height: 0.875rem;
+  flex-shrink: 0;
+  background: currentColor;
+  -webkit-mask: var(--q-folder-icon) center / contain no-repeat;
+  mask: var(--q-folder-icon) center / contain no-repeat;
+}
+
+.quiet-sidebar-icon-note {
+  -webkit-mask-image: var(--q-note-icon);
+  mask-image: var(--q-note-icon);
 }
 
 /* ── Global defaults ── */

@@ -88,9 +88,9 @@
   function folderBtnClass(path: string | null, isActive: boolean): string {
     const base = 'flex w-full items-center gap-1.5 rounded-md px-3 py-1.5 text-left text-xs transition-colors';
     if (isActive) {
-      return `${base} bg-quiet-sidebar-item-active text-quiet-text font-medium`;
+      return `${base} quiet-sidebar-row-active font-medium`;
     }
-    return `${base} text-quiet-muted hover:bg-quiet-sidebar-item-hover hover:text-quiet-text`;
+    return `${base} quiet-sidebar-row`;
   }
 
   async function handleCreateFolder() {
@@ -174,7 +174,7 @@
 <div class="flex items-center justify-between px-2 pt-3 pb-1">
   <span class="px-1 text-[10px] font-medium uppercase tracking-wider text-quiet-faded">Folders</span>
   <button
-    class="rounded px-1.5 py-0.5 text-xs text-quiet-faded transition-colors hover:bg-quiet-hover hover:text-quiet-text"
+    class="rounded px-1.5 py-0.5 text-xs text-quiet-faded transition-colors hover:bg-quiet-sidebar-item-hover hover:text-quiet-text"
     onclick={() => { showNewFolderInput = true; newFolderName = ''; }}
   >+</button>
 </div>
@@ -214,9 +214,7 @@
       {:else}
         <span class="inline-flex w-3.5 shrink-0"></span>
       {/if}
-      <svg class="h-3.5 w-3.5 shrink-0" viewBox="0 0 16 16" fill="currentColor">
-        <path d="M.5 3.5a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3h3.672a2 2 0 0 1 2 2v6.5a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2v-7.5Z"/>
-      </svg>
+      <span class="quiet-sidebar-icon"></span>
       {#if renameState?.path === node.path}
         <input
           bind:this={renameInput}
@@ -234,7 +232,7 @@
     {#if renameState?.path !== node.path}
       <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 transition-all group-hover:opacity-100">
         <button
-          class="rounded p-1 text-quiet-faded hover:bg-quiet-hover hover:text-quiet-text"
+          class="rounded p-1 text-quiet-faded hover:bg-quiet-sidebar-item-hover hover:text-quiet-text"
           onclick={(e) => startRename(node.path, node.name, e)}
           title="Rename folder"
         >
@@ -243,7 +241,7 @@
           </svg>
         </button>
         <button
-          class="rounded p-1 text-quiet-faded hover:bg-quiet-hover hover:text-quiet-text"
+          class="rounded p-1 text-quiet-faded hover:bg-quiet-sidebar-item-hover hover:text-quiet-text"
           onclick={(e) => { e.stopPropagation(); moveTarget.set({ type: 'folder', path: node.path, name: node.name }); }}
           title="Move folder"
         >
@@ -252,7 +250,7 @@
           </svg>
         </button>
         <button
-          class="rounded p-1 text-quiet-faded hover:bg-quiet-hover hover:text-quiet-danger"
+          class="rounded p-1 text-quiet-faded hover:bg-quiet-sidebar-item-hover hover:text-quiet-danger"
           onclick={(e) => handleDeleteFolder(e, node)}
           title="Delete folder"
         >
@@ -278,9 +276,7 @@
       class={folderBtnClass(null, $selectedFolder === null)}
       onclick={() => selectFolder(null)}
     >
-      <svg class="h-3.5 w-3.5 shrink-0" viewBox="0 0 16 16" fill="currentColor">
-        <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h2.879a1.5 1.5 0 0 1 1.06.44l1.122 1.12H13.5A1.5 1.5 0 0 1 15 4v9.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 13.5V2.5Z"/>
-      </svg>
+      <span class="quiet-sidebar-icon"></span>
       All Notes
     </button>
     {#each tree as node}

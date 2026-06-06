@@ -15,6 +15,7 @@
   import { reconcileIntegrity } from '$lib/stores/integrity';
   import { loadLibrarySnapshot } from '$lib/stores/library';
   import { FONT_STACKS } from '$lib/utils/fonts';
+  import { getSidebarCustomizationVars } from '$lib/utils/sidebarCustomization';
   import { runAfterModalDismiss, waitForNextPaint } from '$lib/utils/confirmedAction';
   import { createPerfTimer } from '$lib/utils/perf';
   import ConfirmModal from '$lib/components/ConfirmModal.svelte';
@@ -188,6 +189,10 @@
     root.style.setProperty('--q-size-ui', `${s.sizes.ui}px`);
     root.style.setProperty('--q-size-editor', `${s.sizes.editor}px`);
     root.style.setProperty('--q-size-preview', `${s.sizes.preview}px`);
+
+    for (const [name, value] of Object.entries(getSidebarCustomizationVars(s))) {
+      root.style.setProperty(name, value);
+    }
   });
 
   function handleContentChange(value: string) {

@@ -20,5 +20,7 @@
   --q-scrollbar-track: transparent;
   --q-selection-bg: rgba(9, 105, 218, 0.32);
   --q-selection-bg-inactive: rgba(9, 105, 218, 0.18);
+  --q-folder-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='black' d='M1.75 2.5h4.1l1.6 1.6h6.8A1.75 1.75 0 0 1 16 5.85v8.4A1.75 1.75 0 0 1 14.25 16H1.75A1.75 1.75 0 0 1 0 14.25V4.25A1.75 1.75 0 0 1 1.75 2.5Z'/%3E%3C/svg%3E");
+  --q-note-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='black' d='M4 0h7l4 4v12H4Zm7 1.5V5h3.5ZM6 7h8v1.2H6Zm0 3h8v1.2H6Zm0 3h5v1.2H6Z'/%3E%3C/svg%3E");
   color-scheme: light;
 }

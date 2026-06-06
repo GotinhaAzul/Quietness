@@ -35,9 +35,9 @@
   }
 </script>
 
-<aside class="flex shrink-0 flex-col border-r border-quiet-border/70 bg-quiet-sidebar-bg transition-all duration-150 ease-out {$sidebarCollapsed ? 'w-10' : 'w-64'}">
+<aside class="flex shrink-0 flex-col border-r border-quiet-chrome bg-quiet-sidebar-bg transition-all duration-150 ease-out {$sidebarCollapsed ? 'w-10' : 'w-64'}">
   {#if !$sidebarCollapsed}
-    <div class="border-b border-quiet-border/60 px-4 py-4">
+    <div class="border-b border-quiet-chrome px-4 py-4">
       <h1 class="text-sm font-semibold tracking-tight text-quiet-text">Quietness</h1>
       <p class="text-xs text-quiet-faded">A quiet place to write.</p>
     </div>
@@ -49,10 +49,10 @@
     <div class="overflow-y-auto">
       <FolderTree />
 
-      <div class="mt-4 px-2 pt-3 pb-1 flex items-center justify-between border-t border-quiet-border/60">
+      <div class="mt-4 px-2 pt-3 pb-1 flex items-center justify-between border-t border-quiet-chrome">
         <span class="px-1 text-[10px] font-medium uppercase tracking-wider text-quiet-faded">Notes</span>
         <button
-          class="rounded px-1.5 py-0.5 text-xs text-quiet-faded transition-colors hover:bg-quiet-hover hover:text-quiet-text"
+          class="rounded px-1.5 py-0.5 text-xs text-quiet-faded transition-colors hover:bg-quiet-sidebar-item-hover hover:text-quiet-text"
           onclick={() => { showNewNoteInput.set(true); newNoteName = ''; }}
         >
           + New
@@ -76,10 +76,10 @@
     </div>
   {/if}
 
-  <div class="mt-auto border-t border-quiet-border/60">
+  <div class="mt-auto border-t border-quiet-chrome">
     {#if !$sidebarCollapsed}
       <button
-        class="flex w-full items-center gap-2 px-3 py-2 text-xs text-quiet-faded transition-colors hover:bg-quiet-hover hover:text-quiet-text"
+        class="quiet-sidebar-row flex w-full items-center gap-2 px-3 py-2 text-xs transition-colors"
         onclick={() => (showTrash = true)}
       >
         <svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -92,7 +92,7 @@
     {/if}
 
     <button
-      class="flex w-full items-center justify-center p-2.5 text-quiet-faded transition-colors hover:bg-quiet-hover hover:text-quiet-text"
+      class="quiet-sidebar-row flex w-full items-center justify-center p-2.5 text-quiet-faded transition-colors"
       onclick={() => sidebarCollapsed.update(c => !c)}
       title={$sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
     >

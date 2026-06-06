@@ -127,9 +127,9 @@
   function noteBtnClass(isActive: boolean): string {
     const base = 'flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-xs transition-colors';
     if (isActive) {
-      return `${base} bg-quiet-sidebar-item-active text-quiet-text font-medium`;
+      return `${base} quiet-sidebar-row-active font-medium`;
     }
-    return `${base} text-quiet-muted hover:bg-quiet-sidebar-item-hover hover:text-quiet-text`;
+    return `${base} quiet-sidebar-row`;
   }
 
   function startRename(path: string, currentName: string, e: Event) {
@@ -201,14 +201,12 @@
             class={noteBtnClass($currentNote?.path === entry.path)}
             onclick={() => openNote(entry.path)}
           >
-            <svg class="h-3.5 w-3.5 shrink-0" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M2 1.75C2 .784 2.784 0 3.75 0h5.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 12.25 16h-8.5A1.75 1.75 0 0 1 2 14.25V1.75Z"/>
-            </svg>
+            <span class="quiet-sidebar-icon quiet-sidebar-icon-note"></span>
             <span class="truncate pr-14">{entry.name}</span>
           </button>
           <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 transition-all group-hover:opacity-100">
             <button
-              class="rounded p-1 text-quiet-faded hover:bg-quiet-hover hover:text-quiet-text"
+              class="rounded p-1 text-quiet-faded hover:bg-quiet-sidebar-item-hover hover:text-quiet-text"
               onclick={(e) => startRename(entry.path, entry.name, e)}
               title="Rename note"
             >
@@ -217,7 +215,7 @@
               </svg>
             </button>
             <button
-              class="rounded p-1 text-quiet-faded hover:bg-quiet-hover hover:text-quiet-text"
+              class="rounded p-1 text-quiet-faded hover:bg-quiet-sidebar-item-hover hover:text-quiet-text"
               onclick={(e) => { e.stopPropagation(); moveTarget.set({ type: 'note', path: entry.path, name: entry.name }); }}
               title="Move note"
             >
@@ -226,7 +224,7 @@
               </svg>
             </button>
             <button
-              class="rounded p-1 text-quiet-faded hover:bg-quiet-hover hover:text-quiet-danger"
+              class="rounded p-1 text-quiet-faded hover:bg-quiet-sidebar-item-hover hover:text-quiet-danger"
               onclick={(e) => { e.stopPropagation(); handleDeleteSidebar(entry); }}
               title="Delete note"
             >

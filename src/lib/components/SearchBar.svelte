@@ -60,7 +60,7 @@
       bind:value={query}
       oninput={handleInput}
       onkeydown={handleKeydown}
-      class="w-full rounded-md border border-quiet-border/70 bg-quiet-surface/60 py-1.5 pl-9 pr-3 text-xs text-quiet-text placeholder-quiet-faded outline-none transition-colors focus:border-quiet-accent/40 focus:bg-quiet-surface focus:ring-1 focus:ring-quiet-accent/20"
+      class="w-full rounded-md border border-quiet-chrome bg-quiet-surface/60 py-1.5 pl-9 pr-3 text-xs text-quiet-text placeholder-quiet-faded outline-none transition-colors focus:border-quiet-sidebar-accent/40 focus:bg-quiet-surface focus:ring-1 focus:ring-quiet-sidebar-accent/20"
     />
   </div>
 
@@ -68,8 +68,8 @@
     {#each (['current-note', 'current-folder', 'all'] as const) as s}
       <button
         class="rounded px-2 py-0.5 text-[10px] font-medium transition-colors {scope === s
-          ? 'bg-quiet-accent/15 text-quiet-accent'
-          : 'text-quiet-faded hover:bg-quiet-hover hover:text-quiet-muted'}"
+          ? 'bg-quiet-sidebar-accent/15 text-quiet-sidebar-accent'
+          : 'text-quiet-faded hover:bg-quiet-sidebar-item-hover hover:text-quiet-muted'}"
         onclick={() => setScope(s)}
       >
         {SCOPE_LABELS[s]}
@@ -86,10 +86,10 @@
       {/if}
     </div>
     {#if $searchResultCount > 0}
-      <div class="mt-1 max-h-40 overflow-y-auto rounded-md border border-quiet-border/70 bg-quiet-surface shadow-lg">
+      <div class="mt-1 max-h-40 overflow-y-auto rounded-md border border-quiet-chrome bg-quiet-surface shadow-lg">
         {#each $searchResults as result}
           <button
-            class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-quiet-muted transition-colors hover:bg-quiet-hover hover:text-quiet-text"
+            class="quiet-sidebar-row flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs transition-colors"
             onclick={() => openFromSearch(result.path)}
           >
             <span class="truncate">{result.name}</span>
