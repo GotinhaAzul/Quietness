@@ -35,7 +35,7 @@
   }
 </script>
 
-<aside class="flex shrink-0 flex-col border-r border-quiet-border/70 bg-quiet-surface/40 transition-all duration-150 ease-out {$sidebarCollapsed ? 'w-10' : 'w-64'}">
+<aside class="flex shrink-0 flex-col border-r border-quiet-border/70 bg-quiet-sidebar-bg transition-all duration-150 ease-out {$sidebarCollapsed ? 'w-10' : 'w-64'}">
   {#if !$sidebarCollapsed}
     <div class="border-b border-quiet-border/60 px-4 py-4">
       <h1 class="text-sm font-semibold tracking-tight text-quiet-text">Quietness</h1>

@@ -29,6 +29,13 @@
   --q-success-bg: #f0f9f2;
   --q-selection-bg: rgba(107, 97, 90, 0.32);
   --q-selection-bg-inactive: rgba(107, 97, 90, 0.18);
+  --q-sidebar-bg: #f2eee8;
+  --q-sidebar-item-hover: #eae5dd;
+  --q-sidebar-item-active: #e0dad1;
+  --q-icon: #a69e96;
+  --q-icon-hover: #2a2724;
+  --q-scrollbar-thumb: #e5dfd6;
+  --q-scrollbar-track: transparent;
 }
 
 /* ── Tailwind v4 theme mapping ── */
@@ -51,6 +58,13 @@
   --color-quiet-success-bg: var(--q-success-bg);
   --color-quiet-selection: var(--q-selection-bg);
   --color-quiet-selection-inactive: var(--q-selection-bg-inactive);
+  --color-quiet-sidebar-bg: var(--q-sidebar-bg);
+  --color-quiet-sidebar-item-hover: var(--q-sidebar-item-hover);
+  --color-quiet-sidebar-item-active: var(--q-sidebar-item-active);
+  --color-quiet-icon: var(--q-icon);
+  --color-quiet-icon-hover: var(--q-icon-hover);
+  --color-quiet-scrollbar-thumb: var(--q-scrollbar-thumb);
+  --color-quiet-scrollbar-track: var(--q-scrollbar-track);
 }
 
 /* ── Font and size variables (overridden by settings store) ── */
@@ -327,10 +341,10 @@ a.wikilink.broken:hover {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--q-border);
+  background: var(--q-scrollbar-thumb);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--q-muted);
+  background: color-mix(in srgb, var(--q-scrollbar-thumb) 75%, var(--q-text));
 }

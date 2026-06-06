@@ -11,5 +11,14 @@
   --q-active: #ced4e0;
   --q-danger: #bf616a;
   --q-danger-bg: #f4e3e3;
+  --q-sidebar-bg: #e5e9f0;
+  --q-sidebar-item-hover: #d8dee9;
+  --q-sidebar-item-active: #ced4e0;
+  --q-icon: #9ba5b9;
+  --q-icon-hover: #2e3440;
+  --q-scrollbar-thumb: #d8dee9;
+  --q-scrollbar-track: transparent;
+  --q-selection-bg: rgba(94, 129, 172, 0.32);
+  --q-selection-bg-inactive: rgba(94, 129, 172, 0.18);
   color-scheme: light;
 }

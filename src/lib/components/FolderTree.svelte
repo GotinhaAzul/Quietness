@@ -88,9 +88,9 @@
   function folderBtnClass(path: string | null, isActive: boolean): string {
     const base = 'flex w-full items-center gap-1.5 rounded-md px-3 py-1.5 text-left text-xs transition-colors';
     if (isActive) {
-      return `${base} bg-quiet-active text-quiet-text font-medium`;
+      return `${base} bg-quiet-sidebar-item-active text-quiet-text font-medium`;
     }
-    return `${base} text-quiet-muted hover:bg-quiet-hover hover:text-quiet-text`;
+    return `${base} text-quiet-muted hover:bg-quiet-sidebar-item-hover hover:text-quiet-text`;
   }
 
   async function handleCreateFolder() {

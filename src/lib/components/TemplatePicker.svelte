@@ -166,12 +166,12 @@
     {#if open}
       <div
         bind:this={dropdownRef}
-        class="absolute right-0 top-full z-50 mt-1 flex w-[420px] max-w-[90vw] rounded-lg border border-quiet-border bg-[var(--q-bg)] shadow-xl"
-        style="max-height: 70vh;"
+        class="absolute right-0 top-full z-50 mt-1 flex w-[420px] max-w-[90vw] rounded-lg border border-quiet-border bg-[var(--q-bg)] shadow-xl overflow-hidden"
+        style="max-height: min(70vh, 560px);"
       >
         <!-- Template list -->
-        <div class="w-1/2 shrink-0 border-r border-quiet-border/60 overflow-y-auto" style="max-height: 70vh;">
-          <div class="flex items-center justify-between border-b border-quiet-border/60 px-3 py-2">
+        <div class="flex w-1/2 shrink-0 flex-col border-r border-quiet-border/60 min-h-0">
+          <div class="flex items-center justify-between border-b border-quiet-border/60 px-3 py-2 shrink-0">
             <span class="text-[11px] font-medium text-quiet-faded uppercase tracking-wider">Templates</span>
             <button
               class="flex h-5 w-5 items-center justify-center rounded text-quiet-faded transition-colors hover:bg-quiet-hover hover:text-quiet-text"
@@ -184,30 +184,32 @@
               </svg>
             </button>
           </div>
-          {#if loading}
-            <div class="p-6 text-center text-xs text-quiet-faded">Loading…</div>
-          {:else if templates.length === 0}
-            <div class="p-6 text-center text-xs text-quiet-faded">
-              No templates yet.
-            </div>
-          {:else}
-            {#each templates as tpl}
-              <button
-                class="flex w-full items-center gap-2 px-3 py-2 text-left text-xs transition-colors {selectedName === tpl.name ? 'bg-quiet-hover text-quiet-text' : 'text-quiet-muted hover:bg-quiet-hover hover:text-quiet-text'}"
-                onclick={() => selectTemplate(tpl.name)}
-              >
-                <svg class="h-3.5 w-3.5 shrink-0 text-quiet-faded" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round">
-                  <path d="M3 2.5h6l3 3v8a1 1 0 01-1 1H3a1 1 0 01-1-1v-10a1 1 0 011-1z" />
-                  <path d="M9 2.5v3h3" />
-                </svg>
-                <span class="truncate">{tpl.name}</span>
-              </button>
-            {/each}
-          {/if}
+          <div class="flex-1 overflow-y-auto min-h-0">
+            {#if loading}
+              <div class="p-6 text-center text-xs text-quiet-faded">Loading…</div>
+            {:else if templates.length === 0}
+              <div class="p-6 text-center text-xs text-quiet-faded">
+                No templates yet.
+              </div>
+            {:else}
+              {#each templates as tpl}
+                <button
+                  class="flex w-full items-center gap-2 px-3 py-2 text-left text-xs transition-colors {selectedName === tpl.name ? 'bg-quiet-hover text-quiet-text' : 'text-quiet-muted hover:bg-quiet-hover hover:text-quiet-text'}"
+                  onclick={() => selectTemplate(tpl.name)}
+                >
+                  <svg class="h-3.5 w-3.5 shrink-0 text-quiet-faded" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round">
+                    <path d="M3 2.5h6l3 3v8a1 1 0 01-1 1H3a1 1 0 01-1-1v-10a1 1 0 011-1z" />
+                    <path d="M9 2.5v3h3" />
+                  </svg>
+                  <span class="truncate">{tpl.name}</span>
+                </button>
+              {/each}
+            {/if}
+          </div>
         </div>
 
         <!-- Preview / actions -->
-        <div class="flex w-1/2 flex-col overflow-y-auto" style="max-height: 70vh;">
+        <div class="flex w-1/2 flex-col min-h-0">
           {#if deleteConfirm}
             <div class="flex flex-1 flex-col items-center justify-center gap-3 p-4 text-center">
               <p class="text-xs text-quiet-text">Delete "<span class="font-medium">{deleteConfirm}</span>"?</p>
@@ -223,22 +225,22 @@
               </div>
             </div>
           {:else if showCreateDialog}
-            <div class="flex flex-1 flex-col gap-2 p-3">
-              <span class="text-[11px] font-medium text-quiet-faded uppercase tracking-wider">New Template</span>
+            <div class="flex flex-1 flex-col gap-2 p-3 min-h-0">
+              <span class="text-[11px] font-medium text-quiet-faded uppercase tracking-wider shrink-0">New Template</span>
               <input
                 type="text"
-                class="rounded-md border border-quiet-border/70 bg-quiet-surface/60 px-2 py-1.5 text-xs text-quiet-text outline-none transition-colors focus:border-quiet-accent/40 focus:bg-quiet-surface"
+                class="rounded-md border border-quiet-border/70 bg-quiet-surface/60 px-2 py-1.5 text-xs text-quiet-text outline-none transition-colors focus:border-quiet-accent/40 focus:bg-quiet-surface shrink-0"
                 placeholder="Template name"
                 bind:value={newName}
                 use:focusInput
                 onkeydown={(e) => { if (e.key === 'Enter') handleCreateTemplate(); }}
               />
               <textarea
-                class="min-h-[120px] flex-1 resize-none rounded-md border border-quiet-border/70 bg-quiet-surface/60 px-2 py-1.5 text-xs text-quiet-text outline-none transition-colors focus:border-quiet-accent/40 focus:bg-quiet-surface"
+                class="min-h-[80px] flex-1 resize-none rounded-md border border-quiet-border/70 bg-quiet-surface/60 px-2 py-1.5 text-xs text-quiet-text outline-none transition-colors focus:border-quiet-accent/40 focus:bg-quiet-surface"
                 placeholder="# Template content (Markdown)"
                 bind:value={newContent}
               ></textarea>
-              <div class="flex justify-end gap-2">
+              <div class="flex justify-end gap-2 shrink-0">
                 <button
                   class="rounded-md border border-quiet-border/60 px-3 py-1 text-xs text-quiet-faded transition-colors hover:bg-quiet-hover hover:text-quiet-text"
                   onclick={() => { showCreateDialog = false; newName = ''; newContent = ''; }}
@@ -253,8 +255,8 @@
               </div>
             </div>
           {:else if selectedName && previewContent}
-            <div class="flex flex-col h-full">
-              <div class="flex items-center justify-between border-b border-quiet-border/60 px-3 py-2">
+            <div class="flex flex-col flex-1 min-h-0">
+              <div class="flex items-center justify-between border-b border-quiet-border/60 px-3 py-2 shrink-0">
                 <span class="text-[11px] font-medium text-quiet-faded uppercase tracking-wider">Preview</span>
                 <button
                   class="flex h-5 w-5 items-center justify-center rounded text-quiet-faded transition-colors hover:bg-quiet-hover hover:text-red-400"
@@ -268,12 +270,12 @@
                 </button>
               </div>
               {#if previewLoading}
-                <div class="flex-1 p-3 text-xs text-quiet-faded">Loading…</div>
+                <div class="flex-1 p-3 text-xs text-quiet-faded min-h-0">Loading…</div>
               {:else}
-                <div class="flex-1 overflow-y-auto p-3">
+                <div class="flex-1 overflow-y-auto p-3 min-h-0">
                   <pre class="whitespace-pre-wrap text-xs text-quiet-text leading-relaxed font-mono">{previewContent}</pre>
                 </div>
-                <div class="flex flex-col gap-1.5 border-t border-quiet-border/60 p-2">
+                <div class="flex flex-col gap-1.5 border-t border-quiet-border/60 p-2 shrink-0">
                   <button
                     class="w-full rounded-md bg-quiet-accent px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90"
                     onclick={handleInsert}
@@ -286,7 +288,7 @@
               {/if}
             </div>
           {:else}
-            <div class="flex flex-1 items-center justify-center p-4">
+            <div class="flex flex-1 items-center justify-center p-4 min-h-0">
               <p class="text-xs text-quiet-faded text-center">Select a template to preview its content, or create a new one.</p>
             </div>
           {/if}
