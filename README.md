@@ -36,6 +36,7 @@ Your notes stay yours. Open them with any editor, any time.
 ### Markdown & Links
 
 - **Live preview** rendered via markdown-it
+- **Highlight & strikethrough** — `==text==` renders as highlighted `<mark>`, `~~text~~` renders as `<del>` (strikethrough)
 - **Wikilinks** — `[[note-name]]` to navigate, `[[target|display text]]` for custom labels. Click to jump; create missing notes on the fly
 - **Interactive task lists** — click a checkbox in preview to toggle `[ ]` / `[x]` directly in the source
 - **Scoped search** — find across all notes, current folder, or current note. Debounced, instant results
@@ -44,6 +45,8 @@ Your notes stay yours. Open them with any editor, any time.
 
 - **Hierarchical folder tree** — create, rename, delete, and move notes/folders freely
 - **Collapsible sidebar** — toggle between full width and icon-only
+- **Note templates** — create reusable `.md` templates stored under `_templates/`. Pick from a dropdown, preview, and insert into the editor. Create and delete templates inline. Toggle on/off in settings
+- **Backlinks panel** — `Ctrl+Shift+B` opens a modal showing outgoing wikilinks and incoming backlinks for the current note. Each entry shows the note name and folder; click to navigate. Toggle on/off in settings
 - **Trash with retention** — deleted notes go to trash with configurable retention (default 30 days)
 - **Home folder migration** — switch your notes directory with automatic content migration
 
@@ -52,6 +55,8 @@ Your notes stay yours. Open them with any editor, any time.
 ## Customization
 
 ### 9 Built-in Themes
+
+Each theme defines variables for the full interface — sidebar backgrounds, item hover/active states, icon colors, scrollbar styling, text selection, and more.
 
 | Theme | Style |
 |---|---|
@@ -88,6 +93,12 @@ Sizes range from 12 to 24px per zone.
 - Tab size (1-8)
 - Dim inactive lines (toggle)
 - Smooth caret animation (toggle)
+
+### Sidebar Customization
+
+- **Accent color** — pick any color for the active item highlight and hover states via a color picker in Settings
+- **Chrome opacity** — slider (0.0–1.0) controlling the opacity of borders, separators, and structural elements
+- **Per-theme icons** — each theme carries its own set of folder and note icons (SVG masks), swapping automatically when you switch themes
 
 ---
 
