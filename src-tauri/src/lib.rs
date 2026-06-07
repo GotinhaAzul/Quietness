@@ -75,6 +75,7 @@ pub fn run() {
             commands::read_template,
             commands::create_template,
             commands::delete_template,
+            commands::find_backlinks,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

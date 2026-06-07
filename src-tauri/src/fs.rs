@@ -898,6 +898,89 @@ pub fn read_user_theme_css(app_handle: &AppHandle, id: &str) -> Result<String, S
         .map_err(|e| format!("Failed to read user theme at {}: {}", path.display(), e))
 }
 
+// ── Backlinks ──
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BacklinkEntry {
+    pub name: String,
+    pub path: String,
+    pub folder: String,
+}
+
+pub fn find_backlinks(app_handle: &AppHandle, target_name: &str) -> Vec<BacklinkEntry> {
+    let base = notes_dir(app_handle);
+    let mut results = Vec::new();
+    find_backlinks_recursive(&base, &base, target_name, &mut results);
+    results.sort_by_cached_key(|a| a.name.to_lowercase());
+    results
+}
+
+fn find_backlinks_recursive(
+    base: &Path,
+    current: &Path,
+    target_name: &str,
+    results: &mut Vec<BacklinkEntry>,
+) {
+    if let Ok(entries) = fs::read_dir(current) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                let name = path
+                    .file_name()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .to_string();
+                if should_skip_directory_name(&name) {
+                    continue;
+                }
+                find_backlinks_recursive(base, &path, target_name, results);
+            } else if path.extension().map_or(false, |ext| ext == "md") {
+                if let Ok(content) = fs::read_to_string(&path) {
+                    if contains_wikilink_to(&content, target_name) {
+                        let note_name = path
+                            .file_stem()
+                            .unwrap_or_default()
+                            .to_string_lossy()
+                            .to_string();
+                        let folder = path
+                            .parent()
+                            .and_then(|p| p.strip_prefix(base).ok())
+                            .map(|p| p.to_string_lossy().to_string().replace('\\', "/"))
+                            .unwrap_or_default();
+                        results.push(BacklinkEntry {
+                            name: note_name,
+                            path: path.to_string_lossy().to_string(),
+                            folder,
+                        });
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn contains_wikilink_to(content: &str, target_name: &str) -> bool {
+    let content_lower = content.to_lowercase();
+    let target_lower = target_name.to_lowercase();
+    // Match [[targetName]] or [[targetName|...]]
+    let search = format!("[[{}", target_lower);
+    let mut pos = 0;
+    while let Some(start) = content_lower[pos..].find(&search) {
+        let abs_start = pos + start;
+        let after = abs_start + search.len();
+        if after < content_lower.len() {
+            let next = content_lower.as_bytes()[after];
+            if next == b']' || next == b'|' {
+                return true;
+            }
+        }
+        // Continue searching past this match
+        pos = abs_start + 1;
+    }
+    false
+}
+
 // ── Note Templates ──
 
 #[derive(Debug, Clone, Serialize)]
@@ -1056,6 +1139,12 @@ pub struct Settings {
     pub pet: PetSettings,
     pub trash_retention_days: u64,
     pub templates_enabled: bool,
+    #[serde(default = "default_backlinks_enabled")]
+    pub backlinks_enabled: bool,
+}
+
+fn default_backlinks_enabled() -> bool {
+    true
 }
 
 fn settings_path(app_handle: &AppHandle) -> PathBuf {
@@ -1104,6 +1193,7 @@ fn default_settings() -> Settings {
         },
         trash_retention_days: 30,
         templates_enabled: true,
+        backlinks_enabled: true,
     }
 }
 
@@ -2063,5 +2153,88 @@ mod tests {
         let err = read_template_at(&dir, "../etc/passwd").unwrap_err();
         assert!(err.contains("Invalid") || err.contains("Access denied"));
         let _ = fs::remove_dir_all(&dir);
+    }
+
+    // ── Backlink tests ──
+
+    #[test]
+    fn contains_wikilink_to_finds_exact_match() {
+        assert!(contains_wikilink_to("Hello [[Target]] world", "Target"));
+    }
+
+    #[test]
+    fn contains_wikilink_to_finds_with_pipe() {
+        assert!(contains_wikilink_to("See [[Target|display]] here", "Target"));
+    }
+
+    #[test]
+    fn contains_wikilink_to_is_case_insensitive() {
+        assert!(contains_wikilink_to("Hello [[target]] world", "Target"));
+        assert!(contains_wikilink_to("Hello [[TARGET|display]] world", "target"));
+    }
+
+    #[test]
+    fn contains_wikilink_to_rejects_partial_match() {
+        assert!(!contains_wikilink_to("Hello [[Targeting]] world", "Target"));
+        assert!(!contains_wikilink_to("Hello [[Targeting|display]] world", "Target"));
+    }
+
+    #[test]
+    fn contains_wikilink_to_returns_false_when_not_found() {
+        assert!(!contains_wikilink_to("No links here", "Target"));
+    }
+
+    #[test]
+    fn find_backlinks_returns_notes_linking_to_target() {
+        let base = unique_test_dir("backlinks-basic");
+        fs::create_dir_all(base.join("Projects")).unwrap();
+        fs::write(base.join("Home.md"), "Welcome [[Projects/Plan]] here").unwrap();
+        fs::write(base.join("Projects").join("Plan.md"), "Plan details").unwrap();
+        // A note that links to Plan
+        fs::write(base.join("Projects").join("Daily.md"), "Check [[Plan]] today").unwrap();
+        // A note with partial name match (should NOT match)
+        fs::write(base.join("Projects").join("Planning.md"), "[[Planning]] session").unwrap();
+
+        let results = find_backlinks_in_dir(&base, &base, "Plan");
+
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].name, "Daily");
+        assert_eq!(results[0].folder, "Projects");
+
+        let _ = fs::remove_dir_all(base);
+    }
+
+    #[test]
+    fn find_backlinks_returns_empty_when_no_links() {
+        let base = unique_test_dir("backlinks-empty");
+        fs::write(base.join("NoteA.md"), "Just some text").unwrap();
+        fs::write(base.join("NoteB.md"), "More text").unwrap();
+
+        let results = find_backlinks_in_dir(&base, &base, "NoteA");
+
+        assert!(results.is_empty());
+        let _ = fs::remove_dir_all(base);
+    }
+
+    #[test]
+    fn find_backlinks_skips_underscore_folders_and_trash() {
+        let base = unique_test_dir("backlinks-skip-special");
+        fs::create_dir_all(base.join("_templates")).unwrap();
+        fs::create_dir_all(base.join(".trash")).unwrap();
+        fs::write(base.join("_templates").join("Tpl.md"), "[[Target]] inside template").unwrap();
+        fs::write(base.join(".trash").join("Deleted.md"), "[[Target]] inside trash").unwrap();
+        fs::write(base.join("Visible.md"), "[[Target]] visible note").unwrap();
+
+        let results = find_backlinks_in_dir(&base, &base, "Target");
+
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].name, "Visible");
+        let _ = fs::remove_dir_all(base);
+    }
+
+    fn find_backlinks_in_dir(base: &Path, current: &Path, target: &str) -> Vec<BacklinkEntry> {
+        let mut results = Vec::new();
+        find_backlinks_recursive(base, current, target, &mut results);
+        results
     }
 }

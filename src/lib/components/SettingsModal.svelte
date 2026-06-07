@@ -240,6 +240,25 @@
             <p class="text-[11px] text-quiet-faded leading-relaxed">
               When enabled, a templates button appears in the editor toolbar for quick access.
             </p>
+
+            <hr class="border-quiet-border/60" />
+
+            <h3 class="text-xs font-medium text-quiet-text">Backlinks</h3>
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-quiet-text">Backlinks panel</span>
+              <button
+                aria-label="Toggle backlinks panel"
+                class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors {$settings.backlinksEnabled ? 'bg-quiet-accent' : 'bg-quiet-border'}"
+                onclick={() => settings.update(s => ({ ...s, backlinksEnabled: !s.backlinksEnabled }))}
+                role="switch"
+                aria-checked={$settings.backlinksEnabled}
+              >
+                <span class="inline-block h-3.5 w-3.5 translate-x-0.5 transform rounded-full bg-white shadow-sm transition-transform {$settings.backlinksEnabled ? 'translate-x-[18px]' : ''}"></span>
+              </button>
+            </div>
+            <p class="text-[11px] text-quiet-faded leading-relaxed">
+              Shows incoming and outgoing wikilinks for the current note. Access via <kbd class="rounded bg-quiet-surface px-1 py-0.5 font-mono text-[11px]">Ctrl+Shift+B</kbd>.
+            </p>
           </div>
 
         {:else if activeTab === 'theme'}

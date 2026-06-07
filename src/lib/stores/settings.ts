@@ -38,6 +38,7 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   trashRetentionDays: 30,
   templatesEnabled: true,
+  backlinksEnabled: true,
 };
 
 function createSettingsStore() {

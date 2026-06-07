@@ -43,4 +43,5 @@ export interface Settings {
   pet: PetSettings;
   trashRetentionDays: number;
   templatesEnabled: boolean;
+  backlinksEnabled: boolean;
 }

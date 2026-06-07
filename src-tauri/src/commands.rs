@@ -215,6 +215,18 @@ pub async fn repair_integrity(app_handle: AppHandle) -> Result<IntegrityRepairRe
         .map_err(|e| e.to_string())
 }
 
+// ── Backlinks commands ──
+
+#[tauri::command]
+pub async fn find_backlinks(
+    app_handle: AppHandle,
+    target_name: String,
+) -> Result<Vec<fs::BacklinkEntry>, String> {
+    tauri::async_runtime::spawn_blocking(move || fs::find_backlinks(&app_handle, &target_name))
+        .await
+        .map_err(|e| e.to_string())
+}
+
 // ── Template commands ──
 
 #[tauri::command]

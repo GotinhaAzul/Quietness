@@ -21,6 +21,7 @@
   import ConfirmModal from '$lib/components/ConfirmModal.svelte';
   import FlamePet from '$lib/components/FlamePet.svelte';
   import MoveDialog from '$lib/components/MoveDialog.svelte';
+  import BacklinksPanel from '$lib/components/BacklinksPanel.svelte';
 
   const modes: { value: ViewMode; label: string }[] = [
     { value: 'edit', label: 'Edit' },
@@ -30,6 +31,7 @@
 
   let saveTimeout: any = null;
   let showSettings = $state(false);
+  let showBacklinks = $state(false);
   let confirmDelete = $state(false);
   let confirmPermanentDelete = $state(false);
   let appReady = $state(false);
@@ -63,6 +65,11 @@
       } else if (e.key === 'P' && e.shiftKey) {
         e.preventDefault();
         viewMode.set('preview');
+      } else if (e.key === 'B' && e.shiftKey) {
+        e.preventDefault();
+        if ($settings.backlinksEnabled && $currentNote) {
+          showBacklinks = true;
+        }
       } else if (e.key === 'D' && e.shiftKey) {
         e.preventDefault();
         handleDelete();
@@ -438,5 +445,7 @@
 />
 
 <FlamePet />
+
+<BacklinksPanel open={showBacklinks} onclose={() => (showBacklinks = false)} />
 
 <MoveDialog open={$moveTarget !== null} />
