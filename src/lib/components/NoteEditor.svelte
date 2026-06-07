@@ -18,11 +18,11 @@
   import { settings } from '$lib/stores/settings';
   import { currentNote, notes, bumpNotesRevision } from '$lib/stores/notes';
   import { showError } from '$lib/stores/errors';
+  import { editorInsert } from '$lib/stores/editor';
   import { invoke } from '@tauri-apps/api/core';
   import { buildRenamedNotePath, resolveRenameRequest } from '$lib/utils/noteRename';
   import { petCursorCoords, petLastTypingTime } from '$lib/stores/pet';
   import { createPerfTimer, incrementCounter, logNoteStatesSize } from '$lib/utils/perf';
-  import TemplatePicker from '$lib/components/TemplatePicker.svelte';
 
   function getSingleDiff(oldStr: string, newStr: string) {
     if (oldStr === newStr) return null;
@@ -247,7 +247,16 @@
     });
     timer.end();
 
+    editorInsert.set((content: string) => {
+      if (!view) return;
+      view.dispatch({
+        changes: { from: view.state.selection.main.head, insert: content },
+      });
+      onContentChange?.(view.state.doc.toString());
+    });
+
     return () => {
+      editorInsert.set(null);
       view.destroy();
     };
   });
@@ -404,13 +413,6 @@
           <button class="title-button" onclick={startEditing}>{noteName}</button>
         {/if}
       </div>
-      <TemplatePicker onInsert={(content) => {
-        if (!view) return;
-        view.dispatch({
-          changes: { from: view.state.selection.main.head, insert: content },
-        });
-        onContentChange?.(view.state.doc.toString());
-      }} />
     </div>
   {/if}
   <div bind:this={editorRef} class="min-h-0 flex-1 overflow-hidden"></div>

@@ -22,6 +22,7 @@
   import FlamePet from '$lib/components/FlamePet.svelte';
   import MoveDialog from '$lib/components/MoveDialog.svelte';
   import BacklinksPanel from '$lib/components/BacklinksPanel.svelte';
+  import TemplatePicker from '$lib/components/TemplatePicker.svelte';
 
   const modes: { value: ViewMode; label: string }[] = [
     { value: 'edit', label: 'Edit' },
@@ -336,6 +337,7 @@
           >
             Delete
           </button>
+          <TemplatePicker />
         {/if}
         <button
           class="rounded-md p-1.5 text-quiet-faded transition-colors hover:bg-quiet-hover hover:text-quiet-text"

@@ -1,15 +1,14 @@
 <script lang="ts">
   import { invoke } from '@tauri-apps/api/core';
+  import { get } from 'svelte/store';
   import { settings } from '$lib/stores/settings';
   import { createNote } from '$lib/stores/notes';
   import { showError, showSuccess } from '$lib/stores/errors';
-  import { viewMode } from '$lib/stores/editor';
+  import { viewMode, editorInsert } from '$lib/stores/editor';
 
   interface TemplateEntry {
     name: string;
   }
-
-  let { onInsert }: { onInsert?: (content: string) => void } = $props();
 
   let open = $state(false);
   let templates: TemplateEntry[] = $state([]);
@@ -26,7 +25,8 @@
   let dropdownRef: HTMLDivElement | undefined = $state();
   let buttonRef: HTMLButtonElement | undefined = $state();
 
-  let compact = $derived($viewMode === 'split');
+  let layout = $derived($viewMode === 'edit' ? 'full' : 'compact');
+  let showInsert = $derived($viewMode !== 'preview');
 
   async function loadTemplates() {
     loading = true;
@@ -62,7 +62,8 @@
 
   function handleInsert() {
     if (!selectedName || !previewContent) return;
-    onInsert?.(previewContent);
+    const fn = get(editorInsert);
+    fn?.(previewContent);
     close();
   }
 
@@ -167,12 +168,12 @@
     </button>
 
     {#if open}
-      {#if compact}
-        <!-- Compact dropdown for split mode -->
+      {#if layout === 'compact'}
+        <!-- Compact dropdown for split/preview modes -->
         <div
           bind:this={dropdownRef}
-          class="absolute left-0 top-full z-50 mt-1 flex w-[280px] max-w-[85vw] flex-col rounded-lg border border-quiet-border bg-[var(--q-bg)] shadow-xl overflow-hidden"
-          style="max-height: min(70vh, 560px);"
+          class="absolute right-0 top-full z-50 mt-1 flex w-[260px] max-w-[85vw] flex-col rounded-lg border border-quiet-border bg-[var(--q-bg)] shadow-xl overflow-hidden"
+          style="max-height: min(65vh, 480px);"
         >
           {#if deleteConfirm}
             <div class="flex flex-1 flex-col items-center justify-center gap-3 p-4 text-center">
@@ -251,10 +252,12 @@
                   <pre class="whitespace-pre-wrap text-xs text-quiet-text leading-relaxed font-mono">{previewContent}</pre>
                 </div>
                 <div class="flex flex-col gap-1.5 border-t border-quiet-border/60 p-2 shrink-0">
-                  <button
-                    class="w-full rounded-md bg-quiet-accent px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90"
-                    onclick={handleInsert}
-                  >Insert into note</button>
+                  {#if showInsert}
+                    <button
+                      class="w-full rounded-md bg-quiet-accent px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90"
+                      onclick={handleInsert}
+                    >Insert into note</button>
+                  {/if}
                   <button
                     class="w-full rounded-md border border-quiet-border/60 px-3 py-1.5 text-xs text-quiet-faded transition-colors hover:bg-quiet-hover hover:text-quiet-text"
                     onclick={handleNewFromTemplate}
@@ -304,7 +307,7 @@
           {/if}
         </div>
       {:else}
-        <!-- Full dropdown for edit/preview modes -->
+        <!-- Full dropdown for edit mode -->
         <div
           bind:this={dropdownRef}
           class="absolute right-0 top-full z-50 mt-1 flex w-[420px] max-w-[90vw] rounded-lg border border-quiet-border bg-[var(--q-bg)] shadow-xl overflow-hidden"
