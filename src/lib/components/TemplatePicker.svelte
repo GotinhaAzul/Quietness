@@ -5,6 +5,7 @@
   import { createNote } from '$lib/stores/notes';
   import { showError, showSuccess } from '$lib/stores/errors';
   import { viewMode, editorInsert } from '$lib/stores/editor';
+  import { resolvePlaceholders } from '$lib/utils/placeholders';
 
   interface TemplateEntry {
     name: string;
@@ -63,13 +64,13 @@
   function handleInsert() {
     if (!selectedName || !previewContent) return;
     const fn = get(editorInsert);
-    fn?.(previewContent);
+    fn?.(resolvePlaceholders(previewContent, selectedName));
     close();
   }
 
   async function handleNewFromTemplate() {
     if (!selectedName || !previewContent) return;
-    await createNote(selectedName, '', previewContent);
+    await createNote(selectedName, '', resolvePlaceholders(previewContent, selectedName));
     showSuccess(`Created note from "${selectedName}" template.`);
     close();
   }
