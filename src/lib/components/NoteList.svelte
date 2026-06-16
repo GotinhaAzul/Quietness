@@ -8,6 +8,7 @@
   import { showError } from '$lib/stores/errors';
   import { runAfterModalDismiss, waitForNextPaint } from '$lib/utils/confirmedAction';
   import { buildRenamedNotePath, resolveRenameRequest } from '$lib/utils/noteRename';
+  import { getFolderNoteEntries, normalizeListPath, notesDirNeedsRefresh } from '$lib/utils/noteList';
   import { moveTarget } from '$lib/stores/move';
   import ConfirmModal from './ConfirmModal.svelte';
 
@@ -54,6 +55,9 @@
         if (!notesDir && !notesDirResolved) {
           await resolveNotesDir();
           if (currentRequest !== requestId) return;
+        } else if (notesDirNeedsRefresh(notesDir, $notes)) {
+          await resolveNotesDir();
+          if (currentRequest !== requestId) return;
         }
         const entries = getLocalFolderEntries();
         if (currentRequest !== requestId) return;
@@ -69,7 +73,7 @@
   async function resolveNotesDir() {
     try {
       const dir = await invoke<string>('get_notes_dir');
-      notesDir = normalizePath(dir).replace(/\/+$/, '');
+      notesDir = normalizeListPath(dir).replace(/\/+$/, '');
       notesDirResolved = true;
     } catch (e) {
       notesDirResolved = true;
@@ -77,30 +81,8 @@
     }
   }
 
-  function normalizePath(path: string): string {
-    return path.replace(/\\/g, '/').toLowerCase();
-  }
-
   function getLocalFolderEntries(): NoteEntry[] {
-    const folder = normalizePath($selectedFolder ?? '').replace(/^\/+|\/+$/g, '');
-
-    // "All Notes" — mostra todas as notas, incluindo as de sub-pastas
-    if (!folder) {
-      return [...$notes].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
-    }
-
-    const entries = $notes.filter((entry) => {
-      const notePath = normalizePath(entry.path);
-      if (notesDir && notePath.startsWith(`${notesDir}/`)) {
-        const relative = notePath.slice(notesDir.length + 1);
-        const slashIndex = relative.lastIndexOf('/');
-        const parent = slashIndex === -1 ? '' : relative.slice(0, slashIndex);
-        return parent === folder;
-      }
-      return false;
-    });
-
-    return [...entries].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+    return getFolderNoteEntries($notes, $selectedFolder, notesDir);
   }
 
   async function openNote(path: string) {
