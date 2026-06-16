@@ -84,6 +84,11 @@
   function getLocalFolderEntries(): NoteEntry[] {
     const folder = normalizePath($selectedFolder ?? '').replace(/^\/+|\/+$/g, '');
 
+    // "All Notes" — mostra todas as notas, incluindo as de sub-pastas
+    if (!folder) {
+      return [...$notes].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+    }
+
     const entries = $notes.filter((entry) => {
       const notePath = normalizePath(entry.path);
       if (notesDir && notePath.startsWith(`${notesDir}/`)) {
