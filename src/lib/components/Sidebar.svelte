@@ -1,38 +1,10 @@
 <script lang="ts">
-  import FolderTree from './FolderTree.svelte';
-  import NoteList from './NoteList.svelte';
+  import Explorer from './Explorer.svelte';
   import SearchBar from './SearchBar.svelte';
   import TrashDialog from './TrashDialog.svelte';
-  import { createNote } from '$lib/stores/notes';
-  import { selectedFolder } from '$lib/stores/folders';
-  import { sidebarCollapsed, showNewNoteInput } from '$lib/stores/ui';
-  let newNoteName = $state('');
-  let newNoteInput: HTMLInputElement | undefined = $state();
+  import { sidebarCollapsed } from '$lib/stores/ui';
+
   let showTrash = $state(false);
-
-  $effect(() => {
-    if ($showNewNoteInput && newNoteInput) {
-      newNoteInput.focus();
-    }
-  });
-
-  async function handleCreateNote() {
-    const name = newNoteName.trim();
-    if (!name) return;
-    const folder = $selectedFolder ?? '';
-    await createNote(name, folder);
-    newNoteName = '';
-    showNewNoteInput.set(false);
-  }
-
-  function handleKeydown(event: KeyboardEvent) {
-    if (event.key === 'Enter') {
-      handleCreateNote();
-    } else if (event.key === 'Escape') {
-      showNewNoteInput.set(false);
-      newNoteName = '';
-    }
-  }
 </script>
 
 <aside class="flex shrink-0 flex-col border-r border-quiet-chrome bg-quiet-sidebar-bg transition-all duration-150 ease-out {$sidebarCollapsed ? 'w-10' : 'w-64'}">
@@ -47,32 +19,7 @@
     </div>
 
     <div class="overflow-y-auto">
-      <FolderTree />
-
-      <div class="mt-4 px-2 pt-3 pb-1 flex items-center justify-between border-t border-quiet-chrome">
-        <span class="px-1 text-[10px] font-medium uppercase tracking-wider text-quiet-faded">Notes</span>
-        <button
-          class="rounded px-1.5 py-0.5 text-xs text-quiet-faded transition-colors hover:bg-quiet-sidebar-item-hover hover:text-quiet-text"
-          onclick={() => { showNewNoteInput.set(true); newNoteName = ''; }}
-        >
-          + New
-        </button>
-      </div>
-
-      {#if $showNewNoteInput}
-        <div class="px-3 pb-2">
-          <input
-            bind:this={newNoteInput}
-            type="text"
-            placeholder="Note name..."
-            bind:value={newNoteName}
-            onkeydown={handleKeydown}
-            class="w-full rounded-md border border-quiet-border bg-quiet-surface px-2.5 py-1.5 text-xs text-quiet-text placeholder-quiet-faded outline-none transition-colors focus:border-quiet-accent/50"
-          />
-        </div>
-      {/if}
-
-      <NoteList />
+      <Explorer />
     </div>
   {/if}
 

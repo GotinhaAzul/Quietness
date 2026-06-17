@@ -10,11 +10,12 @@
   import { viewMode, type ViewMode } from '$lib/stores/editor';
   import { settings } from '$lib/stores/settings';
   import { userThemes } from '$lib/stores/userThemes';
-  import { focusSearchInput, showNewNoteInput } from '$lib/stores/ui';
+  import { focusSearchInput, showNewNoteInput, showNewFolderInput } from '$lib/stores/ui';
   import { moveTarget } from '$lib/stores/move';
   import { reconcileIntegrity } from '$lib/stores/integrity';
   import { loadLibrarySnapshot } from '$lib/stores/library';
   import { FONT_STACKS } from '$lib/utils/fonts';
+  import { getBreadcrumbSegments } from '$lib/utils/breadcrumbs';
   import { getSidebarCustomizationVars } from '$lib/utils/sidebarCustomization';
   import { runAfterModalDismiss, waitForNextPaint } from '$lib/utils/confirmedAction';
   import { createPerfTimer } from '$lib/utils/perf';
@@ -23,6 +24,7 @@
   import MoveDialog from '$lib/components/MoveDialog.svelte';
   import BacklinksPanel from '$lib/components/BacklinksPanel.svelte';
   import TemplatePicker from '$lib/components/TemplatePicker.svelte';
+  import CommandPalette from '$lib/components/CommandPalette.svelte';
 
   const modes: { value: ViewMode; label: string }[] = [
     { value: 'edit', label: 'Edit' },
@@ -33,22 +35,33 @@
   let saveTimeout: any = null;
   let showSettings = $state(false);
   let showBacklinks = $state(false);
+  let showCommandPalette = $state(false);
   let confirmDelete = $state(false);
   let confirmPermanentDelete = $state(false);
   let appReady = $state(false);
   let unsavedChanges = $state(false);
   let saveStatus = $state<'saved' | 'saving' | 'unsaved'>('saved');
+  let notesDir = $state('');
+  let breadcrumbSegments = $derived(
+    $currentNote && notesDir ? getBreadcrumbSegments($currentNote.path, notesDir) : []
+  );
 
   $effect(() => {
     function handleKeydown(e: KeyboardEvent) {
       const ctrl = e.ctrlKey || e.metaKey;
       if (!ctrl) return;
-      if (e.key === 's' && !e.shiftKey) {
+      if (e.key.toLowerCase() === 'p' && !e.shiftKey) {
+        e.preventDefault();
+        showCommandPalette = true;
+      } else if (e.key === 's' && !e.shiftKey) {
         e.preventDefault();
         handleSave();
       } else if (e.key === 'n') {
         e.preventDefault();
         showNewNoteInput.set(true);
+      } else if (e.key === 'N' && e.shiftKey) {
+        e.preventDefault();
+        showNewFolderInput.set(true);
       } else if (e.key === ',') {
         e.preventDefault();
         showSettings = true;
@@ -121,6 +134,9 @@
 
       await Promise.all([settings.load(), userThemes.load(), checkHomeFolderHealth()]);
       perf.step('settings, themes, and home-folder status loaded');
+
+      notesDir = await invoke<string>('get_notes_dir');
+      perf.step('notes dir loaded');
 
       await reconcileIntegrity('startup', { refreshLibrary: false });
       perf.step('integrity repair complete');
@@ -304,9 +320,19 @@
 
   <main class="flex min-h-0 flex-1 flex-col overflow-hidden">
     <div class="flex items-center justify-between border-b border-quiet-border/60 px-6 py-3">
-      <div class="flex items-center gap-3">
+      <div class="flex min-w-0 items-center gap-3">
+        {#if $currentNote}
+          <span class="truncate text-xs text-quiet-faded" title={$currentNote.path}>
+            {#each breadcrumbSegments as segment, i}
+              {#if i > 0}<span class="mx-0.5 text-quiet-faded/40">/</span>{/if}
+              <span>{segment}</span>
+            {/each}
+            {#if breadcrumbSegments.length > 0}<span class="mx-0.5 text-quiet-faded/40">/</span>{/if}
+            <span class="text-quiet-text">{$currentNote.name}</span>
+          </span>
+        {/if}
         {#if saveStatus !== 'saved'}
-          <span class="text-[10px] text-quiet-faded">
+          <span class="shrink-0 text-[10px] text-quiet-faded">
             {#if saveStatus === 'saving'}Saving…{:else}Unsaved{/if}
           </span>
         {/if}
@@ -451,3 +477,9 @@
 <BacklinksPanel open={showBacklinks} onclose={() => (showBacklinks = false)} />
 
 <MoveDialog open={$moveTarget !== null} />
+
+<CommandPalette
+  open={showCommandPalette}
+  {notesDir}
+  onclose={() => (showCommandPalette = false)}
+/>

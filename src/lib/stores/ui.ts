@@ -11,3 +11,4 @@ export const searchResults: Writable<{ name: string; path: string }[]> = writabl
 
 export const focusSearchInput: Writable<number> = writable<number>(0);
 export const showNewNoteInput: Writable<boolean> = writable<boolean>(false);
+export const showNewFolderInput: Writable<boolean> = writable<boolean>(false);

@@ -1,9 +1,8 @@
 <script lang="ts">
-  import { searchQuery, searchScope, searchResultCount, searchResults, focusSearchInput, type SearchScope } from '$lib/stores/ui';
-  import { loadNote } from '$lib/stores/notes';
+  import { onDestroy } from 'svelte';
+  import { searchQuery, searchScope, searchResultCount, focusSearchInput, type SearchScope } from '$lib/stores/ui';
 
   let query = $state('');
-  let scope: SearchScope = $state('all');
   let inputEl: HTMLInputElement | undefined = $state();
   let debounce: ReturnType<typeof setTimeout>;
 
@@ -12,6 +11,15 @@
       inputEl.focus();
     }
   });
+
+  $effect(() => {
+    if (!$searchQuery) {
+      clearTimeout(debounce);
+      query = '';
+    }
+  });
+
+  onDestroy(() => clearTimeout(debounce));
 
   function handleInput() {
     clearTimeout(debounce);
@@ -22,23 +30,17 @@
 
   function handleKeydown(event: KeyboardEvent) {
     if (event.key === 'Escape') {
+      clearTimeout(debounce);
       query = '';
       searchQuery.set('');
     }
   }
 
   function setScope(s: SearchScope) {
-    scope = s;
     searchScope.set(s);
     if (query.trim()) {
       searchQuery.set(query.trim());
     }
-  }
-
-  async function openFromSearch(path: string) {
-    query = '';
-    searchQuery.set('');
-    await loadNote(path);
   }
 
   const SCOPE_LABELS: Record<SearchScope, string> = {
@@ -67,7 +69,7 @@
   <div class="mt-1.5 flex gap-1">
     {#each (['current-note', 'current-folder', 'all'] as const) as s}
       <button
-        class="rounded px-2 py-0.5 text-[10px] font-medium transition-colors {scope === s
+        class="rounded px-2 py-0.5 text-[10px] font-medium transition-colors {$searchScope === s
           ? 'bg-quiet-sidebar-accent/15 text-quiet-sidebar-accent'
           : 'text-quiet-faded hover:bg-quiet-sidebar-item-hover hover:text-quiet-muted'}"
         onclick={() => setScope(s)}
@@ -85,18 +87,5 @@
         {$searchResultCount} note{$searchResultCount === 1 ? '' : 's'} found
       {/if}
     </div>
-    {#if $searchResultCount > 0}
-      <div class="mt-1 max-h-40 overflow-y-auto rounded-md border border-quiet-chrome bg-quiet-surface shadow-lg">
-        {#each $searchResults as result}
-          <button
-            class="quiet-sidebar-row flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs transition-colors"
-            onclick={() => openFromSearch(result.path)}
-          >
-            <span class="truncate">{result.name}</span>
-            <span class="shrink-0 truncate text-[10px] text-quiet-faded">{result.path.split('/').slice(-2, -1).join('/')}</span>
-          </button>
-        {/each}
-      </div>
-    {/if}
   {/if}
 </div>

@@ -1104,6 +1104,14 @@ pub struct EditorSettings {
     pub line_numbers: bool,
     pub word_wrap: bool,
     pub tab_size: u32,
+    #[serde(default)]
+    pub dim_inactive_lines: bool,
+    #[serde(default = "default_smooth_caret")]
+    pub smooth_caret: bool,
+}
+
+fn default_smooth_caret() -> bool {
+    true
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -1178,6 +1186,8 @@ fn default_settings() -> Settings {
             line_numbers: true,
             word_wrap: false,
             tab_size: 4,
+            dim_inactive_lines: false,
+            smooth_caret: true,
         },
         pet: PetSettings {
             big_flame_enabled: true,
