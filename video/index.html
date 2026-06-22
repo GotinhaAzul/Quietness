@@ -366,6 +366,151 @@
     #scene2 .s2-overlay-line { width: 40px; height: 2px; background: #8b8178; opacity: 0.7; }
     #scene2 .s2-overlay-text { font-size: 36px; font-weight: 600; color: #d4d4d4; letter-spacing: -0.02em; }
 
+    /* Scene 3 — Flama Pet */
+    #scene3 {
+      z-index: 7;
+      background: #1e1e1e;
+      opacity: 0;
+    }
+    #scene3 .s3-bg-glow {
+      position: absolute;
+      width: 700px;
+      height: 500px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(218,165,105,0.12) 0%, rgba(218,165,105,0) 70%);
+      right: 5%;
+      bottom: 5%;
+    }
+    #scene3 .s3-app-frame {
+      position: absolute;
+      left: 140px;
+      top: 90px;
+      right: 140px;
+      bottom: 140px;
+      border: 2px solid #333333;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #1e1e1e;
+    }
+    #scene3 .s3-editor-area {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+    #scene3 .s3-toolbar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 56px;
+      border-bottom: 2px solid #333333;
+      display: flex;
+      align-items: center;
+      padding: 0 28px;
+      background: #1e1e1e;
+      z-index: 2;
+    }
+    #scene3 .s3-breadcrumb { font-size: 16px; }
+    #scene3 .s3-bc-seg { color: #666666; }
+    #scene3 .s3-bc-sep { color: #444444; margin: 0 5px; }
+    #scene3 .s3-bc-current { color: #d4d4d4; font-weight: 600; }
+    #scene3 .s3-text-lines {
+      position: absolute;
+      left: 140px;
+      top: 100px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-family: Inter, system-ui, sans-serif;
+      font-size: 22px;
+      color: #d4d4d4;
+    }
+    #scene3 .s3-line { opacity: 0.6; }
+    #scene3 .s3-line:first-child { font-weight: 700; opacity: 0.9; font-size: 28px; }
+    #scene3 .s3-pet-area {
+      position: absolute;
+      right: 200px;
+      bottom: 100px;
+      width: 180px;
+      height: 180px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #scene3 .s3-pet-body {
+      position: relative;
+      width: 60px;
+      height: 80px;
+    }
+    #scene3 .s3-flame-core {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 30px;
+      height: 50px;
+      background: linear-gradient(to top, #e8a850, #e8a850 60%, #e8c878 100%);
+      border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    }
+    #scene3 .s3-flame-outer {
+      position: absolute;
+      bottom: 5px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 45px;
+      height: 65px;
+      background: linear-gradient(to top, rgba(232,168,80,0.7), rgba(232,168,80,0.1) 100%);
+      border-radius: 45% 45% 50% 45% / 50% 50% 40% 40%;
+      filter: blur(4px);
+    }
+    #scene3 .s3-flame-tip {
+      position: absolute;
+      bottom: 45px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 18px;
+      height: 30px;
+      background: linear-gradient(to top, rgba(255,210,120,0.8), rgba(255,210,120,0) 100%);
+      border-radius: 50% 50% 20% 50% / 50% 50% 40% 40%;
+      filter: blur(2px);
+    }
+    #scene3 .s3-glow-aura {
+      position: absolute;
+      width: 140px;
+      height: 160px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(232,168,80,0.18) 0%, rgba(232,168,80,0) 70%);
+      filter: blur(8px);
+    }
+    #scene3 .s3-particle {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #e8b860;
+      opacity: 0;
+    }
+    #scene3 .s3-ember {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: #e8a850;
+      opacity: 0;
+    }
+    #scene3 .s3-overlay {
+      position: absolute;
+      left: 50%;
+      bottom: 110px;
+      transform: translateX(-50%);
+    }
+    #scene3 .s3-overlay-text {
+      font-size: 42px;
+      font-weight: 600;
+      color: #d4d4d4;
+      letter-spacing: -0.02em;
+    }
+
     #scene1 .grain {
       position: absolute;
       top: 0;
@@ -539,6 +684,55 @@
       </div>
       <div class="grain"></div>
     </div>
+    <!-- Scene 3: Flama Pet (14s–19s) -->
+    <div id="scene3" class="scene">
+      <div class="s3-bg-glow"></div>
+      <div class="s3-app-frame">
+        <div class="s3-editor-area">
+          <div class="s3-toolbar">
+            <span class="s3-breadcrumb">
+              <span class="s3-bc-seg">Journal</span>
+              <span class="s3-bc-sep">/</span>
+              <span class="s3-bc-current">Welcome.md</span>
+            </span>
+          </div>
+          <div class="s3-text-lines">
+            <span class="s3-line"># Quiet morning thoughts...</span>
+            <span class="s3-line">&nbsp;</span>
+            <span class="s3-line">The flame flickers gently as I type.</span>
+            <span class="s3-line">A quiet companion, always present.</span>
+            <span class="s3-line">&nbsp;</span>
+            <span class="s3-line">It separates when the keys are loud,</span>
+            <span class="s3-line">and rests when the mind wanders.</span>
+          </div>
+          <div class="s3-pet-area">
+            <div class="s3-pet-body">
+              <div class="s3-flame-core"></div>
+              <div class="s3-flame-outer"></div>
+              <div class="s3-flame-tip"></div>
+            </div>
+            <div class="s3-particle p1"></div>
+            <div class="s3-particle p2"></div>
+            <div class="s3-particle p3"></div>
+            <div class="s3-particle p4"></div>
+            <div class="s3-particle p5"></div>
+            <div class="s3-particle p6"></div>
+            <div class="s3-particle p7"></div>
+            <div class="s3-particle p8"></div>
+            <div class="s3-glow-aura"></div>
+            <div class="s3-ember e1"></div>
+            <div class="s3-ember e2"></div>
+            <div class="s3-ember e3"></div>
+            <div class="s3-ember e4"></div>
+            <div class="s3-ember e5"></div>
+          </div>
+        </div>
+      </div>
+      <div class="s3-overlay">
+        <span class="s3-overlay-text">Your quiet companion</span>
+      </div>
+      <div class="grain"></div>
+    </div>
   </div>
   <script>
     window.__timelines = window.__timelines || {};
@@ -589,6 +783,55 @@
     tl.from("#scene2 .s2-pv-task", { x: -10, opacity: 0, duration: 0.25, ease: "power2.out", stagger: 0.1 }, 9.5);
     tl.from("#scene2 .s2-overlay-line", { scaleX: 0, transformOrigin: "left center", duration: 0.5, ease: "power2.out" }, 9.0);
     tl.from("#scene2 .s2-overlay-text", { x: -30, opacity: 0, duration: 0.5, ease: "power2.out" }, 9.1);
+
+    // Scene 2 → 3 crossfade (at 13.5s)
+    tl.to("#scene2", { opacity: 0, duration: 0.5, ease: "power2.inOut" }, 13.5);
+    tl.set("#scene2", { visibility: "hidden" }, 14.0);
+    tl.to("#scene3", { opacity: 1, duration: 0.5, ease: "power2.inOut" }, 13.5);
+
+    // Scene 3 ambient
+    tl.to("#scene3 .s3-bg-glow", { scale: 1.1, opacity: 1.4, duration: 2.5, ease: "sine.inOut", yoyo: true, repeat: 1 }, 13.5);
+
+    // Scene 3 entrance
+    tl.from("#scene3 .s3-toolbar", { y: -20, opacity: 0, duration: 0.4, ease: "power2.out" }, 14.3);
+    tl.from("#scene3 .s3-line", { x: -20, opacity: 0, duration: 0.3, ease: "power2.out", stagger: 0.1 }, 14.4);
+
+    // Flama pet entrance
+    tl.from("#scene3 .s3-pet-body", { scale: 0, y: 30, duration: 0.6, ease: "back.out(1.7)" }, 14.6);
+    tl.from("#scene3 .s3-glow-aura", { opacity: 0, scale: 0.5, duration: 0.8, ease: "power2.out" }, 14.6);
+
+    // Flame breathing pulse
+    tl.to("#scene3 .s3-flame-outer", { scaleY: 1.15, duration: 0.7, ease: "sine.inOut", yoyo: true, repeat: 3 }, 14.8);
+    tl.to("#scene3 .s3-flame-tip", { scaleY: 1.3, y: -4, duration: 0.6, ease: "sine.inOut", yoyo: true, repeat: 3 }, 14.85);
+
+    // Glow aura breathing
+    tl.to("#scene3 .s3-glow-aura", { scale: 1.2, opacity: 0.7, duration: 2, ease: "sine.inOut", yoyo: true, repeat: 1, overwrite: "auto" }, 15.0);
+
+    // Particles emit outward from pet center
+    tl.fromTo("#scene3 .p1", { x: 0, y: 0, opacity: 0.9 }, { x: -35, y: -50, opacity: 0, duration: 1.2, ease: "power2.out" }, 15.2);
+    tl.fromTo("#scene3 .p2", { x: 0, y: 0, opacity: 0.9 }, { x: 25, y: -55, opacity: 0, duration: 1.1, ease: "power2.out" }, 15.3);
+    tl.fromTo("#scene3 .p3", { x: 0, y: 0, opacity: 0.9 }, { x: -40, y: -35, opacity: 0, duration: 1.0, ease: "power2.out" }, 15.4);
+    tl.fromTo("#scene3 .p4", { x: 0, y: 0, opacity: 0.9 }, { x: 30, y: -40, opacity: 0, duration: 1.2, ease: "power2.out" }, 15.5);
+    tl.fromTo("#scene3 .p5", { x: 0, y: 0, opacity: 0.9 }, { x: -20, y: -60, opacity: 0, duration: 1.0, ease: "power2.out" }, 15.35);
+    tl.fromTo("#scene3 .p6", { x: 0, y: 0, opacity: 0.9 }, { x: 15, y: -48, opacity: 0, duration: 1.1, ease: "power2.out" }, 15.45);
+    tl.fromTo("#scene3 .p7", { x: 0, y: 0, opacity: 0.9 }, { x: -50, y: -25, opacity: 0, duration: 0.9, ease: "power2.out" }, 15.55);
+    tl.fromTo("#scene3 .p8", { x: 0, y: 0, opacity: 0.9 }, { x: 45, y: -30, opacity: 0, duration: 1.0, ease: "power2.out" }, 15.6);
+
+    // Second particle burst
+    tl.fromTo("#scene3 .p1", { x: 0, y: 0, opacity: 0.9 }, { x: -30, y: -45, opacity: 0, duration: 1.2, ease: "power2.out" }, 16.8);
+    tl.fromTo("#scene3 .p3", { x: 0, y: 0, opacity: 0.9 }, { x: 28, y: -50, opacity: 0, duration: 1.0, ease: "power2.out" }, 16.9);
+    tl.fromTo("#scene3 .p5", { x: 0, y: 0, opacity: 0.9 }, { x: -25, y: -38, opacity: 0, duration: 1.1, ease: "power2.out" }, 17.0);
+    tl.fromTo("#scene3 .p7", { x: 0, y: 0, opacity: 0.9 }, { x: 35, y: -42, opacity: 0, duration: 1.0, ease: "power2.out" }, 17.1);
+
+    // Ember trail — drift upward and fade
+    tl.fromTo("#scene3 .e1", { y: 0, x: -5, opacity: 0.6 }, { y: -80, x: -20, opacity: 0, duration: 1.8, ease: "power1.out" }, 15.4);
+    tl.fromTo("#scene3 .e2", { y: 0, x: 5, opacity: 0.5 }, { y: -70, x: 15, opacity: 0, duration: 1.6, ease: "power1.out" }, 15.7);
+    tl.fromTo("#scene3 .e3", { y: 0, x: -8, opacity: 0.5 }, { y: -65, x: -25, opacity: 0, duration: 1.5, ease: "power1.out" }, 16.0);
+    tl.fromTo("#scene3 .e4", { y: 0, x: 8, opacity: 0.6 }, { y: -75, x: 20, opacity: 0, duration: 1.8, ease: "power1.out" }, 16.4);
+    tl.fromTo("#scene3 .e5", { y: 0, x: -3, opacity: 0.5 }, { y: -85, x: -15, opacity: 0, duration: 1.6, ease: "power1.out" }, 16.7);
+
+    // Overlay
+    tl.from("#scene3 .s3-overlay-text", { y: 20, opacity: 0, duration: 0.6, ease: "power2.out" }, 15.0);
 
     window.__timelines["main"] = tl;
   </script>
