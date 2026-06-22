@@ -241,6 +241,131 @@
       color: #d4d4d4;
       letter-spacing: -0.02em;
     }
+    /* Scene 2 — Editor + Markdown Split View */
+    #scene2 {
+      z-index: 8;
+      background: #1e1e1e;
+      opacity: 0;
+    }
+    #scene2 .s2-bg-glow {
+      position: absolute;
+      width: 800px;
+      height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(139,129,120,0.15) 0%, rgba(139,129,120,0) 70%);
+      right: -10%;
+      top: 20%;
+    }
+    #scene2 .s2-app-frame {
+      position: absolute;
+      left: 140px;
+      top: 90px;
+      right: 140px;
+      bottom: 140px;
+      display: flex;
+      flex-direction: row;
+      border: 2px solid #333333;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #1e1e1e;
+    }
+    #scene2 .s2-toolbar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 56px;
+      border-bottom: 2px solid #333333;
+      display: flex;
+      align-items: center;
+      padding: 0 28px;
+      background: #1e1e1e;
+      z-index: 1;
+    }
+    #scene2 .s2-breadcrumb {
+      font-size: 16px;
+      white-space: nowrap;
+    }
+    #scene2 .s2-bc-seg { color: #666666; }
+    #scene2 .s2-bc-sep { color: #444444; margin: 0 5px; }
+    #scene2 .s2-bc-current { color: #d4d4d4; font-weight: 600; }
+    #scene2 .s2-editor {
+      flex: 1;
+      padding: 80px 32px 32px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 17px;
+      line-height: 1.8;
+      color: #d4d4d4;
+      overflow: hidden;
+    }
+    #scene2 .s2-editor-line {
+      display: flex;
+      align-items: baseline;
+      white-space: nowrap;
+    }
+    #scene2 .s2-blank { height: 0.5em; }
+    #scene2 .s2-line-num {
+      width: 32px;
+      color: #444444;
+      font-size: 14px;
+      text-align: right;
+      margin-right: 18px;
+      flex-shrink: 0;
+    }
+    #scene2 .s2-heading { color: #8b8178; font-weight: 700; }
+    #scene2 .s2-bold { color: #d4d4d4; font-weight: 700; }
+    #scene2 .s2-italic { color: #d4d4d4; font-style: italic; }
+    #scene2 .s2-task { color: #8b8178; }
+    #scene2 .s2-highlight { background: rgba(139,129,120,0.3); color: #d4d4d4; padding: 0 2px; border-radius: 2px; }
+    #scene2 .s2-strikethrough { color: #666666; text-decoration: line-through; }
+    #scene2 .s2-wikilink { color: #8b8178; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 4px; }
+    #scene2 .s2-code { background: #2d2d2d; color: #d4d4d4; padding: 1px 6px; border-radius: 4px; font-size: 15px; }
+    #scene2 .s2-cursor-line {
+      position: absolute;
+      left: 32px;
+      top: 80px;
+      width: calc(50% - 65px);
+      height: 1.5px;
+      background: #8b8178;
+    }
+    #scene2 .s2-divider {
+      width: 2px;
+      background: #333333;
+      margin-top: 56px;
+      align-self: stretch;
+    }
+    #scene2 .s2-preview {
+      flex: 1;
+      padding: 80px 40px 32px;
+      font-family: Inter, system-ui, sans-serif;
+      font-size: 20px;
+      line-height: 1.7;
+      color: #d4d4d4;
+      overflow: hidden;
+    }
+    #scene2 .s2-pv-heading { font-size: 32px; font-weight: 700; color: #d4d4d4; margin: 0 0 16px 0; }
+    #scene2 .s2-pv-subheading { font-size: 24px; font-weight: 600; color: #d4d4d4; margin: 20px 0 12px 0; }
+    #scene2 .s2-pv-text { margin: 8px 0; color: #d4d4d4; }
+    #scene2 .s2-pv-bold { color: #d4d4d4; font-weight: 700; }
+    #scene2 .s2-pv-italic { font-style: italic; }
+    #scene2 .s2-pv-task { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
+    #scene2 .s2-pv-check { color: #8b8178; font-size: 18px; }
+    #scene2 .s2-pv-uncheck { color: #666666; font-size: 18px; }
+    #scene2 .s2-pv-highlight { background: rgba(139,129,120,0.3); color: #d4d4d4; padding: 0 4px; border-radius: 3px; }
+    #scene2 .s2-pv-strike { color: #666666; }
+    #scene2 .s2-pv-link { color: #8b8178; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 4px; }
+    #scene2 .s2-pv-code { background: #2d2d2d; color: #d4d4d4; padding: 2px 8px; border-radius: 4px; font-size: 17px; font-family: "JetBrains Mono", monospace; }
+    #scene2 .s2-overlay {
+      position: absolute;
+      left: 140px;
+      bottom: 130px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    #scene2 .s2-overlay-line { width: 40px; height: 2px; background: #8b8178; opacity: 0.7; }
+    #scene2 .s2-overlay-text { font-size: 36px; font-weight: 600; color: #d4d4d4; letter-spacing: -0.02em; }
+
     #scene1 .grain {
       position: absolute;
       top: 0;
@@ -325,6 +450,95 @@
       </div>
       <div class="grain"></div>
     </div>
+    <!-- Scene 2: Editor + Markdown (8s–14s) -->
+    <div id="scene2" class="scene">
+      <div class="s2-bg-glow"></div>
+      <div class="s2-app-frame">
+        <!-- Toolbar -->
+        <div class="s2-toolbar">
+          <span class="s2-breadcrumb">
+            <span class="s2-bc-seg">Journal</span>
+            <span class="s2-bc-sep">/</span>
+            <span class="s2-bc-current">Welcome.md</span>
+          </span>
+        </div>
+        <!-- Editor (left) -->
+        <div class="s2-editor">
+          <div class="s2-editor-line">
+            <span class="s2-line-num">1</span>
+            <span class="s2-heading"># Welcome to Quietness</span>
+          </div>
+          <div class="s2-editor-line s2-blank">&nbsp;</div>
+          <div class="s2-editor-line">
+            <span class="s2-line-num">3</span>
+            <span class="s2-text">A </span><span class="s2-bold">lightweight</span><span class="s2-text"> offline note-taking app designed for</span>
+          </div>
+          <div class="s2-editor-line">
+            <span class="s2-line-num">4</span>
+            <span class="s2-text">focus and </span><span class="s2-italic">simplicity</span><span class="s2-text">.</span>
+          </div>
+          <div class="s2-editor-line s2-blank">&nbsp;</div>
+          <div class="s2-editor-line">
+            <span class="s2-line-num">6</span>
+            <span class="s2-heading">## Features</span>
+          </div>
+          <div class="s2-editor-line s2-blank">&nbsp;</div>
+          <div class="s2-editor-line">
+            <span class="s2-line-num">8</span>
+            <span class="s2-task">- [x]</span><span class="s2-text"> Markdown editing</span>
+          </div>
+          <div class="s2-editor-line">
+            <span class="s2-line-num">9</span>
+            <span class="s2-task">- [ ]</span><span class="s2-text"> Write more notes</span>
+          </div>
+          <div class="s2-editor-line">
+            <span class="s2-line-num">10</span>
+            <span class="s2-task">- [x]</span><span class="s2-text"> ==Highlights== and ~~strikethrough~~</span>
+            <span class="s2-highlight">==Highlights==</span>
+            <span class="s2-text"> and </span>
+            <span class="s2-strikethrough">~~strikethrough~~</span>
+          </div>
+          <div class="s2-editor-line s2-blank">&nbsp;</div>
+          <div class="s2-editor-line">
+            <span class="s2-line-num">12</span>
+            <span class="s2-text">See </span><span class="s2-wikilink">[[Connections]]</span>
+          </div>
+          <div class="s2-editor-line">
+            <span class="s2-line-num">13</span>
+            <span class="s2-text">And some </span><span class="s2-code">`inline code`</span><span class="s2-text"> too.</span>
+          </div>
+          <div class="s2-cursor-line"></div>
+        </div>
+        <!-- Divider -->
+        <div class="s2-divider"></div>
+        <!-- Preview (right) -->
+        <div class="s2-preview">
+          <h2 class="s2-pv-heading">Welcome to Quietness</h2>
+          <p class="s2-pv-text">A <strong class="s2-pv-bold">lightweight</strong> offline note-taking app designed for focus and <em class="s2-pv-italic">simplicity</em>.</p>
+          <h3 class="s2-pv-subheading">Features</h3>
+          <div class="s2-pv-task">
+            <span class="s2-pv-check">&#x2713;</span>
+            <span>Markdown editing</span>
+          </div>
+          <div class="s2-pv-task">
+            <span class="s2-pv-uncheck">&#x25EF;</span>
+            <span>Write more notes</span>
+          </div>
+          <div class="s2-pv-task">
+            <span class="s2-pv-check">&#x2713;</span>
+            <span><mark class="s2-pv-highlight">Highlights</mark> and <del class="s2-pv-strike">strikethrough</del></span>
+          </div>
+          <p class="s2-pv-text">See <a class="s2-pv-link">Connections</a></p>
+          <p class="s2-pv-text">And some <code class="s2-pv-code">inline code</code> too.</p>
+        </div>
+      </div>
+      <!-- Overlay -->
+      <div class="s2-overlay">
+        <span class="s2-overlay-line"></span>
+        <span class="s2-overlay-text">Markdown editing with live preview</span>
+      </div>
+      <div class="grain"></div>
+    </div>
   </div>
   <script>
     window.__timelines = window.__timelines || {};
@@ -357,6 +571,24 @@
     tl.from("#scene1 .s1-breadcrumb", { y: -20, opacity: 0, duration: 0.45, ease: "power2.out" }, 3.7);
     tl.from("#scene1 .s1-overlay-line", { scaleX: 0, transformOrigin: "left center", duration: 0.5, ease: "power2.out" }, 4.0);
     tl.from("#scene1 .s1-overlay-text", { x: -30, opacity: 0, duration: 0.5, ease: "power2.out" }, 4.1);
+
+    // Scene 1 → 2 crossfade (at 7.5s)
+    tl.to("#scene1", { opacity: 0, duration: 0.5, ease: "power2.inOut" }, 7.5);
+    tl.set("#scene1", { visibility: "hidden" }, 8.0);
+    tl.to("#scene2", { opacity: 1, duration: 0.5, ease: "power2.inOut" }, 7.5);
+
+    // Scene 2 ambient
+    tl.to("#scene2 .s2-bg-glow", { scale: 1.15, opacity: 1.3, duration: 3, ease: "sine.inOut", yoyo: true, repeat: 1 }, 7.5);
+
+    // Scene 2 entrance — editor lines stagger in
+    tl.from("#scene2 .s2-toolbar", { y: -30, opacity: 0, duration: 0.4, ease: "power2.out" }, 8.3);
+    tl.from("#scene2 .s2-editor-line", { x: -20, opacity: 0, duration: 0.25, ease: "power2.out", stagger: 0.08 }, 8.4);
+    tl.from("#scene2 .s2-divider", { scaleY: 0, transformOrigin: "center top", duration: 0.5, ease: "power2.out" }, 8.5);
+    tl.from("#scene2 .s2-pv-heading", { y: -15, opacity: 0, duration: 0.4, ease: "power2.out" }, 9.2);
+    tl.from("#scene2 .s2-pv-text", { y: -10, opacity: 0, duration: 0.3, ease: "power2.out", stagger: 0.12 }, 9.4);
+    tl.from("#scene2 .s2-pv-task", { x: -10, opacity: 0, duration: 0.25, ease: "power2.out", stagger: 0.1 }, 9.5);
+    tl.from("#scene2 .s2-overlay-line", { scaleX: 0, transformOrigin: "left center", duration: 0.5, ease: "power2.out" }, 9.0);
+    tl.from("#scene2 .s2-overlay-text", { x: -30, opacity: 0, duration: 0.5, ease: "power2.out" }, 9.1);
 
     window.__timelines["main"] = tl;
   </script>
