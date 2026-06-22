@@ -511,6 +511,186 @@
       letter-spacing: -0.02em;
     }
 
+    /* Scene 4 — Theme Cycling */
+    #scene4 {
+      z-index: 6;
+      background: #1e1e1e;
+      opacity: 0;
+    }
+    #scene4 .s4-bg-glow {
+      position: absolute;
+      width: 1000px;
+      height: 800px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(139,129,120,0.1) 0%, rgba(139,129,120,0) 70%);
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
+    #scene4 .s4-card-stack {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 800px;
+      height: 500px;
+    }
+    #scene4 .s4-theme-card {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 2px solid #333333;
+      display: flex;
+      flex-direction: column;
+    }
+    #scene4 .s4-theme-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      border-bottom: 2px solid;
+    }
+    #scene4 .s4-theme-name {
+      font-size: 22px;
+      font-weight: 600;
+    }
+    #scene4 .s4-theme-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    #scene4 .s4-theme-preview {
+      flex: 1;
+      display: flex;
+      flex-direction: row;
+    }
+    #scene4 .s4-preview-sidebar {
+      width: 220px;
+      border-right: 2px solid;
+    }
+    #scene4 .s4-preview-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 32px;
+    }
+    #scene4 .s4-preview-line {
+      height: 10px;
+      border-radius: 5px;
+    }
+    #scene4 .s4-preview-line.w80 { width: 80%; }
+    #scene4 .s4-preview-line.w60 { width: 60%; }
+    #scene4 .s4-preview-line.w90 { width: 90%; }
+    #scene4 .s4-preview-line.w50 { width: 50%; }
+    #scene4 .s4-preview-line.w70 { width: 70%; }
+
+    /* T1: Quiet Dark */
+    #scene4 .s4-t1 {
+      background: #1e1e1e;
+      border-color: #333333;
+      z-index: 4;
+    }
+    #scene4 .s4-t1 .s4-theme-bar {
+      background: #252525;
+      border-color: #333333;
+      color: #d4d4d4;
+    }
+    #scene4 .s4-t1 .s4-preview-sidebar {
+      background: #252525;
+      border-color: #333333;
+    }
+    #scene4 .s4-t1 .s4-preview-line {
+      background: #353535;
+    }
+
+    /* T2: Catppuccin Mocha */
+    #scene4 .s4-t2 {
+      background: #1e1e2e;
+      border-color: #45475a;
+      z-index: 3;
+      opacity: 0;
+    }
+    #scene4 .s4-t2 .s4-theme-bar {
+      background: #313244;
+      border-color: #45475a;
+      color: #cdd6f4;
+    }
+    #scene4 .s4-t2 .s4-preview-sidebar {
+      background: #313244;
+      border-color: #45475a;
+    }
+    #scene4 .s4-t2 .s4-preview-line {
+      background: #45475a;
+    }
+
+    /* T3: Nord */
+    #scene4 .s4-t3 {
+      background: #2e3440;
+      border-color: #4c566a;
+      z-index: 2;
+      opacity: 0;
+    }
+    #scene4 .s4-t3 .s4-theme-bar {
+      background: #3b4252;
+      border-color: #4c566a;
+      color: #d8dee9;
+    }
+    #scene4 .s4-t3 .s4-preview-sidebar {
+      background: #3b4252;
+      border-color: #4c566a;
+    }
+    #scene4 .s4-t3 .s4-preview-line {
+      background: #4c566a;
+    }
+
+    /* T4: Everforest Day */
+    #scene4 .s4-t4 {
+      background: #faf0ca;
+      border-color: #d3c6aa;
+      z-index: 1;
+      opacity: 0;
+    }
+    #scene4 .s4-t4 .s4-theme-bar {
+      background: #f6ebc2;
+      border-color: #d3c6aa;
+      color: #5c6a72;
+    }
+    #scene4 .s4-t4 .s4-preview-sidebar {
+      background: #f6ebc2;
+      border-color: #d3c6aa;
+    }
+    #scene4 .s4-t4 .s4-preview-line {
+      background: #e5dfc5;
+    }
+
+    #scene4 .s4-overlay {
+      position: absolute;
+      left: 50%;
+      top: 120px;
+      transform: translateX(-50%);
+    }
+    #scene4 .s4-overlay-text {
+      font-size: 42px;
+      font-weight: 600;
+      color: #d4d4d4;
+      letter-spacing: -0.02em;
+    }
+    #scene4 .s4-theme-label {
+      position: absolute;
+      left: 50%;
+      bottom: 140px;
+      transform: translateX(-50%);
+      font-size: 20px;
+      font-weight: 500;
+      color: #888888;
+      opacity: 0;
+    }
+
     #scene1 .grain {
       position: absolute;
       top: 0;
@@ -733,6 +913,81 @@
       </div>
       <div class="grain"></div>
     </div>
+    <!-- Scene 4: Theme Cycling (19s–25s) -->
+    <div id="scene4" class="scene">
+      <div class="s4-bg-glow"></div>
+      <div class="s4-card-stack">
+        <div class="s4-theme-card s4-t1">
+          <div class="s4-theme-bar">
+            <span class="s4-theme-name">Quiet Dark</span>
+            <span class="s4-theme-dot" style="background:#8b8178"></span>
+          </div>
+          <div class="s4-theme-preview">
+            <div class="s4-preview-sidebar"></div>
+            <div class="s4-preview-content">
+              <div class="s4-preview-line w80"></div>
+              <div class="s4-preview-line w60"></div>
+              <div class="s4-preview-line w90"></div>
+              <div class="s4-preview-line w50"></div>
+              <div class="s4-preview-line w70"></div>
+            </div>
+          </div>
+        </div>
+        <div class="s4-theme-card s4-t2">
+          <div class="s4-theme-bar">
+            <span class="s4-theme-name">Catppuccin Mocha</span>
+            <span class="s4-theme-dot" style="background:#cba6f7"></span>
+          </div>
+          <div class="s4-theme-preview">
+            <div class="s4-preview-sidebar"></div>
+            <div class="s4-preview-content">
+              <div class="s4-preview-line w80"></div>
+              <div class="s4-preview-line w60"></div>
+              <div class="s4-preview-line w90"></div>
+              <div class="s4-preview-line w50"></div>
+              <div class="s4-preview-line w70"></div>
+            </div>
+          </div>
+        </div>
+        <div class="s4-theme-card s4-t3">
+          <div class="s4-theme-bar">
+            <span class="s4-theme-name">Nord</span>
+            <span class="s4-theme-dot" style="background:#88c0d0"></span>
+          </div>
+          <div class="s4-theme-preview">
+            <div class="s4-preview-sidebar"></div>
+            <div class="s4-preview-content">
+              <div class="s4-preview-line w80"></div>
+              <div class="s4-preview-line w60"></div>
+              <div class="s4-preview-line w90"></div>
+              <div class="s4-preview-line w50"></div>
+              <div class="s4-preview-line w70"></div>
+            </div>
+          </div>
+        </div>
+        <div class="s4-theme-card s4-t4">
+          <div class="s4-theme-bar">
+            <span class="s4-theme-name">Everforest Day</span>
+            <span class="s4-theme-dot" style="background:#7fbbb3"></span>
+          </div>
+          <div class="s4-theme-preview">
+            <div class="s4-preview-sidebar"></div>
+            <div class="s4-preview-content">
+              <div class="s4-preview-line w80"></div>
+              <div class="s4-preview-line w60"></div>
+              <div class="s4-preview-line w90"></div>
+              <div class="s4-preview-line w50"></div>
+              <div class="s4-preview-line w70"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="s4-overlay">
+        <span class="s4-overlay-text">9 handcrafted themes</span>
+      </div>
+      <div class="s4-theme-label">Catppuccin Mocha</div>
+      <div class="grain"></div>
+    </div>
   </div>
   <script>
     window.__timelines = window.__timelines || {};
@@ -832,6 +1087,39 @@
 
     // Overlay
     tl.from("#scene3 .s3-overlay-text", { y: 20, opacity: 0, duration: 0.6, ease: "power2.out" }, 15.0);
+
+    // Scene 3 → 4 crossfade (at 18.5s)
+    tl.to("#scene3", { opacity: 0, duration: 0.5, ease: "power2.inOut" }, 18.5);
+    tl.set("#scene3", { visibility: "hidden" }, 19.0);
+    tl.to("#scene4", { opacity: 1, duration: 0.5, ease: "power2.inOut" }, 18.5);
+
+    // Scene 4 ambient
+    tl.to("#scene4 .s4-bg-glow", { scale: 1.12, opacity: 1.2, duration: 3, ease: "sine.inOut", yoyo: true, repeat: 1 }, 18.5);
+
+    // Scene 4 entrance — T1 card slides in
+    tl.from("#scene4 .s4-t1", { y: 60, opacity: 0, duration: 0.6, ease: "power3.out" }, 19.3);
+    tl.from("#scene4 .s4-overlay-text", { y: -20, opacity: 0, duration: 0.5, ease: "power2.out" }, 19.5);
+
+    // Theme cycling: T1 → T2 crossfade at 20.5s
+    tl.to("#scene4 .s4-t1", { opacity: 0, duration: 0.5, ease: "power2.inOut" }, 20.5);
+    tl.to("#scene4 .s4-t2", { opacity: 1, duration: 0.5, ease: "power2.inOut" }, 20.5);
+    tl.set("#scene4 .s4-theme-label", { textContent: "Catppuccin Mocha" });
+    tl.fromTo("#scene4 .s4-theme-label", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 20.5);
+    tl.to("#scene4 .s4-theme-label", { opacity: 0, duration: 0.3 }, 21.5);
+
+    // T2 → T3 crossfade at 21.8s
+    tl.to("#scene4 .s4-t2", { opacity: 0, duration: 0.5, ease: "power2.inOut" }, 21.8);
+    tl.to("#scene4 .s4-t3", { opacity: 1, duration: 0.5, ease: "power2.inOut" }, 21.8);
+    tl.set("#scene4 .s4-theme-label", { textContent: "Nord" });
+    tl.fromTo("#scene4 .s4-theme-label", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 21.8);
+    tl.to("#scene4 .s4-theme-label", { opacity: 0, duration: 0.3 }, 22.8);
+
+    // T3 → T4 crossfade at 23.1s
+    tl.to("#scene4 .s4-t3", { opacity: 0, duration: 0.5, ease: "power2.inOut" }, 23.1);
+    tl.to("#scene4 .s4-t4", { opacity: 1, duration: 0.5, ease: "power2.inOut" }, 23.1);
+    tl.set("#scene4 .s4-theme-label", { textContent: "Everforest Day" });
+    tl.fromTo("#scene4 .s4-theme-label", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 23.1);
+    tl.to("#scene4 .s4-theme-label", { opacity: 0, duration: 0.3 }, 24.1);
 
     window.__timelines["main"] = tl;
   </script>
