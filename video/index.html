@@ -709,9 +709,9 @@
     }
     #scene5 .s5-app-frame {
       position: absolute;
-      left: 140px;
+      left: 120px;
       top: 90px;
-      right: 140px;
+      right: 120px;
       bottom: 140px;
       border: 2px solid #333333;
       border-radius: 12px;
@@ -936,7 +936,7 @@
     </div>
     <!-- Scene 1: Navigation (3s–8s) -->
     <div id="scene1" class="scene">
-      <div class="s1-bg-glow"></div>
+      <div class="s1-bg-glow" data-layout-allow-overflow></div>
       <!-- App chrome frame -->
       <div class="s1-app-frame">
         <!-- Sidebar -->
@@ -995,7 +995,7 @@
     </div>
     <!-- Scene 2: Editor + Markdown (8s–14s) -->
     <div id="scene2" class="scene">
-      <div class="s2-bg-glow"></div>
+      <div class="s2-bg-glow" data-layout-allow-overflow></div>
       <div class="s2-app-frame">
         <!-- Toolbar -->
         <div class="s2-toolbar">
@@ -1036,7 +1036,7 @@
           </div>
           <div class="s2-editor-line">
             <span class="s2-line-num">10</span>
-            <span class="s2-task">- [x]</span><span class="s2-text"> ==Highlights== and ~~strikethrough~~</span>
+            <span class="s2-task">- [x]</span>
             <span class="s2-highlight">==Highlights==</span>
             <span class="s2-text"> and </span>
             <span class="s2-strikethrough">~~strikethrough~~</span>
@@ -1084,7 +1084,7 @@
     </div>
     <!-- Scene 3: Flama Pet (14s–19s) -->
     <div id="scene3" class="scene">
-      <div class="s3-bg-glow"></div>
+      <div class="s3-bg-glow" data-layout-allow-overflow></div>
       <div class="s3-app-frame">
         <div class="s3-editor-area">
           <div class="s3-toolbar">
@@ -1133,7 +1133,7 @@
     </div>
     <!-- Scene 4: Theme Cycling (19s–25s) -->
     <div id="scene4" class="scene">
-      <div class="s4-bg-glow"></div>
+      <div class="s4-bg-glow" data-layout-allow-overflow></div>
       <div class="s4-card-stack">
         <div class="s4-theme-card s4-t1">
           <div class="s4-theme-bar">
@@ -1207,9 +1207,9 @@
       <div class="grain"></div>
     </div>
     <!-- Scene 5: Templates & Backlinks (25s–30s) -->
-    <div id="scene5" class="scene">
-      <div class="s5-bg-glow"></div>
-      <div class="s5-app-frame">
+    <div id="scene5" class="scene" data-layout-allow-occlusion>
+      <div class="s5-bg-glow" data-layout-allow-overflow></div>
+      <div class="s5-app-frame" data-layout-ignore>
         <div class="s5-toolbar">
           <span class="s5-breadcrumb">
             <span class="s5-bc-seg">Journal</span>
@@ -1268,10 +1268,10 @@
           </div>
         </div>
       </div>
-      <div class="s5-overlay">
+      <div class="s5-overlay" data-layout-allow-overlap>
         <span class="s5-overlay-text">Templates &amp; smart connections</span>
       </div>
-      <div class="s5-end-card">
+      <div class="s5-end-card" data-layout-allow-occlusion>
         <div class="s5-end-glow"></div>
         <span class="s5-end-logo">Quietness</span>
         <span class="s5-end-url">github.com/GotinhaAzul/Quietness</span>
