@@ -1,22 +1,39 @@
-# Quietness
+<p align="center">
+  <img src="src-tauri/icons/icon.png" width="96" alt="Quietness logo" />
+</p>
 
-> A quiet place to write.
+<h1 align="center">Quietness</h1>
 
-A local-first, offline note-taking desktop app built with **Tauri** + **SvelteKit**. Your notes are plain `.md` files on your filesystem — no accounts, no cloud, no noise.
+<p align="center">
+  <em>A quiet place to write.</em>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/version-0.1.0-6b7280?style=flat-square" alt="Version" />
+  <img src="https://img.shields.io/badge/Tauri-v2-8b5cf6?style=flat-square" alt="Tauri" />
+  <img src="https://img.shields.io/badge/Svelte-5-e34f26?style=flat-square" alt="Svelte" />
+  <img src="https://img.shields.io/badge/Rust-1.80-dea584?style=flat-square" alt="Rust" />
+  <img src="https://img.shields.io/badge/TypeScript-5-3178c6?style=flat-square" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/license-MIT-22c55e?style=flat-square" alt="License" />
+</p>
+
+---
+
+A local-first, offline note-taking desktop app. Your notes are plain `.md` files on your filesystem — no accounts, no cloud, no noise.
 
 ---
 
 ## Why Quietness?
 
-| | Quietness | Typical Apps |
-|---|---|---|
-| **RAM usage** | ~4 MB | ~200 MB |
-| **Bundle size** | ~10 MB | 200+ MB |
-| **Offline** | 100% — always | Often requires internet |
-| **Data format** | Plain `.md` files | Proprietary database |
-| **Telemetry** | Zero | Often present |
+|                          | Quietness               | Typical Apps            |
+| ------------------------ | ----------------------- | ----------------------- |
+| **RAM usage**            | ~4 MB                   | ~200 MB                 |
+| **Bundle size**          | ~10 MB                  | 200+ MB                 |
+| **Offline**              | 100% — always           | Often requires internet |
+| **Data format**          | Plain `.md` files       | Proprietary database    |
+| **Telemetry**            | Zero                    | Often present           |
 
-Your notes stay yours. Open them with any editor, any time.
+Your notes stay yours. Open them with any editor, any time — they're just markdown files.
 
 ---
 
@@ -24,31 +41,56 @@ Your notes stay yours. Open them with any editor, any time.
 
 ### Editor
 
-- **CodeMirror 6** — syntax highlighting, bracket matching, auto-close brackets/quotes, rectangular selection, multiple cursors
-- **Three view modes** — edit only, preview only, split side-by-side
-- **Dim inactive lines** — subtle opacity fade on non-active lines
-- **Smooth caret** — animated cursor with a slight overshoot bounce
-- **Tab indentation** — configurable from 1 to 8 spaces
-- **Inline rename** — click any note title to rename it in place
-- **Word & character count** — live in the editor footer
-- **LRU state cache** — instant note switching without reinitializing the editor
+Built on **CodeMirror 6** with compartmentalized extensions for optimal performance:
+
+- **Syntax highlighting**, bracket matching, auto-close brackets/quotes, rectangular selection, multiple cursors
+- **Three view modes** — edit only, preview only, or split side-by-side
+- **Per-note undo history** — isolated undo/redo per note via LRU state cache (max 15 entries), never cross-contaminated
+- **Word & character count** — live counter in the editor footer
+- **Smooth caret** — animated cursor with a subtle overshoot bounce
+- **Dim inactive lines** — non-active lines fade slightly to reduce visual noise
+- **Inline rename** — click any note title in the explorer to rename it in place
+- **Configurable tab size** — 1 to 8 spaces
+- **Save-status indicator** — subtle confirmation that your note has been saved
+- **Optimistic UI** — instant feedback for create/delete operations
 
 ### Markdown & Links
 
-- **Live preview** rendered via markdown-it
-- **Highlight & strikethrough** — `==text==` renders as highlighted `<mark>`, `~~text~~` renders as `<del>` (strikethrough)
+- **Live preview** — rendered via [markdown-it](https://github.com/markdown-it/markdown-it) with caching (LRU, 100 entries)
+- **Highlight & strikethrough** — `==text==` renders as `<mark>`, `~~text~~` as `<del>`
 - **Wikilinks** — `[[note-name]]` to navigate, `[[target|display text]]` for custom labels. Click to jump; create missing notes on the fly
-- **Interactive task lists** — click a checkbox in preview to toggle `[ ]` / `[x]` directly in the source
-- **Scoped search** — find across all notes, current folder, or current note. Debounced, instant results
+- **Interactive task lists** — click checkboxes in preview to toggle `[ ]` / `[x]` directly in the source
+
+### Navigation & Search
+
+- **Unified Explorer** — folder tree and note list merged into a single component. Browse hierarchically, or type to search and see flat results in place
+- **Search with scope** — search across all notes, the current folder, or within the current note. Debounced, instant results with content snippets
+- **Command Palette** — `Ctrl+P` to jump to any note by title, create a new note, or switch view modes. Fuzzy, case/accent-insensitive matching with ranked results
+- **Breadcrumbs** — current note's folder path displayed in the toolbar for spatial awareness
 
 ### Organization
 
-- **Hierarchical folder tree** — create, rename, delete, and move notes/folders freely
+- **Note Templates** — reusable `.md` templates stored under `_templates/`. Pick from a dropdown with preview, insert content at cursor, or create a new note from template. Supports placeholder variables: `{date}`, `{time}`, `{datetime}`, `{title}`. Create and delete templates inline. Toggle on/off in settings
+- **Backlinks Panel** — `Ctrl+Shift+B` opens a modal showing outgoing wikilinks and incoming backlinks for the current note. Each entry shows the note name and folder; click to navigate. Toggle on/off in settings
+- **Trash with retention** — deleted notes go to `.trash/` with configurable retention period (default 30 days). Auto-cleanup runs periodically in the background
+- **Home folder migration** — switch your notes directory at any time; existing notes are migrated automatically
 - **Collapsible sidebar** — toggle between full width and icon-only
-- **Note templates** — create reusable `.md` templates stored under `_templates/`. Pick from a dropdown, preview, and insert into the editor. Create and delete templates inline. Toggle on/off in settings
-- **Backlinks panel** — `Ctrl+Shift+B` opens a modal showing outgoing wikilinks and incoming backlinks for the current note. Each entry shows the note name and folder; click to navigate. Toggle on/off in settings
-- **Trash with retention** — deleted notes go to trash with configurable retention (default 30 days)
-- **Home folder migration** — switch your notes directory with automatic content migration
+- **Keyboard shortcuts** — full set of shortcuts for power users:
+
+  | Shortcut              | Action                   |
+  | --------------------- | ------------------------ |
+  | `Ctrl+P`              | Command Palette          |
+  | `Ctrl+Shift+F`        | Focus search             |
+  | `Ctrl+N`              | New note                 |
+  | `Ctrl+Shift+N`        | New folder               |
+  | `Ctrl+Shift+E`        | Edit mode                |
+  | `Ctrl+Shift+S`        | Split mode               |
+  | `Ctrl+Shift+P`        | Preview mode             |
+  | `Ctrl+Shift+B`        | Backlinks panel          |
+  | `Ctrl+Shift+D`        | Delete note (to trash)   |
+  | `Ctrl+Shift+Delete`   | Permanent delete         |
+  | `Ctrl+S`              | Save                     |
+  | `Ctrl+,`              | Settings                 |
 
 ---
 
@@ -58,41 +100,41 @@ Your notes stay yours. Open them with any editor, any time.
 
 Each theme defines variables for the full interface — sidebar backgrounds, item hover/active states, icon colors, scrollbar styling, text selection, and more.
 
-| Theme | Style |
-|---|---|
-| Quiet Light | Warm paper, soft contrast |
-| Quiet Dark | Dark background, muted tones |
-| Catppuccin Latte | Warm, gentle pastels |
-| Catppuccin Mocha | Rich, cozy dark pastels |
-| Everforest Day | Soft green-tinted light |
-| Everforest Night | Deep green-tinted dark |
-| GitHub Light | Clean, neutral light |
-| GitHub Dark | Clean, neutral dark |
-| Nord | Arctic, bluish cool tones |
+| Theme                | Style                              |
+| -------------------- | ---------------------------------- |
+| Quiet Light          | Warm paper, soft contrast          |
+| Quiet Dark           | Dark background, muted tones       |
+| Catppuccin Latte     | Warm, gentle pastels               |
+| Catppuccin Mocha     | Rich, cozy dark pastels            |
+| Everforest Day       | Soft green-tinted light            |
+| Everforest Night     | Deep green-tinted dark             |
+| GitHub Light         | Clean, neutral light               |
+| GitHub Dark          | Clean, neutral dark                |
+| Nord                 | Arctic, bluish cool tones          |
 
 ### Your Own Themes
 
-Drop `.css` files into the `_themes/` folder in your notes directory. They appear automatically in settings.
+Drop `.css` files into the `_themes/` folder in your notes directory. They appear automatically in the settings.
 
 ### Fonts
 
 Independently configure fonts and sizes for three zones:
 
-| Zone | Defaults | Options |
-|---|---|---|
-| **UI** | Inter | Inter, System, Atkinson Hyperlegible |
-| **Editor** | JetBrains Mono | JetBrains Mono, Fira Code, Cascadia, monospace |
-| **Preview** | Inter | Inter, Lora, Source Serif, Georgia |
+| Zone      | Defaults       | Options                                             |
+| --------- | -------------- | --------------------------------------------------- |
+| **UI**    | Inter          | Inter, System, Atkinson Hyperlegible                |
+| **Editor**| JetBrains Mono | JetBrains Mono, Fira Code, Cascadia, monospace      |
+| **Preview**| Inter         | Inter, Lora, Source Serif, Georgia                  |
 
 Sizes range from 12 to 24px per zone.
 
 ### Editor Preferences
 
-- Line numbers (toggle)
-- Word wrap (toggle)
-- Tab size (1-8)
-- Dim inactive lines (toggle)
-- Smooth caret animation (toggle)
+- **Line numbers** — toggle on/off
+- **Word wrap** — toggle on/off
+- **Tab size** — 1 to 8 spaces
+- **Dim inactive lines** — toggle on/off
+- **Smooth caret** — toggle animation on/off
 
 ### Sidebar Customization
 
@@ -112,19 +154,19 @@ Flama is not a gimmick — it's an ambient presence that reacts to what you're d
 
 Flama is rendered on a full-viewport canvas with three independent, toggleable layers:
 
-| Layer | What it does |
-|---|---|
-| **Big Flame** | A particle emitter anchored to the bottom-right. Emits upward-drifting particles with a gentle breathing animation. Occasionally bursts or wiggles on its own. |
+| Layer              | What it does                                                                 |
+| ------------------ | ---------------------------------------------------------------------------- |
+| **Big Flame**      | A particle emitter anchored to the bottom-right. Emits upward-drifting particles with a gentle breathing animation. Occasionally bursts or wiggles on its own. |
 | **Small Particle** | A cross-shaped orb with 4 orbiting sparks. Separates from the flame to follow your cursor while you type. |
-| **Ambient Particles** | 25 tiny embers that drift slowly upward across the entire viewport, wrapping at edges. Pure atmosphere. |
+| **Ambient Particles**| 25 tiny embers that drift slowly upward across the entire viewport, wrapping at edges. Pure atmosphere. |
 
 ### Typing reactivity
 
-| Time since last keystroke | Flama's state |
-|---|---|
-| **0-2 seconds** | Actively tracking your cursor. Sparks orbit normally. |
-| **2-10 seconds** | Spins in place. If your mouse is nearby, sparks rearrange to face it. |
-| **> 10 seconds** | Slowly drifts back to the flame and merges. |
+| Time since last keystroke | Flama's state                                                      |
+| ------------------------- | ------------------------------------------------------------------ |
+| **0–2 seconds**           | Actively tracking your cursor. Sparks orbit normally.              |
+| **2–10 seconds**          | Spins in place. If your mouse is nearby, sparks rearrange to face it. |
+| **> 10 seconds**          | Slowly drifts back to the flame and merges.                        |
 
 ### Personality
 
@@ -136,17 +178,15 @@ Flama is rendered on a full-viewport canvas with three independent, toggleable l
 
 ### Full color control
 
-Five independently customizable color slots:
+Five independently customizable color slots, all editable in Settings > Pet with a reset-to-default button:
 
-| Slot | Controls |
-|---|---|
-| `core` | Brightest center particles |
-| `inner` | Mid-bright particles |
-| `mid` | Mid-dim particles |
-| `outer` | Dimmest particles, spark orbiters, glow aura |
-| `ember` | Ember dots and trail |
-
-All colors are editable in Settings > Pet with a reset-to-default button.
+| Slot    | Controls                                                                 |
+| ------- | ------------------------------------------------------------------------ |
+| `core`  | Brightest center particles                                                |
+| `inner` | Mid-bright particles                                                      |
+| `mid`   | Mid-dim particles                                                         |
+| `outer` | Dimmest particles, spark orbiters, glow aura                              |
+| `ember` | Ember dots and trail                                                      |
 
 ### Performance
 
@@ -159,13 +199,13 @@ All colors are editable in Settings > Pet with a reset-to-default button.
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Desktop shell | [Tauri](https://tauri.app) v2 (Rust) |
-| Frontend | [SvelteKit](https://kit.svelte.dev) + [Svelte](https://svelte.dev) 5 |
-| Editor | [CodeMirror](https://codemirror.net) 6 |
-| Markdown | [markdown-it](https://github.com/markdown-it/markdown-it) |
-| Styling | [Tailwind CSS](https://tailwindcss.com) v4 |
+| Layer          | Technology                                                               |
+| -------------- | ------------------------------------------------------------------------ |
+| Desktop shell  | [Tauri](https://tauri.app) v2 (Rust)                                     |
+| Frontend       | [SvelteKit](https://kit.svelte.dev) + [Svelte](https://svelte.dev) 5     |
+| Editor         | [CodeMirror](https://codemirror.net) 6                                   |
+| Markdown       | [markdown-it](https://github.com/markdown-it/markdown-it)                |
+| Styling        | [Tailwind CSS](https://tailwindcss.com) v4                               |
 
 ### Backend (Rust)
 
