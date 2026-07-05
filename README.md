@@ -21,6 +21,8 @@
 
 A local-first, offline note-taking desktop app. Your notes are plain `.md` files on your filesystem — no accounts, no cloud, no noise.
 
+"The best ideas often come from simple places."
+
 ---
 
 ## Why Quietness?
