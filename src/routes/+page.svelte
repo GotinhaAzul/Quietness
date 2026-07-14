@@ -319,10 +319,10 @@
   <Sidebar />
 
   <main class="flex min-h-0 flex-1 flex-col overflow-hidden">
-    <div class="group/toolbar flex items-center justify-between border-b border-quiet-chrome px-6 py-3">
+    <div class="flex items-center justify-between border-b border-quiet-chrome px-6 py-3">
       <div class="flex min-w-0 items-center gap-3">
         {#if $currentNote}
-          <span class="truncate text-xs text-quiet-faded opacity-0 group-hover/toolbar:opacity-100 transition-opacity duration-150" title={$currentNote.path}>
+          <span class="truncate text-xs text-quiet-faded" title={$currentNote.path}>
             {#each breadcrumbSegments as segment, i}
               {#if i > 0}<span class="mx-0.5 text-quiet-faded/40">/</span>{/if}
               <span>{segment}</span>
@@ -341,7 +341,7 @@
       </div>
       <div class="flex items-center gap-2">
         {#if $currentNote}
-            <div class="flex overflow-hidden rounded-md">
+            <div class="flex overflow-hidden rounded-md border border-quiet-border/60">
             {#each modes as mode}
               <button
                 class="px-3 py-1 text-xs transition-all duration-150 ease-out {$viewMode === mode.value
