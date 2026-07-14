@@ -264,9 +264,8 @@
       renamingFolderPath = null;
       return;
     }
-    const path = renamingFolderPath;
     renamingFolderPath = null;
-    await renameFolder(path!, cleanName);
+    await renameFolder(oldPath, cleanName);
   }
 
   function confirmDeleteNoteAction(path: string, name: string) {
@@ -363,16 +362,18 @@
   {/if}
 
   {#if $searchQuery}
-    <div class="space-y-px px-3 pb-2">
+    <div class="space-y-px px-3 pb-2" aria-live="polite" aria-atomic="true">
       {#if searchResults.length === 0}
         <div class="py-2 text-xs text-quiet-faded">No notes found</div>
       {:else}
         {#each searchResults as entry (entry.path)}
           <div class="group relative flex items-center">
-            <button
-              class={noteBtnClass($currentNote?.path === entry.path)}
-              onclick={() => openSearchResult(entry.path)}
-            >
+              <button
+                role="treeitem"
+                aria-selected={$currentNote?.path === entry.path}
+                class={noteBtnClass($currentNote?.path === entry.path)}
+                onclick={() => openSearchResult(entry.path)}
+              >
               <span class="quiet-sidebar-icon quiet-sidebar-icon-note"></span>
               <span class="truncate pr-14">{entry.name}</span>
             </button>
@@ -415,9 +416,11 @@
     {:else if tree.length === 0}
       <div class="px-3 py-2 text-xs text-quiet-faded">No notes or folders yet</div>
     {:else}
-      <div class="space-y-px px-3 pb-2">
+      <div class="space-y-px px-3 pb-2" role="tree" aria-label="Notes and folders">
         <button
           class={folderBtnClass(null, $selectedFolder === null)}
+          role="treeitem"
+          aria-selected={$selectedFolder === null}
           onclick={() => selectFolder(null)}
         >
           <span class="quiet-sidebar-icon"></span>
@@ -439,6 +442,8 @@
               />
             {:else}
               <button
+                role="treeitem"
+                aria-selected={$currentNote?.path === node.path}
                 class={noteBtnClass($currentNote?.path === node.path)}
                 style="padding-left: {12 + depth * 12}px"
                 onclick={() => openNote(node.path, node.folderPath)}
@@ -482,6 +487,8 @@
         {#snippet folderNode(node: ExplorerFolderNode, depth: number)}
           <div class="group relative flex items-center">
             <button
+              role="treeitem"
+              aria-selected={$selectedFolder === node.path}
               class={folderBtnClass(node.path, $selectedFolder === node.path)}
               style="padding-left: {12 + depth * 12}px"
               onclick={() => handleFolderClick(node.path)}

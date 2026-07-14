@@ -584,6 +584,7 @@
   <canvas
     bind:this={canvasEl}
     class="flame-canvas"
+    aria-hidden="true"
     onmousemove={handleMouseMove}
     onmouseleave={handleMouseLeave}
   ></canvas>

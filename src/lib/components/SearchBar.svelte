@@ -80,7 +80,7 @@
   </div>
 
   {#if query.trim() && $searchResultCount >= 0}
-    <div class="mt-1.5 px-1 text-[11px] text-quiet-faded">
+    <div class="mt-1.5 px-1 text-[11px] text-quiet-faded" aria-live="polite" aria-atomic="true">
       {#if $searchResultCount === 0}
         No notes found
       {:else}

@@ -3,12 +3,14 @@
   import { notes, loadNote, createNoteFromWikilink, currentNote, notesRevision } from '$lib/stores/notes';
   import { toggleMarkdownCheckbox } from '$lib/utils/tasklists';
   import { incrementCounter } from '$lib/utils/perf';
+  import ConfirmModal from './ConfirmModal.svelte';
 
   let { content = '' }: { content?: string } = $props();
 
   let existingNoteNames = $derived(new Set($notes.map(n => n.name.toLowerCase())));
 
   let renderedHTML = $state('');
+  let confirmCreateWikilink = $state<string | null>(null);
 
   $effect(() => {
     const src = content;
@@ -52,9 +54,14 @@
       loadNote(noteEntry.path);
     } else {
       event.preventDefault();
-      if (confirm(`Note "${linkTarget}" does not exist. Create it?`)) {
-        createNoteFromWikilink(linkTarget);
-      }
+      confirmCreateWikilink = linkTarget;
+    }
+  }
+
+  function handleCreateWikilink() {
+    if (confirmCreateWikilink) {
+      createNoteFromWikilink(confirmCreateWikilink);
+      confirmCreateWikilink = null;
     }
   }
 </script>
@@ -101,3 +108,12 @@
 <div class="preview-content" role="region" onclick={handleClick} onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), handleClick(e))}>
   {@html renderedHTML}
 </div>
+
+<ConfirmModal
+  open={confirmCreateWikilink !== null}
+  title="Create note"
+  message={confirmCreateWikilink ? `Note "${confirmCreateWikilink}" does not exist. Create it?` : ''}
+  confirmLabel="Create"
+  onconfirm={handleCreateWikilink}
+  oncancel={() => (confirmCreateWikilink = null)}
+/>

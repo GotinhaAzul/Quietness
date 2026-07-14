@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { focusTrap } from '$lib/utils/focusTrap';
   import ConfirmModal from './ConfirmModal.svelte';
   import {
     permanentlyDeleteTrashEntry,
@@ -59,9 +60,10 @@
     role="dialog"
     aria-modal="true"
     aria-label="Trash"
+    tabindex="-1"
+    use:focusTrap={{ autoFocus: true }}
     onclick={(e) => { if (e.target === e.currentTarget) onclose?.(); }}
     onkeydown={handleKeydown}
-    tabindex="0"
   >
     <div
       class="mx-4 flex w-[560px] max-w-full flex-col rounded-xl border border-quiet-border bg-[var(--q-bg)] shadow-xl"

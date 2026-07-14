@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { focusTrap } from '$lib/utils/focusTrap';
+
   let { open = false, title = 'Confirm', message = '', confirmLabel = 'Delete', onconfirm, oncancel }: {
     open?: boolean;
     title?: string;
@@ -30,7 +32,8 @@
       role="dialog"
       aria-modal="true"
       aria-label={title}
-      tabindex="0"
+      tabindex="-1"
+      use:focusTrap={{ autoFocus: true }}
       onkeydown={handleKeydown}
     >
       <div class="px-5 py-4">

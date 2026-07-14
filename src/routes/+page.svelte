@@ -331,11 +331,13 @@
             <span class="text-quiet-text">{$currentNote.name}</span>
           </span>
         {/if}
-        {#if saveStatus !== 'saved'}
-          <span class="shrink-0 text-[10px] text-quiet-faded">
-            {#if saveStatus === 'saving'}Saving…{:else}Unsaved{/if}
-          </span>
-        {/if}
+        <span aria-live="polite" aria-atomic="true">
+          {#if saveStatus !== 'saved'}
+            <span class="shrink-0 text-[10px] text-quiet-faded">
+              {#if saveStatus === 'saving'}Saving…{:else}Unsaved{/if}
+            </span>
+          {/if}
+        </span>
       </div>
       <div class="flex items-center gap-2">
         {#if $currentNote}
@@ -415,8 +417,8 @@
     {/if}
   </main>
 
-  {#if $errorMessage.length > 0}
-    <div class="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
+  <div class="fixed bottom-4 right-4 z-50 flex flex-col gap-2" aria-live="polite" aria-relevant="additions" aria-atomic="false">
+    {#if $errorMessage.length > 0}
       {#each $errorMessage as error (error.id)}
         <div
           class={"flex max-w-sm items-center gap-3 rounded-lg border px-4 py-3 shadow-sm backdrop-blur-sm transition-all duration-300 ease-in-out" + (error.type === 'error' ? ' border-quiet-danger/20 bg-quiet-danger-bg/95' : '') + (error.type === 'warning' ? ' border-quiet-warning/20 bg-quiet-warning-bg/95' : '') + (error.type === 'success' ? ' border-quiet-success/20 bg-quiet-success-bg/95' : '')}
@@ -448,8 +450,8 @@
           </button>
         </div>
       {/each}
-    </div>
-  {/if}
+    {/if}
+  </div>
 </div>
 
 <SettingsModal open={showSettings} onclose={() => (showSettings = false)} />

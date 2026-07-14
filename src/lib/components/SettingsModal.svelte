@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { focusTrap } from '$lib/utils/focusTrap';
   import { settings, DEFAULT_SETTINGS } from '$lib/stores/settings';
   import { userThemes } from '$lib/stores/userThemes';
   import { UI_FONTS, EDITOR_FONTS, PREVIEW_FONTS, AVAILABLE_THEMES, FONT_STACKS } from '$lib/utils/fonts';
@@ -148,6 +149,8 @@
     role="dialog"
     aria-modal="true"
     aria-label="Settings"
+    tabindex="-1"
+    use:focusTrap={{ autoFocus: true }}
     onclick={(e) => { if (e.target === e.currentTarget) onclose?.(); }}
     onkeydown={handleKeydown}
   >
@@ -171,7 +174,7 @@
       </div>
 
       <!-- Tabs -->
-      <div class="flex border-b border-quiet-border/60 px-6">
+      <div class="flex border-b border-quiet-border/60 px-6" role="tablist" aria-label="Settings sections">
         {#each ([
           { id: 'general', label: 'General' },
           { id: 'theme', label: 'Theme' },
@@ -180,6 +183,9 @@
           { id: 'pet', label: 'Pet' },
         ] as const) as tab}
           <button
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            id="settings-tab-{tab.id}"
             class="border-b-2 px-4 py-3 text-xs font-medium transition-colors {activeTab === tab.id
               ? 'border-quiet-accent text-quiet-text'
               : 'border-transparent text-quiet-faded hover:text-quiet-muted'}"
@@ -191,7 +197,7 @@
       </div>
 
       <!-- Tab content -->
-      <div class="flex-1 overflow-y-auto p-6">
+      <div class="flex-1 overflow-y-auto p-6" role="tabpanel" aria-labelledby="settings-tab-{activeTab}">
         {#if activeTab === 'general'}
           <div class="space-y-5">
             <h3 class="text-xs font-medium text-quiet-text">Home Folder</h3>

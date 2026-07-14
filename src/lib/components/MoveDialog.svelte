@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { focusTrap } from '$lib/utils/focusTrap';
   import { invoke } from '@tauri-apps/api/core';
   import { moveTarget, type MoveTarget } from '$lib/stores/move';
   import { moveNote } from '$lib/stores/notes';
@@ -106,9 +107,10 @@
     role="dialog"
     aria-modal="true"
     aria-label="Move {target.type}"
+    tabindex="-1"
+    use:focusTrap={{ autoFocus: true }}
     onclick={(e) => { if (e.target === e.currentTarget) closeDialog(); }}
     onkeydown={handleKeydown}
-    tabindex="0"
   >
     <div
       class="mx-4 flex w-[360px] max-w-full flex-col rounded-xl border border-quiet-border bg-[var(--q-bg)] shadow-xl"
