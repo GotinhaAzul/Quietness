@@ -33,7 +33,7 @@
   --q-sidebar-item-hover: #eae5dd;
   --q-sidebar-item-active: #e0dad1;
   --q-sidebar-accent: #6b615a;
-  --q-chrome-opacity: 0.65;
+  --q-chrome-opacity: 0.25;
   --q-chrome-border: color-mix(in srgb, var(--q-border) calc(var(--q-chrome-opacity) * 100%), transparent);
   --q-icon: #a69e96;
   --q-icon-hover: #2a2724;

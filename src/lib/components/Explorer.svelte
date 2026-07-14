@@ -21,6 +21,7 @@
   let tree = $state<ExplorerNode[]>([]);
   let expandedPaths = $state<Set<string>>(new Set());
 
+  let activeMenu = $state<string | null>(null);
   let searchResults = $state<NoteEntry[]>([]);
   let searchRequestId = 0;
 
@@ -53,7 +54,12 @@
     }
   }
 
-  onMount(() => { void resolveNotesDir(); });
+  onMount(() => {
+    void resolveNotesDir();
+    const closeMenu = () => { activeMenu = null; };
+    window.addEventListener('click', closeMenu);
+    return () => window.removeEventListener('click', closeMenu);
+  });
 
   $effect(() => {
     $notes;
@@ -368,43 +374,53 @@
       {:else}
         {#each searchResults as entry (entry.path)}
           <div class="group relative flex items-center">
-              <button
-                role="treeitem"
-                aria-selected={$currentNote?.path === entry.path}
-                class={noteBtnClass($currentNote?.path === entry.path)}
-                onclick={() => openSearchResult(entry.path)}
-              >
+            <button
+              role="treeitem"
+              aria-selected={$currentNote?.path === entry.path}
+              class={noteBtnClass($currentNote?.path === entry.path)}
+              onclick={() => openSearchResult(entry.path)}
+            >
               <span class="quiet-sidebar-icon quiet-sidebar-icon-note"></span>
-              <span class="truncate pr-14">{entry.name}</span>
+              <span class="truncate">{entry.name}</span>
             </button>
-            <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 transition-all group-hover:opacity-100">
-              <button
-                class="rounded p-1 text-quiet-faded hover:bg-quiet-sidebar-item-hover hover:text-quiet-text"
-                onclick={(e) => startRenameNote(entry.path, entry.name, e)}
-                title="Rename note"
-              >
-                <svg class="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25a1.75 1.75 0 0 1 .445-.758l8.61-8.61Z"/>
-                </svg>
-              </button>
-              <button
-                class="rounded p-1 text-quiet-faded hover:bg-quiet-sidebar-item-hover hover:text-quiet-text"
-                onclick={(e) => { e.stopPropagation(); moveTarget.set({ type: 'note', path: entry.path, name: entry.name }); }}
-                title="Move note"
-              >
-                <svg class="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M4 3h7a2 2 0 0 1 2 2v1M4 3l2-2M4 3l2 2M13 10v1a2 2 0 0 1-2 2H4M13 10l2 2M13 10l-2 2M1 8h7"/>
-                </svg>
-              </button>
-              <button
-                class="rounded p-1 text-quiet-faded hover:bg-quiet-sidebar-item-hover hover:text-quiet-danger"
-                onclick={(e) => { e.stopPropagation(); confirmDeleteNoteAction(entry.path, entry.name); }}
-                title="Delete note"
-              >
-                <svg class="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                  <path d="M3 4h10M5 4v10a1 1 0 001 1h4a1 1 0 001-1V4M6.5 4V2.5a.5.5 0 01.5-.5h2a.5.5 0 01.5.5V4" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </button>
+            <div class="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 transition-all group-hover:opacity-100">
+              {#if activeMenu === entry.path}
+                <div class="flex items-center gap-0.5">
+                  <button
+                    class="rounded p-1 text-quiet-faded hover:bg-quiet-sidebar-item-hover hover:text-quiet-text"
+                    onclick={(e) => startRenameNote(entry.path, entry.name, e)}
+                    title="Rename note"
+                  >
+                    <svg class="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25a1.75 1.75 0 0 1 .445-.758l8.61-8.61Z"/>
+                    </svg>
+                  </button>
+                  <button
+                    class="rounded p-1 text-quiet-faded hover:bg-quiet-sidebar-item-hover hover:text-quiet-text"
+                    onclick={(e) => { e.stopPropagation(); moveTarget.set({ type: 'note', path: entry.path, name: entry.name }); }}
+                    title="Move note"
+                  >
+                    <svg class="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M4 3h7a2 2 0 0 1 2 2v1M4 3l2-2M4 3l2 2M13 10v1a2 2 0 0 1-2 2H4M13 10l2 2M13 10l-2 2M1 8h7"/>
+                    </svg>
+                  </button>
+                  <button
+                    class="rounded p-1 text-quiet-faded hover:bg-quiet-sidebar-item-hover hover:text-quiet-danger"
+                    onclick={(e) => { e.stopPropagation(); confirmDeleteNoteAction(entry.path, entry.name); }}
+                    title="Delete note"
+                  >
+                    <svg class="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                      <path d="M3 4h10M5 4v10a1 1 0 001 1h4a1 1 0 001-1V4M6.5 4V2.5a.5.5 0 01.5-.5h2a.5.5 0 01.5.5V4" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
+              {:else}
+                <button
+                  class="rounded px-1.5 py-0.5 text-xs text-quiet-faded hover:bg-quiet-sidebar-item-hover hover:text-quiet-text"
+                  onclick={(e) => { e.stopPropagation(); activeMenu = entry.path; }}
+                  title="Actions"
+                >⋯</button>
+              {/if}
             </div>
           </div>
         {/each}
@@ -449,36 +465,46 @@
                 onclick={() => openNote(node.path, node.folderPath)}
               >
                 <span class="quiet-sidebar-icon quiet-sidebar-icon-note"></span>
-                <span class="truncate pr-14">{node.name}</span>
+                <span class="truncate">{node.name}</span>
               </button>
-              <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 transition-all group-hover:opacity-100">
-                <button
-                  class="rounded p-1 text-quiet-faded hover:bg-quiet-sidebar-item-hover hover:text-quiet-text"
-                  onclick={(e) => startRenameNote(node.path, node.name, e)}
-                  title="Rename note"
-                >
-                  <svg class="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25a1.75 1.75 0 0 1 .445-.758l8.61-8.61Z"/>
-                  </svg>
-                </button>
-                <button
-                  class="rounded p-1 text-quiet-faded hover:bg-quiet-sidebar-item-hover hover:text-quiet-text"
-                  onclick={(e) => { e.stopPropagation(); moveTarget.set({ type: 'note', path: node.path, name: node.name }); }}
-                  title="Move note"
-                >
-                  <svg class="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M4 3h7a2 2 0 0 1 2 2v1M4 3l2-2M4 3l2 2M13 10v1a2 2 0 0 1-2 2H4M13 10l2 2M13 10l-2 2M1 8h7"/>
-                  </svg>
-                </button>
-                <button
-                  class="rounded p-1 text-quiet-faded hover:bg-quiet-sidebar-item-hover hover:text-quiet-danger"
-                  onclick={(e) => { e.stopPropagation(); confirmDeleteNoteAction(node.path, node.name); }}
-                  title="Delete note"
-                >
-                  <svg class="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                    <path d="M3 4h10M5 4v10a1 1 0 001 1h4a1 1 0 001-1V4M6.5 4V2.5a.5.5 0 01.5-.5h2a.5.5 0 01.5.5V4" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </button>
+              <div class="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 transition-all group-hover:opacity-100">
+                {#if activeMenu === node.path}
+                  <div class="flex items-center gap-0.5">
+                    <button
+                      class="rounded p-1 text-quiet-faded hover:bg-quiet-sidebar-item-hover hover:text-quiet-text"
+                      onclick={(e) => startRenameNote(node.path, node.name, e)}
+                      title="Rename note"
+                    >
+                      <svg class="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25a1.75 1.75 0 0 1 .445-.758l8.61-8.61Z"/>
+                      </svg>
+                    </button>
+                    <button
+                      class="rounded p-1 text-quiet-faded hover:bg-quiet-sidebar-item-hover hover:text-quiet-text"
+                      onclick={(e) => { e.stopPropagation(); moveTarget.set({ type: 'note', path: node.path, name: node.name }); }}
+                      title="Move note"
+                    >
+                      <svg class="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 3h7a2 2 0 0 1 2 2v1M4 3l2-2M4 3l2 2M13 10v1a2 2 0 0 1-2 2H4M13 10l2 2M13 10l-2 2M1 8h7"/>
+                      </svg>
+                    </button>
+                    <button
+                      class="rounded p-1 text-quiet-faded hover:bg-quiet-sidebar-item-hover hover:text-quiet-danger"
+                      onclick={(e) => { e.stopPropagation(); confirmDeleteNoteAction(node.path, node.name); }}
+                      title="Delete note"
+                    >
+                      <svg class="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                        <path d="M3 4h10M5 4v10a1 1 0 001 1h4a1 1 0 001-1V4M6.5 4V2.5a.5.5 0 01.5-.5h2a.5.5 0 01.5.5V4" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </button>
+                  </div>
+                {:else}
+                  <button
+                    class="rounded px-1.5 py-0.5 text-xs text-quiet-faded hover:bg-quiet-sidebar-item-hover hover:text-quiet-text"
+                    onclick={(e) => { e.stopPropagation(); activeMenu = node.path; }}
+                    title="Actions"
+                  >⋯</button>
+                {/if}
               </div>
             {/if}
           </div>
@@ -520,34 +546,44 @@
               {/if}
             </button>
             {#if renamingFolderPath !== node.path}
-              <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 transition-all group-hover:opacity-100">
-                <button
-                  class="rounded p-1 text-quiet-faded hover:bg-quiet-sidebar-item-hover hover:text-quiet-text"
-                  onclick={(e) => startRenameFolder(node.path, node.name, e)}
-                  title="Rename folder"
-                >
-                  <svg class="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25a1.75 1.75 0 0 1 .445-.758l8.61-8.61Z"/>
-                  </svg>
-                </button>
-                <button
-                  class="rounded p-1 text-quiet-faded hover:bg-quiet-sidebar-item-hover hover:text-quiet-text"
-                  onclick={(e) => { e.stopPropagation(); moveTarget.set({ type: 'folder', path: node.path, name: node.name }); }}
-                  title="Move folder"
-                >
-                  <svg class="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M4 3h7a2 2 0 0 1 2 2v1M4 3l2-2M4 3l2 2M13 10v1a2 2 0 0 1-2 2H4M13 10l2 2M13 10l-2 2M1 8h7"/>
-                  </svg>
-                </button>
-                <button
-                  class="rounded p-1 text-quiet-faded hover:bg-quiet-sidebar-item-hover hover:text-quiet-danger"
-                  onclick={(e) => { e.stopPropagation(); confirmDeleteFolderAction(node.path, node.name); }}
-                  title="Delete folder"
-                >
-                  <svg class="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                    <path d="M3 4h10M5 4v10a1 1 0 001 1h4a1 1 0 001-1V4M6.5 4V2.5a.5.5 0 01.5-.5h2a.5.5 0 01.5.5V4" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </button>
+              <div class="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 transition-all group-hover:opacity-100">
+                {#if activeMenu === node.path}
+                  <div class="flex items-center gap-0.5">
+                    <button
+                      class="rounded p-1 text-quiet-faded hover:bg-quiet-sidebar-item-hover hover:text-quiet-text"
+                      onclick={(e) => startRenameFolder(node.path, node.name, e)}
+                      title="Rename folder"
+                    >
+                      <svg class="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25a1.75 1.75 0 0 1 .445-.758l8.61-8.61Z"/>
+                      </svg>
+                    </button>
+                    <button
+                      class="rounded p-1 text-quiet-faded hover:bg-quiet-sidebar-item-hover hover:text-quiet-text"
+                      onclick={(e) => { e.stopPropagation(); moveTarget.set({ type: 'folder', path: node.path, name: node.name }); }}
+                      title="Move folder"
+                    >
+                      <svg class="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 3h7a2 2 0 0 1 2 2v1M4 3l2-2M4 3l2 2M13 10v1a2 2 0 0 1-2 2H4M13 10l2 2M13 10l-2 2M1 8h7"/>
+                      </svg>
+                    </button>
+                    <button
+                      class="rounded p-1 text-quiet-faded hover:bg-quiet-sidebar-item-hover hover:text-quiet-danger"
+                      onclick={(e) => { e.stopPropagation(); confirmDeleteFolderAction(node.path, node.name); }}
+                      title="Delete folder"
+                    >
+                      <svg class="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                        <path d="M3 4h10M5 4v10a1 1 0 001 1h4a1 1 0 001-1V4M6.5 4V2.5a.5.5 0 01.5-.5h2a.5.5 0 01.5.5V4" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </button>
+                  </div>
+                {:else}
+                  <button
+                    class="rounded px-1.5 py-0.5 text-xs text-quiet-faded hover:bg-quiet-sidebar-item-hover hover:text-quiet-text"
+                    onclick={(e) => { e.stopPropagation(); activeMenu = node.path; }}
+                    title="Actions"
+                  >⋯</button>
+                {/if}
               </div>
             {/if}
           </div>

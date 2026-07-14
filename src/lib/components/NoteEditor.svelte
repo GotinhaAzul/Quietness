@@ -396,7 +396,7 @@
   }
 </script>
 
-<div class="flex h-full min-h-0 w-full flex-col">
+<div class="group/editor flex h-full min-h-0 w-full flex-col">
   {#if $currentNote}
     <div class="title-bar">
       <div class="flex-1 min-w-0">
@@ -417,7 +417,7 @@
   {/if}
   <div bind:this={editorRef} class="min-h-0 flex-1 overflow-hidden"></div>
   {#if $currentNote}
-    <div class="word-count">{wordCount} words · {charCount} characters</div>
+    <div class="word-count opacity-0 group-hover/editor:opacity-100 transition-opacity duration-150">{wordCount} words · {charCount} characters</div>
   {/if}
 </div>
 
@@ -426,7 +426,6 @@
     display: flex;
     align-items: center;
     padding: 8px 16px;
-    border-bottom: 1px solid var(--q-border);
     background: var(--q-surface);
     flex-shrink: 0;
   }
@@ -465,7 +464,6 @@
     padding: 4px 16px;
     font-size: 11px;
     color: var(--q-faded);
-    border-top: 1px solid var(--q-border);
     text-align: right;
     user-select: none;
   }

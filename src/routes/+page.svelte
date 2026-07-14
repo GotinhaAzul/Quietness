@@ -319,10 +319,10 @@
   <Sidebar />
 
   <main class="flex min-h-0 flex-1 flex-col overflow-hidden">
-    <div class="flex items-center justify-between border-b border-quiet-border/60 px-6 py-3">
+    <div class="group/toolbar flex items-center justify-between border-b border-quiet-chrome px-6 py-3">
       <div class="flex min-w-0 items-center gap-3">
         {#if $currentNote}
-          <span class="truncate text-xs text-quiet-faded" title={$currentNote.path}>
+          <span class="truncate text-xs text-quiet-faded opacity-0 group-hover/toolbar:opacity-100 transition-opacity duration-150" title={$currentNote.path}>
             {#each breadcrumbSegments as segment, i}
               {#if i > 0}<span class="mx-0.5 text-quiet-faded/40">/</span>{/if}
               <span>{segment}</span>
@@ -341,7 +341,7 @@
       </div>
       <div class="flex items-center gap-2">
         {#if $currentNote}
-            <div class="flex overflow-hidden rounded-md border border-quiet-border/60">
+            <div class="flex overflow-hidden rounded-md">
             {#each modes as mode}
               <button
                 class="px-3 py-1 text-xs transition-all duration-150 ease-out {$viewMode === mode.value
@@ -383,24 +383,14 @@
     {#if $currentNote}
       <div class="flex min-h-0 flex-1">
         {#if $viewMode === 'edit' || $viewMode === 'split'}
-          <div class="{$viewMode === 'split' ? 'min-h-0 flex-1 border-r border-quiet-border/60' : 'min-h-0 flex-1'} overflow-hidden">
-            <div class="flex h-full min-h-0 flex-col">
-              <div class="border-b border-quiet-border/60 px-4 py-1.5 text-[10px] font-medium uppercase tracking-wider text-quiet-faded">
-                Editor
-              </div>
-              <div class="min-h-0 flex-1">
-                <NoteEditor content={$currentNote.content} onContentChange={handleContentChange} />
-              </div>
-            </div>
+          <div class="{$viewMode === 'split' ? 'min-h-0 flex-1 border-r border-quiet-chrome' : 'min-h-0 flex-1'} overflow-hidden">
+            <NoteEditor content={$currentNote.content} onContentChange={handleContentChange} />
           </div>
         {/if}
         {#if $viewMode === 'preview' || $viewMode === 'split'}
-          <div id="preview-panel" class="min-h-0 flex-1 overflow-hidden">
-            <div class="flex h-full min-h-0 flex-col">
-              <div class="border-b border-quiet-border/60 px-4 py-1.5 text-[10px] font-medium uppercase tracking-wider text-quiet-faded">
-                Preview
-              </div>
-              <div class="min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-6">
+          <div id="preview-panel" class="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <div class="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+              <div class="mx-auto max-w-[75ch] p-6">
                 <NotePreview content={$currentNote.content} />
               </div>
             </div>
