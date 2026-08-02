@@ -12,23 +12,33 @@ pub async fn list_notes(app_handle: AppHandle) -> Result<Vec<NoteEntry>, String>
 }
 
 #[tauri::command]
-pub fn get_notes_dir(app_handle: AppHandle) -> String {
-    fs::get_notes_dir(&app_handle).to_string_lossy().to_string()
+pub async fn get_notes_dir(app_handle: AppHandle) -> String {
+    tauri::async_runtime::spawn_blocking(move || {
+        fs::get_notes_dir(&app_handle).to_string_lossy().to_string()
+    })
+    .await
+    .unwrap_or_default()
 }
 
 #[tauri::command]
-pub fn read_note(app_handle: AppHandle, path: String) -> Result<String, String> {
-    fs::read_note(&app_handle, &path)
+pub async fn read_note(app_handle: AppHandle, path: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || fs::read_note(&app_handle, &path))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
-pub fn write_note(app_handle: AppHandle, path: String, content: String) -> Result<(), String> {
-    fs::write_note(&app_handle, &path, &content)
+pub async fn write_note(app_handle: AppHandle, path: String, content: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || fs::write_note(&app_handle, &path, &content))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
-pub fn create_folder(app_handle: AppHandle, path: String) -> Result<(), String> {
-    fs::create_folder(&app_handle, &path)
+pub async fn create_folder(app_handle: AppHandle, path: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || fs::create_folder(&app_handle, &path))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
@@ -54,7 +64,7 @@ pub async fn list_notes_in_folder(
         fs::list_notes_in_folder(&app_handle, &folder_path)
     })
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
@@ -83,84 +93,114 @@ pub async fn search_notes(
 }
 
 #[tauri::command]
-pub fn rename_note(
+pub async fn rename_note(
     app_handle: AppHandle,
     old_path: String,
     new_name: String,
 ) -> Result<(), String> {
-    fs::rename_note(&app_handle, &old_path, &new_name)
+    tauri::async_runtime::spawn_blocking(move || fs::rename_note(&app_handle, &old_path, &new_name))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
-pub fn rename_folder(
+pub async fn rename_folder(
     app_handle: AppHandle,
     old_path: String,
     new_name: String,
 ) -> Result<(), String> {
-    fs::rename_folder(&app_handle, &old_path, &new_name)
+    tauri::async_runtime::spawn_blocking(move || {
+        fs::rename_folder(&app_handle, &old_path, &new_name)
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
-pub fn move_note(
+pub async fn move_note(
     app_handle: AppHandle,
     path: String,
     dest_folder: String,
 ) -> Result<String, String> {
-    fs::move_note(&app_handle, &path, &dest_folder)
+    tauri::async_runtime::spawn_blocking(move || fs::move_note(&app_handle, &path, &dest_folder))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
-pub fn move_folder(
+pub async fn move_folder(
     app_handle: AppHandle,
     path: String,
     dest_folder: String,
 ) -> Result<String, String> {
-    fs::move_folder(&app_handle, &path, &dest_folder)
+    tauri::async_runtime::spawn_blocking(move || {
+        fs::move_folder(&app_handle, &path, &dest_folder)
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
-pub fn load_settings(app_handle: AppHandle) -> Settings {
-    fs::load_settings(&app_handle)
+pub async fn load_settings(app_handle: AppHandle) -> Settings {
+    tauri::async_runtime::spawn_blocking(move || fs::load_settings(&app_handle))
+        .await
+        .unwrap_or_default()
 }
 
 #[tauri::command]
-pub fn save_settings(app_handle: AppHandle, settings: Settings) -> Result<(), String> {
-    fs::save_settings(&app_handle, &settings)
+pub async fn save_settings(app_handle: AppHandle, settings: Settings) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || fs::save_settings(&app_handle, &settings))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
-pub fn list_user_themes(app_handle: AppHandle) -> Vec<UserThemeEntry> {
-    fs::list_user_themes(&app_handle)
+pub async fn list_user_themes(app_handle: AppHandle) -> Vec<UserThemeEntry> {
+    tauri::async_runtime::spawn_blocking(move || fs::list_user_themes(&app_handle))
+        .await
+        .unwrap_or_default()
 }
 
 #[tauri::command]
-pub fn read_user_theme_css(app_handle: AppHandle, id: String) -> Result<String, String> {
-    fs::read_user_theme_css(&app_handle, &id)
+pub async fn read_user_theme_css(app_handle: AppHandle, id: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || fs::read_user_theme_css(&app_handle, &id))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
-pub fn set_home_folder(app_handle: AppHandle, path: String) -> Result<(), String> {
-    fs::set_home_folder(&app_handle, &path)
+pub async fn set_home_folder(app_handle: AppHandle, path: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || fs::set_home_folder(&app_handle, &path))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
-pub fn reset_home_folder(app_handle: AppHandle) -> Result<(), String> {
-    fs::reset_home_folder(&app_handle)
+pub async fn reset_home_folder(app_handle: AppHandle) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || fs::reset_home_folder(&app_handle))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
-pub fn get_home_folder(app_handle: AppHandle) -> String {
-    fs::get_home_folder(&app_handle)
+pub async fn get_home_folder(app_handle: AppHandle) -> String {
+    tauri::async_runtime::spawn_blocking(move || fs::get_home_folder(&app_handle))
+        .await
+        .unwrap_or_default()
 }
 
 #[tauri::command]
-pub fn home_folder_status(app_handle: AppHandle) -> HomeFolderStatus {
-    fs::get_home_folder_status(&app_handle)
+pub async fn home_folder_status(app_handle: AppHandle) -> HomeFolderStatus {
+    tauri::async_runtime::spawn_blocking(move || fs::get_home_folder_status(&app_handle))
+        .await
+        .unwrap_or_default()
 }
 
 #[tauri::command]
-pub fn count_md_files(path: String) -> u32 {
-    fs::count_md_files(&path)
+pub async fn count_md_files(path: String) -> u32 {
+    tauri::async_runtime::spawn_blocking(move || fs::count_md_files(&path))
+        .await
+        .unwrap_or_default()
 }
 
 #[tauri::command]
@@ -185,8 +225,10 @@ pub async fn trash_folder(app_handle: AppHandle, path: String) -> Result<(), Str
 }
 
 #[tauri::command]
-pub fn list_trash(app_handle: AppHandle) -> Vec<TrashEntry> {
-    fs::list_trash(&app_handle)
+pub async fn list_trash(app_handle: AppHandle) -> Vec<TrashEntry> {
+    tauri::async_runtime::spawn_blocking(move || fs::list_trash(&app_handle))
+        .await
+        .unwrap_or_default()
 }
 
 #[tauri::command]
@@ -230,21 +272,35 @@ pub async fn find_backlinks(
 // ── Template commands ──
 
 #[tauri::command]
-pub fn list_templates(app_handle: AppHandle) -> Vec<TemplateEntry> {
-    fs::list_templates(&app_handle)
+pub async fn list_templates(app_handle: AppHandle) -> Vec<TemplateEntry> {
+    tauri::async_runtime::spawn_blocking(move || fs::list_templates(&app_handle))
+        .await
+        .unwrap_or_default()
 }
 
 #[tauri::command]
-pub fn read_template(app_handle: AppHandle, name: String) -> Result<String, String> {
-    fs::read_template(&app_handle, &name)
+pub async fn read_template(app_handle: AppHandle, name: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || fs::read_template(&app_handle, &name))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
-pub fn create_template(app_handle: AppHandle, name: String, content: String) -> Result<(), String> {
-    fs::create_template(&app_handle, &name, &content)
+pub async fn create_template(
+    app_handle: AppHandle,
+    name: String,
+    content: String,
+) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        fs::create_template(&app_handle, &name, &content)
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
-pub fn delete_template(app_handle: AppHandle, name: String) -> Result<(), String> {
-    fs::delete_template(&app_handle, &name)
+pub async fn delete_template(app_handle: AppHandle, name: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || fs::delete_template(&app_handle, &name))
+        .await
+        .map_err(|e| e.to_string())?
 }

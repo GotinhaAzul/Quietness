@@ -24,7 +24,7 @@ pub struct LibrarySnapshot {
     pub folders: Vec<FolderEntry>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HomeFolderStatus {
     pub configured_path: String,
@@ -582,34 +582,43 @@ pub async fn search_notes(
     }
 }
 
-pub fn list_notes_in_folder(app_handle: &AppHandle, folder_path: &str) -> Vec<NoteEntry> {
-    let base = notes_dir(app_handle);
+pub fn list_notes_in_folder(
+    app_handle: &AppHandle,
+    folder_path: &str,
+) -> Result<Vec<NoteEntry>, String> {
+    list_notes_in_folder_at(&notes_dir(app_handle), folder_path)
+}
+
+fn list_notes_in_folder_at(base: &Path, folder_path: &str) -> Result<Vec<NoteEntry>, String> {
     let dir = if folder_path.is_empty() {
-        base.clone()
+        base.to_path_buf()
     } else {
-        match resolve_path_under_base(&base, folder_path) {
-            Ok(path) => path,
-            Err(_) => return Vec::new(),
-        }
+        resolve_path_under_base(base, folder_path)?
     };
+    if !dir.exists() {
+        return Err(format!("Folder not found: {}", dir.display()));
+    }
+    if !dir.is_dir() {
+        return Err("Path is not a directory".to_string());
+    }
+    let entries = fs::read_dir(&dir)
+        .map_err(|e| format!("Failed to list folder {}: {}", dir.display(), e))?;
     let mut notes = Vec::new();
-    if let Ok(entries) = fs::read_dir(&dir) {
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.is_file() && path.extension().map_or(false, |ext| ext == "md") {
-                notes.push(NoteEntry {
-                    name: path
-                        .file_stem()
-                        .unwrap_or_default()
-                        .to_string_lossy()
-                        .to_string(),
-                    path: path.to_string_lossy().to_string(),
-                });
-            }
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_file() && path.extension().map_or(false, |ext| ext == "md") {
+            notes.push(NoteEntry {
+                name: path
+                    .file_stem()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .to_string(),
+                path: path.to_string_lossy().to_string(),
+            });
         }
     }
     notes.sort_by_cached_key(|a| a.name.to_lowercase());
-    notes
+    Ok(notes)
 }
 
 // ── Rename note ──
@@ -1082,7 +1091,7 @@ pub fn delete_template(app_handle: &AppHandle, name: &str) -> Result<(), String>
 
 // ── Settings ──
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FontSettings {
     pub ui: String,
@@ -1090,7 +1099,7 @@ pub struct FontSettings {
     pub preview: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SizeSettings {
     pub ui: u32,
@@ -1098,7 +1107,7 @@ pub struct SizeSettings {
     pub preview: u32,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EditorSettings {
     pub line_numbers: bool,
@@ -1114,7 +1123,7 @@ fn default_smooth_caret() -> bool {
     true
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PetColorPalette {
     pub core: String,
@@ -1124,7 +1133,7 @@ pub struct PetColorPalette {
     pub ember: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PetSettings {
     pub big_flame_enabled: bool,
@@ -1133,7 +1142,7 @@ pub struct PetSettings {
     pub colors: PetColorPalette,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Settings {
     pub theme: String,
@@ -1207,17 +1216,35 @@ fn default_settings() -> Settings {
     }
 }
 
+impl Default for Settings {
+    fn default() -> Self {
+        default_settings()
+    }
+}
+
+fn sanitize_settings(settings: &mut Settings) {
+    settings.editor.tab_size = settings.editor.tab_size.clamp(1, 8);
+    settings.chrome_opacity = settings.chrome_opacity.clamp(0.0, 1.0);
+    settings.sizes.ui = settings.sizes.ui.clamp(12, 24);
+    settings.sizes.editor = settings.sizes.editor.clamp(12, 24);
+    settings.sizes.preview = settings.sizes.preview.clamp(12, 24);
+}
+
 pub fn load_settings(app_handle: &AppHandle) -> Settings {
     let path = settings_path(app_handle);
-    fs::read_to_string(&path)
+    let mut settings = fs::read_to_string(&path)
         .ok()
         .and_then(|content| serde_json::from_str(&content).ok())
-        .unwrap_or_else(default_settings)
+        .unwrap_or_else(default_settings);
+    sanitize_settings(&mut settings);
+    settings
 }
 
 pub fn save_settings(app_handle: &AppHandle, settings: &Settings) -> Result<(), String> {
+    let mut clamped = settings.clone();
+    sanitize_settings(&mut clamped);
     let path = settings_path(app_handle);
-    let json = serde_json::to_string_pretty(settings)
+    let json = serde_json::to_string_pretty(&clamped)
         .map_err(|e| format!("Failed to serialize settings: {}", e))?;
     fs::write(&path, &json)
         .map_err(|e| format!("Failed to write settings at {}: {}", path.display(), e))
@@ -2246,5 +2273,129 @@ mod tests {
         let mut results = Vec::new();
         find_backlinks_recursive(base, current, target, &mut results);
         results
+    }
+
+    // ── Settings sanitize tests ──
+
+    #[test]
+    fn settings_sanitize_clamps_values_above_maximum() {
+        let mut s = default_settings();
+        s.editor.tab_size = 99;
+        s.chrome_opacity = 2.5;
+        s.sizes.ui = 100;
+        s.sizes.editor = 30;
+        s.sizes.preview = 25;
+
+        sanitize_settings(&mut s);
+
+        assert_eq!(s.editor.tab_size, 8);
+        assert_eq!(s.chrome_opacity, 1.0);
+        assert_eq!(s.sizes.ui, 24);
+        assert_eq!(s.sizes.editor, 24);
+        assert_eq!(s.sizes.preview, 24);
+    }
+
+    #[test]
+    fn settings_sanitize_clamps_values_below_minimum() {
+        let mut s = default_settings();
+        s.editor.tab_size = 0;
+        s.chrome_opacity = -0.5;
+        s.sizes.ui = 4;
+        s.sizes.editor = 0;
+        s.sizes.preview = 2;
+
+        sanitize_settings(&mut s);
+
+        assert_eq!(s.editor.tab_size, 1);
+        assert_eq!(s.chrome_opacity, 0.0);
+        assert_eq!(s.sizes.ui, 12);
+        assert_eq!(s.sizes.editor, 12);
+        assert_eq!(s.sizes.preview, 12);
+    }
+
+    #[test]
+    fn settings_sanitize_leaves_valid_values_unchanged() {
+        let mut s = default_settings();
+        let original = s.clone();
+
+        sanitize_settings(&mut s);
+
+        assert_eq!(s.editor.tab_size, original.editor.tab_size);
+        assert_eq!(s.chrome_opacity, original.chrome_opacity);
+        assert_eq!(s.sizes.ui, original.sizes.ui);
+        assert_eq!(s.sizes.editor, original.sizes.editor);
+        assert_eq!(s.sizes.preview, original.sizes.preview);
+    }
+
+    // ── list_notes_in_folder tests ──
+
+    #[test]
+    fn list_notes_in_folder_rejects_path_outside_base() {
+        let base = unique_test_dir("list-folder-traversal");
+
+        let err = list_notes_in_folder_at(&base, "../outside").unwrap_err();
+
+        assert!(err.contains("Access denied"));
+        let _ = fs::remove_dir_all(base);
+    }
+
+    #[test]
+    fn list_notes_in_folder_rejects_path_to_a_file() {
+        let base = unique_test_dir("list-folder-file");
+        fs::write(base.join("Note.md"), "body").unwrap();
+
+        let err = list_notes_in_folder_at(&base, "Note.md").unwrap_err();
+
+        assert_eq!(err, "Path is not a directory");
+        let _ = fs::remove_dir_all(base);
+    }
+
+    #[test]
+    fn list_notes_in_folder_rejects_missing_folder() {
+        let base = unique_test_dir("list-folder-missing");
+
+        let err = list_notes_in_folder_at(&base, "NoSuchFolder").unwrap_err();
+
+        assert!(err.contains("Folder not found"));
+        let _ = fs::remove_dir_all(base);
+    }
+
+    #[test]
+    fn list_notes_in_folder_returns_sorted_notes_in_valid_folder() {
+        let base = unique_test_dir("list-folder-valid");
+        fs::create_dir_all(base.join("Projects")).unwrap();
+        fs::write(base.join("Projects").join("Zeta.md"), "z").unwrap();
+        fs::write(base.join("Projects").join("Alpha.md"), "a").unwrap();
+        fs::write(base.join("Projects").join("readme.txt"), "text").unwrap();
+
+        let notes = list_notes_in_folder_at(&base, "Projects").unwrap();
+
+        assert_eq!(notes.len(), 2);
+        assert_eq!(notes[0].name, "Alpha");
+        assert_eq!(notes[1].name, "Zeta");
+        let _ = fs::remove_dir_all(base);
+    }
+
+    #[test]
+    fn list_notes_in_folder_returns_empty_for_empty_folder() {
+        let base = unique_test_dir("list-folder-empty");
+        fs::create_dir_all(base.join("Empty")).unwrap();
+
+        let notes = list_notes_in_folder_at(&base, "Empty").unwrap();
+
+        assert!(notes.is_empty());
+        let _ = fs::remove_dir_all(base);
+    }
+
+    #[test]
+    fn list_notes_in_folder_root_path_lists_root_notes() {
+        let base = unique_test_dir("list-folder-root");
+        fs::write(base.join("Root.md"), "root").unwrap();
+
+        let notes = list_notes_in_folder_at(&base, "").unwrap();
+
+        assert_eq!(notes.len(), 1);
+        assert_eq!(notes[0].name, "Root");
+        let _ = fs::remove_dir_all(base);
     }
 }
