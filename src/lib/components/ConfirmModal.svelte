@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { fade, scale } from 'svelte/transition';
   import { focusTrap } from '$lib/utils/focusTrap';
 
   let { open = false, title = 'Confirm', message = '', confirmLabel = 'Delete', onconfirm, oncancel }: {
@@ -20,6 +21,7 @@
 {#if open}
   <div
     class="pointer-events-none fixed inset-0 z-50 flex items-center justify-center"
+    transition:fade={{ duration: 150 }}
   >
     <button
       type="button"
@@ -29,6 +31,7 @@
     ></button>
     <div
       class="pointer-events-auto relative mx-4 flex w-[320px] max-w-full flex-col rounded-xl border border-quiet-border bg-[var(--q-bg)] shadow-xl"
+      transition:scale={{ duration: 150, start: 0.96 }}
       role="dialog"
       aria-modal="true"
       aria-label={title}

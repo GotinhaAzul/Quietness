@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { fade, scale } from 'svelte/transition';
   import { focusTrap } from '$lib/utils/focusTrap';
   import { invoke } from '@tauri-apps/api/core';
   import { moveTarget, type MoveTarget } from '$lib/stores/move';
@@ -104,6 +105,7 @@
 {#if open && target}
   <div
     class="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
+    transition:fade={{ duration: 150 }}
     role="dialog"
     aria-modal="true"
     aria-label="Move {target.type}"
@@ -114,6 +116,7 @@
   >
     <div
       class="mx-4 flex w-[360px] max-w-full flex-col rounded-xl border border-quiet-border bg-[var(--q-bg)] shadow-xl"
+      transition:scale={{ duration: 150, start: 0.96 }}
       style="max-height: 70vh;"
     >
       <div class="flex items-center justify-between border-b border-quiet-border/60 px-5 py-3">

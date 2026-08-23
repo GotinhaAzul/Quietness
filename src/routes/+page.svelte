@@ -10,7 +10,7 @@
   import { viewMode, type ViewMode } from '$lib/stores/editor';
   import { settings } from '$lib/stores/settings';
   import { userThemes } from '$lib/stores/userThemes';
-  import { focusSearchInput, showNewNoteInput, showNewFolderInput } from '$lib/stores/ui';
+  import { focusSearchInput, showNewNoteInput, showNewFolderInput, sidebarCollapsed } from '$lib/stores/ui';
   import { moveTarget } from '$lib/stores/move';
   import { reconcileIntegrity } from '$lib/stores/integrity';
   import { loadLibrarySnapshot } from '$lib/stores/library';
@@ -66,10 +66,8 @@
         e.preventDefault();
         showSettings = true;
       } else if (e.key === 'F' || e.key === 'f') {
-        if (e.shiftKey) {
-          e.preventDefault();
-          focusSearchInput.update(n => n + 1);
-        }
+        e.preventDefault();
+        focusSearchInput.update(n => n + 1);
       } else if (e.key === 'E' && e.shiftKey) {
         e.preventDefault();
         viewMode.set('edit');
@@ -316,9 +314,30 @@
 </svelte:head>
 
 <div class="flex h-screen min-h-0 overflow-hidden">
-  <Sidebar />
+  {#if appReady}
+    <Sidebar />
+  {:else}
+    <aside class="flex shrink-0 flex-col border-r border-quiet-chrome bg-quiet-sidebar-bg {$sidebarCollapsed ? 'w-10' : 'w-64'}" aria-hidden="true">
+      {#if !$sidebarCollapsed}
+        <div class="border-b border-quiet-chrome px-4 py-4">
+          <div class="q-skeleton h-3.5 w-24 rounded"></div>
+          <div class="q-skeleton mt-2 h-2.5 w-32 rounded"></div>
+        </div>
+        <div class="px-3 pt-3 pb-1">
+          <div class="q-skeleton h-8 w-full rounded-md"></div>
+        </div>
+        <div class="flex-1 space-y-2.5 overflow-hidden px-3 py-2" aria-hidden="true">
+          {#each [70, 55, 62, 45, 66, 52] as width}
+            <div class="q-skeleton h-4 rounded" style="width: {width}%"></div>
+          {/each}
+        </div>
+      {/if}
+    </aside>
+  {/if}
 
   <main class="flex min-h-0 flex-1 flex-col overflow-hidden">
+    {#if appReady}
+      <div class="q-app-enter flex min-h-0 flex-1 flex-col overflow-hidden">
     <div class="flex items-center justify-between border-b border-quiet-chrome px-6 py-3">
       <div class="flex min-w-0 items-center gap-3">
         {#if $currentNote}
@@ -405,6 +424,22 @@
         </div>
       </div>
     {/if}
+      </div>
+    {:else}
+      <div class="flex min-h-0 flex-1 flex-col" aria-hidden="true">
+        <div class="flex items-center justify-between border-b border-quiet-chrome px-6 py-3">
+          <div class="q-skeleton h-3 w-48 rounded"></div>
+          <div class="q-skeleton h-6 w-24 rounded-md"></div>
+        </div>
+        <div class="flex-1 p-6" aria-hidden="true">
+          <div class="q-skeleton h-4 w-2/3 rounded"></div>
+          <div class="q-skeleton mt-3 h-4 w-full rounded"></div>
+          <div class="q-skeleton mt-3 h-4 w-5/6 rounded"></div>
+          <div class="q-skeleton mt-3 h-4 w-3/4 rounded"></div>
+          <div class="q-skeleton mt-3 h-4 w-4/5 rounded"></div>
+        </div>
+      </div>
+    {/if}
   </main>
 
   <div class="fixed bottom-4 right-4 z-50 flex flex-col gap-2" aria-live="polite" aria-relevant="additions" aria-atomic="false">
@@ -475,3 +510,33 @@
   {notesDir}
   onclose={() => (showCommandPalette = false)}
 />
+
+<style>
+  .q-skeleton {
+    background: var(--q-surface);
+    animation: q-skeleton-pulse 2.2s ease-in-out infinite;
+  }
+
+  @keyframes q-skeleton-pulse {
+    0%,
+    100% {
+      opacity: 0.55;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  .q-app-enter {
+    animation: q-app-fade 180ms ease-out;
+  }
+
+  @keyframes q-app-fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+</style>
