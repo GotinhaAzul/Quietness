@@ -4,9 +4,8 @@
   import { folders, selectedFolder, createFolder, deleteFolder, renameFolder } from '$lib/stores/folders';
   import type { FolderEntry } from '$lib/stores/folders';
   import { notes, currentNote, loadNote, deleteNote } from '$lib/stores/notes';
-  import type { NoteEntry } from '$lib/stores/notes';
   import { searchQuery, searchScope, searchResultCount, showNewNoteInput, showNewFolderInput } from '$lib/stores/ui';
-  import type { SearchScope } from '$lib/stores/ui';
+  import type { SearchScope, SearchMatch } from '$lib/stores/ui';
   import { showError } from '$lib/stores/errors';
   import { runAfterModalDismiss, waitForNextPaint } from '$lib/utils/confirmedAction';
   import { resolveRenameRequest, buildRenamedNotePath } from '$lib/utils/noteRename';
@@ -22,8 +21,11 @@
   let expandedPaths = $state<Set<string>>(new Set());
 
   let activeMenu = $state<string | null>(null);
-  let searchResults = $state<NoteEntry[]>([]);
+  let searchResults = $state<SearchMatch[]>([]);
   let searchRequestId = 0;
+
+  let nameMatches = $derived(searchResults.filter((r) => !r.contentMatch));
+  let contentMatches = $derived(searchResults.filter((r) => r.contentMatch));
 
   let renamingNotePath = $state<string | null>(null);
   let renameNoteValue = $state('');
@@ -111,7 +113,7 @@
     else if (scope === 'current-folder') scopePath = $selectedFolder ?? undefined;
     void (async () => {
       try {
-        const entries = await invoke<NoteEntry[]>('search_notes', { query: q, scope, scopePath });
+        const entries = await invoke<SearchMatch[]>('search_notes', { query: q, scope, scopePath });
         if (id !== searchRequestId) return;
         searchResults = entries;
         searchResultCount.set(entries.length);
@@ -372,7 +374,7 @@
       {#if searchResults.length === 0}
         <div class="py-2 text-xs text-quiet-faded">No notes found</div>
       {:else}
-        {#each searchResults as entry (entry.path)}
+        {#snippet searchResultRow(entry: SearchMatch)}
           <div class="group relative flex items-center">
             <button
               role="treeitem"
@@ -383,7 +385,7 @@
               <span class="quiet-sidebar-icon quiet-sidebar-icon-note"></span>
               <span class="truncate">{entry.name}</span>
             </button>
-            <div class="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 transition-all group-hover:opacity-100">
+            <div class="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 transition-all group-hover:opacity-100" class:rounded-md={activeMenu === entry.path} class:bg-quiet-sidebar-bg={activeMenu === entry.path} class:pl-1.5={activeMenu === entry.path}>
               {#if activeMenu === entry.path}
                 <div class="flex items-center gap-0.5">
                   <button
@@ -423,7 +425,18 @@
               {/if}
             </div>
           </div>
+        {/snippet}
+
+        {#each nameMatches as entry (entry.path)}
+          {@render searchResultRow(entry)}
         {/each}
+
+        {#if contentMatches.length > 0}
+          <div class="px-3 pb-1 pt-2 text-[10px] font-medium uppercase tracking-wider text-quiet-faded">Content matches</div>
+          {#each contentMatches as entry (entry.path)}
+            {@render searchResultRow(entry)}
+          {/each}
+        {/if}
       {/if}
     </div>
   {:else}
@@ -467,7 +480,7 @@
                 <span class="quiet-sidebar-icon quiet-sidebar-icon-note"></span>
                 <span class="truncate">{node.name}</span>
               </button>
-              <div class="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 transition-all group-hover:opacity-100">
+              <div class="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 transition-all group-hover:opacity-100" class:rounded-md={activeMenu === node.path} class:bg-quiet-sidebar-bg={activeMenu === node.path} class:pl-1.5={activeMenu === node.path}>
                 {#if activeMenu === node.path}
                   <div class="flex items-center gap-0.5">
                     <button
@@ -546,7 +559,7 @@
               {/if}
             </button>
             {#if renamingFolderPath !== node.path}
-              <div class="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 transition-all group-hover:opacity-100">
+              <div class="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 transition-all group-hover:opacity-100" class:rounded-md={activeMenu === node.path} class:bg-quiet-sidebar-bg={activeMenu === node.path} class:pl-1.5={activeMenu === node.path}>
                 {#if activeMenu === node.path}
                   <div class="flex items-center gap-0.5">
                     <button

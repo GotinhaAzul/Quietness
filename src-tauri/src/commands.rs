@@ -1,6 +1,6 @@
 use crate::fs::{
     self, FolderEntry, HomeFolderStatus, IntegrityRepairReport, LibrarySnapshot, NoteEntry,
-    Settings, TemplateEntry, TrashEntry, UserThemeEntry,
+    SearchMatch, Settings, TemplateEntry, TrashEntry, UserThemeEntry,
 };
 use tauri::AppHandle;
 
@@ -87,7 +87,7 @@ pub async fn search_notes(
     query: String,
     scope: Option<String>,
     scope_path: Option<String>,
-) -> Vec<NoteEntry> {
+) -> Vec<SearchMatch> {
     let scope = scope.unwrap_or_else(|| "all".to_string());
     fs::search_notes(&app_handle, &query, &scope, scope_path.as_deref()).await
 }

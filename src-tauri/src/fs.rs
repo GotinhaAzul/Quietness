@@ -12,6 +12,14 @@ pub struct NoteEntry {
     pub path: String,
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SearchMatch {
+    pub name: String,
+    pub path: String,
+    pub content_match: bool,
+}
+
 #[derive(Debug, Serialize)]
 pub struct FolderEntry {
     pub name: String,
@@ -457,9 +465,7 @@ pub async fn search_notes(
     query: &str,
     scope: &str,
     scope_path: Option<&str>,
-) -> Vec<NoteEntry> {
-    let query_lower = query.to_lowercase();
-
+) -> Vec<SearchMatch> {
     match scope {
         "current-note" => {
             let path = match scope_path {
@@ -470,27 +476,17 @@ pub async fn search_notes(
                 Ok(p) => p.to_string_lossy().to_string(),
                 Err(_) => return Vec::new(),
             };
-            let query_for_content = query_lower.clone();
-            let result = tauri::async_runtime::spawn_blocking(move || {
-                if let Ok(content) = fs::read_to_string(&path_owned) {
-                    if content.to_lowercase().contains(&query_for_content) {
-                        let path_buf = PathBuf::from(&path_owned);
-                        let name = path_buf
-                            .file_stem()
-                            .unwrap_or_default()
-                            .to_string_lossy()
-                            .to_string();
-                        return Some(NoteEntry {
-                            name,
-                            path: path_owned,
-                        });
-                    }
-                }
-                None
+            let q = query.to_string();
+            tauri::async_runtime::spawn_blocking(move || {
+                let name = PathBuf::from(&path_owned)
+                    .file_stem()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .to_string();
+                search_entries(vec![NoteEntry { name, path: path_owned }], q)
             })
             .await
-            .unwrap_or(None);
-            result.into_iter().collect()
+            .unwrap_or_default()
         }
         "current-folder" => {
             let folder_path = scope_path.unwrap_or("");
@@ -503,83 +499,63 @@ pub async fn search_notes(
                     Err(_) => return Vec::new(),
                 }
             };
-            let dir_owned = dir.to_string_lossy().to_string();
-            let query_for_content = query_lower.clone();
-
+            let q = query.to_string();
             tauri::async_runtime::spawn_blocking(move || {
-                let mut results = Vec::new();
-                let dir_path = PathBuf::from(&dir_owned);
-
-                if let Ok(entries) = fs::read_dir(&dir_path) {
-                    for entry in entries.flatten() {
+                let mut entries = Vec::new();
+                if let Ok(read) = fs::read_dir(&dir) {
+                    for entry in read.flatten() {
                         let path = entry.path();
                         if path.is_file() && path.extension().map_or(false, |ext| ext == "md") {
-                            let name = path
-                                .file_stem()
-                                .unwrap_or_default()
-                                .to_string_lossy()
-                                .to_string();
-                            let path_str = path.to_string_lossy().to_string();
-
-                            if name.to_lowercase().contains(&query_lower) {
-                                results.push(NoteEntry {
-                                    name,
-                                    path: path_str,
-                                });
-                                continue;
-                            }
-
-                            if let Ok(content) = fs::read_to_string(&path) {
-                                if content.to_lowercase().contains(&query_for_content) {
-                                    results.push(NoteEntry {
-                                        name,
-                                        path: path_str,
-                                    });
-                                }
-                            }
+                            entries.push(NoteEntry {
+                                name: path
+                                    .file_stem()
+                                    .unwrap_or_default()
+                                    .to_string_lossy()
+                                    .to_string(),
+                                path: path.to_string_lossy().to_string(),
+                            });
                         }
                     }
                 }
-
-                results.sort_by_cached_key(|a| a.name.to_lowercase());
-                results
+                search_entries(entries, q)
             })
             .await
             .unwrap_or_default()
         }
         _ => {
-            let mut results: Vec<NoteEntry> = Vec::new();
-            let mut candidates: Vec<NoteEntry> = Vec::new();
-            for entry in list_notes(app_handle) {
-                let name_lower = entry.name.to_lowercase();
-                if name_lower.contains(&query_lower) {
-                    results.push(entry);
-                } else {
-                    candidates.push(entry);
-                }
-            }
-
-            if !candidates.is_empty() {
-                let query_for_content = query_lower.clone();
-                let content_matches = tauri::async_runtime::spawn_blocking(move || {
-                    candidates
-                        .into_iter()
-                        .filter(|e| {
-                            fs::read_to_string(&e.path)
-                                .ok()
-                                .map_or(false, |c| c.to_lowercase().contains(&query_for_content))
-                        })
-                        .collect::<Vec<NoteEntry>>()
-                })
+            let candidates = list_notes(app_handle);
+            let q = query.to_string();
+            tauri::async_runtime::spawn_blocking(move || search_entries(candidates, q))
                 .await
-                .unwrap_or_default();
-                results.extend(content_matches);
-            }
-
-            results.sort_by_cached_key(|a| a.name.to_lowercase());
-            results
+                .unwrap_or_default()
         }
     }
+}
+
+/// Classifies notes as title matches (`content_match: false`) or content-only
+/// matches (`content_match: true`), sorted by name.
+fn search_entries(entries: Vec<NoteEntry>, query: String) -> Vec<SearchMatch> {
+    let query_lower = query.to_lowercase();
+    let mut results = Vec::new();
+    for entry in entries {
+        if entry.name.to_lowercase().contains(&query_lower) {
+            results.push(SearchMatch {
+                name: entry.name,
+                path: entry.path,
+                content_match: false,
+            });
+        } else if fs::read_to_string(&entry.path)
+            .map_or(false, |c| c.to_lowercase().contains(&query_lower))
+        {
+            results.push(SearchMatch {
+                name: entry.name,
+                path: entry.path,
+                content_match: true,
+            });
+        }
+    }
+    results.sort_by_cached_key(|a| a.name.to_lowercase());
+    results
 }
 
 pub fn list_notes_in_folder(
@@ -2077,6 +2053,54 @@ mod tests {
         ));
         fs::create_dir_all(&dir).unwrap();
         dir
+    }
+
+    // ── Search tests ──
+
+    fn note_entry(base: &Path, name: &str, body: &str) -> NoteEntry {
+        let path = base.join(format!("{}.md", name));
+        fs::write(&path, body).unwrap();
+        NoteEntry {
+            name: name.to_string(),
+            path: path.to_string_lossy().to_string(),
+        }
+    }
+
+    #[test]
+    fn search_entries_distinguishes_title_and_content_matches() {
+        let base = unique_test_dir("search-entries");
+        let entries = vec![
+            note_entry(&base, "Batata", "unrelated body"),
+            note_entry(&base, "Receitas", "hoje comemos batata assada"),
+            note_entry(&base, "Outro", "nada relevante aqui"),
+        ];
+
+        let results = search_entries(entries, "batata".to_string());
+
+        assert_eq!(results.len(), 2);
+        assert_eq!(results[0].name, "Batata");
+        assert!(!results[0].content_match);
+        assert_eq!(results[1].name, "Receitas");
+        assert!(results[1].content_match);
+
+        let _ = fs::remove_dir_all(base);
+    }
+
+    #[test]
+    fn search_entries_matches_case_insensitive_and_skips_non_matching() {
+        let base = unique_test_dir("search-case");
+        let entries = vec![note_entry(&base, "Planejamento", "todo list")];
+
+        let results = search_entries(entries, "PLANEJAMENTO".to_string());
+
+        assert_eq!(results.len(), 1);
+        assert!(!results[0].content_match);
+
+        let entries = vec![note_entry(&base, "Outro", "texto qualquer")];
+        let results = search_entries(entries, "inexistente".to_string());
+        assert!(results.is_empty());
+
+        let _ = fs::remove_dir_all(base);
     }
 
     // ── Template tests ──
