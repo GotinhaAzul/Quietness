@@ -16,11 +16,9 @@
   import { closeBrackets } from '@codemirror/autocomplete';
   import { onMount } from 'svelte';
   import { settings } from '$lib/stores/settings';
-  import { currentNote, notes, bumpNotesRevision } from '$lib/stores/notes';
-  import { showError } from '$lib/stores/errors';
+  import { currentNote, notes, renameNote } from '$lib/stores/notes';
   import { editorInsert } from '$lib/stores/editor';
-  import { invoke } from '@tauri-apps/api/core';
-  import { buildRenamedNotePath, resolveRenameRequest } from '$lib/utils/noteRename';
+  import { resolveRenameRequest } from '$lib/utils/noteRename';
   import { petCursorCoords, petLastTypingTime } from '$lib/stores/pet';
   import { createPerfTimer, incrementCounter, logNoteStatesSize } from '$lib/utils/perf';
 
@@ -364,18 +362,13 @@
     titleRenamePending = true;
     titleEditing = false;
     try {
-      await invoke('rename_note', { oldPath: note.path, newName: cleanName });
-      const newPath = buildRenamedNotePath(note.path, cleanName);
+      const newPath = await renameNote(note.path, cleanName);
+      if (!newPath) return;
       const savedState = noteStates.get(note.path);
       if (savedState) {
         noteStates.delete(note.path);
         noteStates.set(newPath, savedState);
       }
-      currentNote.update(n => n ? { ...n, name: cleanName, path: newPath } : n);
-      notes.update(list => list.map(n => n.path === note.path ? { ...n, name: cleanName, path: newPath } : n));
-      bumpNotesRevision();
-    } catch (e) {
-      showError(`Failed to rename note: ${e}`);
     } finally {
       titleRenamePending = false;
     }

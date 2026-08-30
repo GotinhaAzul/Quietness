@@ -3,12 +3,12 @@
   import { invoke } from '@tauri-apps/api/core';
   import { folders, selectedFolder, createFolder, deleteFolder, renameFolder } from '$lib/stores/folders';
   import type { FolderEntry } from '$lib/stores/folders';
-  import { notes, currentNote, loadNote, deleteNote } from '$lib/stores/notes';
+  import { notes, currentNote, loadNote, deleteNote, renameNote } from '$lib/stores/notes';
   import { searchQuery, searchScope, searchResultCount, showNewNoteInput, showNewFolderInput } from '$lib/stores/ui';
   import type { SearchScope, SearchMatch } from '$lib/stores/ui';
   import { showError } from '$lib/stores/errors';
   import { runAfterModalDismiss, waitForNextPaint } from '$lib/utils/confirmedAction';
-  import { resolveRenameRequest, buildRenamedNotePath } from '$lib/utils/noteRename';
+  import { resolveRenameRequest } from '$lib/utils/noteRename';
   import { resolveFolderRenameRequest } from '$lib/utils/renameFolder';
   import { buildExplorerTree, notesDirNeedsRefresh, getNoteRelativeFolder } from '$lib/utils/explorerTree';
   import type { ExplorerNode, ExplorerFolderNode, ExplorerNoteNode } from '$lib/types/explorer';
@@ -28,6 +28,7 @@
   let contentMatches = $derived(searchResults.filter((r) => r.contentMatch));
 
   let renamingNotePath = $state<string | null>(null);
+  let renamingNoteOrigName = $state('');
   let renameNoteValue = $state('');
   let renameNoteInput = $state<HTMLInputElement | undefined>();
   let renameNotePending = $state(false);
@@ -227,13 +228,13 @@
   function startRenameNote(path: string, currentName: string, e: Event) {
     e.stopPropagation();
     renamingNotePath = path;
+    renamingNoteOrigName = currentName;
     renameNoteValue = currentName;
   }
 
   async function handleRenameNote(oldPath: string) {
-    const currentName = renameNoteValue;
     const cleanName = resolveRenameRequest({
-      currentName: currentName,
+      currentName: renamingNoteOrigName,
       requestedName: renameNoteValue,
       isSubmitting: renameNotePending,
     });
@@ -241,17 +242,12 @@
       if (!renameNotePending) renamingNotePath = null;
       return;
     }
-    const newPath = buildRenamedNotePath(oldPath, cleanName);
     renameNotePending = true;
+    renamingNotePath = null;
     try {
-      await invoke('rename_note', { oldPath, newName: cleanName });
-      notes.update(ns => ns.map(n => n.path === oldPath ? { ...n, name: cleanName, path: newPath } : n));
-      currentNote.update(n => n && n.path === oldPath ? { ...n, name: cleanName, path: newPath } : n);
-    } catch (e) {
-      showError(`Failed to rename note: ${e}`);
+      await renameNote(oldPath, cleanName);
     } finally {
       renameNotePending = false;
-      renamingNotePath = null;
     }
   }
 

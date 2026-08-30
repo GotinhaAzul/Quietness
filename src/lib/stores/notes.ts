@@ -5,6 +5,7 @@ import { shouldRestoreNoteAfterDeleteFailure } from '$lib/utils/noteCrudRecovery
 import { showError } from '$lib/stores/errors';
 import { reconcileIntegrity } from '$lib/stores/integrity';
 import { loadFolders } from '$lib/stores/folders';
+import { buildRenamedNotePath } from '$lib/utils/noteRename';
 
 export interface NoteEntry {
   name: string;
@@ -79,6 +80,29 @@ export async function saveNote(path: string, content: string): Promise<void> {
       await reconcileIntegrity('save-failed');
     }
     showError(`Failed to save note: ${e}`);
+  }
+}
+
+export async function renameNote(oldPath: string, newName: string): Promise<string | null> {
+  const active = get(currentNote);
+  if (active && isSameNotePath(active.path, oldPath) && !(await saveCurrentNote())) {
+    return null;
+  }
+
+  try {
+    await invoke('rename_note', { oldPath, newName });
+    const newPath = buildRenamedNotePath(oldPath, newName);
+    notes.update(list => list.map(note =>
+      isSameNotePath(note.path, oldPath) ? { ...note, name: newName, path: newPath } : note
+    ));
+    currentNote.update(note =>
+      note && isSameNotePath(note.path, oldPath) ? { ...note, name: newName, path: newPath } : note
+    );
+    bumpNotesRevision();
+    return newPath;
+  } catch (e) {
+    showError(`Failed to rename note: ${e}`);
+    return null;
   }
 }
 
