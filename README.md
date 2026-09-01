@@ -238,6 +238,28 @@ npm run dev:web
 npm run tauri build
 ```
 
+### Linux
+
+The manual **Linux build** workflow in GitHub Actions builds and checks the
+project on Ubuntu 22.04, then provides x86_64 AppImage and Debian packages as a
+downloadable workflow artifact.
+
+Run it from **Actions → Linux build → Run workflow**. After it finishes,
+download the `quietness-linux-x86_64` artifact from the workflow run.
+
+Run the AppImage:
+
+```bash
+chmod +x Quietness_*.AppImage
+./Quietness_*.AppImage
+```
+
+Install the Debian package:
+
+```bash
+sudo apt install ./Quietness_*.deb
+```
+
 ## License
 
 MIT
