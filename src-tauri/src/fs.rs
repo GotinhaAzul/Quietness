@@ -1734,20 +1734,23 @@ mod tests {
 
     #[test]
     fn rejects_absolute_paths_outside_configured_base() {
-        let base = Path::new("C:/Quietness Notes");
+        let base = unique_test_dir("absolute-path-base");
+        let outside = base.parent().unwrap().join("Other/Plan.md");
 
-        let result = resolve_path_under_base(base, "D:/Other/Plan.md");
+        let result = resolve_path_under_base(&base, &outside.to_string_lossy());
 
         assert!(result.is_err());
+        let _ = fs::remove_dir_all(base);
     }
 
     #[test]
     fn rejects_relative_traversal_outside_configured_base() {
-        let base = Path::new("C:/Quietness Notes");
+        let base = unique_test_dir("relative-path-base");
 
-        let result = resolve_path_under_base(base, "../Other/Plan.md");
+        let result = resolve_path_under_base(&base, "../Other/Plan.md");
 
         assert!(result.is_err());
+        let _ = fs::remove_dir_all(base);
     }
 
     #[test]
