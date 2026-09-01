@@ -240,12 +240,8 @@ npm run tauri build
 
 ### Linux
 
-The manual **Linux build** workflow in GitHub Actions builds and checks the
-project on Ubuntu 22.04, then provides x86_64 AppImage and Debian packages as a
-downloadable workflow artifact.
-
-Run it from **Actions → Linux build → Run workflow**. After it finishes,
-download the `quietness-linux-x86_64` artifact from the workflow run.
+Download the x86_64 AppImage or Debian package from the
+[latest GitHub release](https://github.com/GotinhaAzul/Quietness/releases/latest).
 
 Run the AppImage:
 
@@ -258,6 +254,24 @@ Install the Debian package:
 
 ```bash
 sudo apt install ./Quietness_*.deb
+```
+
+### Windows
+
+Download and run the x86_64 NSIS installer (`.exe`) from the
+[latest GitHub release](https://github.com/GotinhaAzul/Quietness/releases/latest).
+
+Release builds are currently unsigned, so Windows may display a SmartScreen
+warning.
+
+### Publishing a release
+
+The release workflow builds Linux and Windows installers and attaches them to
+the GitHub release whose version matches `tauri.conf.json`:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
 ```
 
 ## License
