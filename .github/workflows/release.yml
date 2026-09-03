@@ -33,7 +33,7 @@ jobs:
         if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xdg-utils
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xdg-utils squashfs-tools wget
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -61,20 +61,39 @@ jobs:
       - name: Run Rust tests
         run: cargo test --locked --manifest-path src-tauri/Cargo.toml
 
-      - name: Build and publish release
+      - name: Build app bundles
         uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: v__VERSION__
-          releaseName: Quietness v__VERSION__
-          releaseBody: |
+          args: ${{ matrix.args }}
+
+      - name: Strip bundled Wayland libraries from AppImage (Linux)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: bash scripts/fix-appimage.sh
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Quietness ${{ github.ref_name }}
+          body: |
             Quietness desktop installers.
 
             - Linux x86_64: AppImage or Debian package
             - Windows x86_64: NSIS installer (.exe)
 
             These builds are not code-signed and may show an operating-system warning.
-          releaseDraft: false
+          draft: false
           prerelease: false
-          args: ${{ matrix.args }}
+          generate_release_notes: false
+          fail_on_unmatched_files: false
+          files: |
+            src-tauri/target/release/bundle/**/*.AppImage
+            src-tauri/target/release/bundle/**/*.deb
+            src-tauri/target/release/bundle/**/*.rpm
+            src-tauri/target/release/bundle/**/*.exe
+            src-tauri/target/release/bundle/**/*.msi
+            src-tauri/target/release/bundle/**/*.sig
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
